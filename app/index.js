@@ -1,5 +1,9 @@
 require("dotenv").config();
 
+require("http")
+  .createServer((req, res) => res.end("Bot is running"))
+  .listen(process.env.PORT || 3000);
+
 const {
   Client,
   GatewayIntentBits,
