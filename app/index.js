@@ -107,9 +107,8 @@ function createButtons(event, locked = false, userId = null) {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("cancel_run")
-        .setLabel("🛑 Cancel Run")
-        .setStyle(ButtonStyle.Danger)
-        .setDisabled(false),
+        .setLabel("🛑 Cancel Run (Host only)")
+        .setStyle(ButtonStyle.Danger),
     ),
   );
 
@@ -262,36 +261,6 @@ client.on("interactionCreate", async (interaction) => {
       }
 
       cooldowns.set(userId, now);
-
-      // ======================
-      // DONE BUTTON
-      // ======================
-      if (interaction.customId === "cancel_role") {
-        if (userId !== event.hostId) {
-          return interaction.reply({
-            content: "❌ Hanya host!",
-            ephemeral: true,
-          });
-        }
-
-        const totalUsers = Object.keys(event.users).length;
-
-        if (totalUsers < MAX_SLOT) {
-          return interaction.reply({
-            content: "❌ Belum penuh!",
-            ephemeral: true,
-          });
-        }
-
-        event.isDone = true;
-
-        await updateMessage(interaction.message, event, true);
-
-        return interaction.reply({
-          content: "✅ Event selesai!",
-          ephemeral: true,
-        });
-      }
 
       if (interaction.customId === "cancel_my_role") {
         const currentRole = event.users[userId];
