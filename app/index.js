@@ -177,8 +177,13 @@ client.on("interactionCreate", async (interaction) => {
         const time = now.toLocaleTimeString("id-ID", {
           hour: "2-digit",
           minute: "2-digit",
+          timeZone: "Asia/Jakarta",
         });
-        const date = now.toLocaleDateString("id-ID");
+        const date = now.toLocaleDateString("id-ID", {
+          timeZone: "Asia/Jakarta",
+        });
+
+        const formattedName = eventName.toUpperCase().replace("_", " ");
 
         const event = {
           messageId: null,
@@ -187,6 +192,8 @@ client.on("interactionCreate", async (interaction) => {
           roles,
           users: {},
         };
+
+        event.title = `${formattedName} - ${date} ${time} WIB`;
 
         const msg = await interaction.channel.send({
           content: "Loading...",
