@@ -131,7 +131,7 @@ async function updateMessage(message, event) {
   const totalUsers = Object.keys(event.users).length;
   const maxSlot = 8;
 
-  let content = `📋 **${event.title}** (${totalUsers}/${maxSlot})\n`;
+  let content = `**${event.title}** (${totalUsers}/${maxSlot})\n`;
   content += `Host: <@${event.hostId}>\n`;
 
   if (event.locked) {
@@ -234,55 +234,87 @@ client.on("interactionCreate", async (interaction) => {
 
     // ── BUTTON ──
     if (interaction.isButton()) {
-      const event = activeEvents[interaction.message.id];
-      if (!event) return interaction.deferUpdate();
-
       const userId = interaction.user.id;
+      const event = activeEvents[interaction.message.id];
 
-      // Cooldown check (silent reject)
+      // --- FIX: 10062 Unknown Interaction ---
+      // Discord requires any interaction to be acknowledged within 3 seconds.
+      // The old code ran permission/cooldown checks BEFORE calling deferUpdate(),
+      // which could exceed the timeout on slow connections or cold starts.
+      //
+      // New approach: do all checks synchronously (no awaits), decide which
+      // response to send, then fire the single acknowledge call first.
+
+      // 1. Cooldown — check synchronously
       const now = Date.now();
       const last = cooldowns.get(userId) || 0;
-      if (now - last < COOLDOWN) {
+      const onCooldown = now - last < COOLDOWN;
+      if (!onCooldown) cooldowns.set(userId, now);
+
+      // 2. Permission/validation checks — resolved synchronously before any await
+      let ephemeralError = null;
+
+      if (!onCooldown && event) {
+        const hostOnlyButtons = ["toggle_lock", "cancel_run"];
+        if (
+          hostOnlyButtons.includes(interaction.customId) &&
+          userId !== event.hostId
+        ) {
+          ephemeralError =
+            interaction.customId === "toggle_lock"
+              ? "⛔ Only the host can lock/unlock the party."
+              : "⛔ Only the host can cancel the run.";
+        }
+
+        if (!ephemeralError && interaction.customId.startsWith("role_")) {
+          const roleName = interaction.customId.replace("role_", "");
+          const role = event.roles[roleName];
+          if (role) {
+            if (event.locked) {
+              ephemeralError = "🔒 The party is currently locked.";
+            } else if (role.users.length >= role.max) {
+              ephemeralError = `❌ **${roleName}** is already full!`;
+            } else {
+              const totalUsers = Object.keys(event.users).length;
+              const currentRole = event.users[userId];
+              if (!currentRole && totalUsers >= 8) {
+                ephemeralError = "❌ Party is full!";
+              }
+            }
+          }
+        }
+      }
+
+      // 3. Acknowledge FIRST — this is the only await before any logic
+      if (onCooldown || !event) {
         return interaction.deferUpdate();
       }
-      cooldowns.set(userId, now);
+      if (ephemeralError) {
+        return interaction.reply({ content: ephemeralError, ephemeral: true });
+      }
+      await interaction.deferUpdate();
+
+      // 4. State mutations — safe to do now that interaction is acknowledged
 
       // ── Cancel My Role ──
       if (interaction.customId === "cancel_my_role") {
-        await interaction.deferUpdate();
         const currentRole = event.users[userId];
         if (!currentRole) return;
-
         event.roles[currentRole].users = event.roles[currentRole].users.filter(
           (id) => id !== userId,
         );
         delete event.users[userId];
-
         return updateMessage(interaction.message, event);
       }
 
       // ── Toggle Lock (host only) ──
       if (interaction.customId === "toggle_lock") {
-        if (userId !== event.hostId) {
-          return interaction.reply({
-            content: "⛔ Only the host can lock/unlock the party.",
-            ephemeral: true,
-          });
-        }
-        await interaction.deferUpdate();
         event.locked = !event.locked;
         return updateMessage(interaction.message, event);
       }
 
       // ── Cancel Run (host only) ──
       if (interaction.customId === "cancel_run") {
-        if (userId !== event.hostId) {
-          return interaction.reply({
-            content: "⛔ Only the host can cancel the run.",
-            ephemeral: true,
-          });
-        }
-        await interaction.deferUpdate();
         delete activeEvents[event.messageId];
         return interaction.message.edit({
           content: "🛑 **Run cancelled by host.**",
@@ -293,45 +325,14 @@ client.on("interactionCreate", async (interaction) => {
       // ── Role Select ──
       const roleName = interaction.customId.replace("role_", "");
       const role = event.roles[roleName];
-      if (!role) return interaction.deferUpdate();
+      if (!role) return;
 
-      // Reject if party is locked
-      if (event.locked) {
-        return interaction.reply({
-          content: "🔒 The party is currently locked.",
-          ephemeral: true,
-        });
-      }
-
-      // Reject if role is full
-      if (role.users.length >= role.max) {
-        return interaction.reply({
-          content: `❌ **${roleName}** is already full!`,
-          ephemeral: true,
-        });
-      }
-
-      // Reject if party is full and user has no existing slot
-      const totalUsers = Object.keys(event.users).length;
-      const maxSlot = 8;
       const currentRole = event.users[userId];
-      if (!currentRole && totalUsers >= maxSlot) {
-        return interaction.reply({
-          content: "❌ Party is full!",
-          ephemeral: true,
-        });
-      }
-
-      await interaction.deferUpdate();
-
-      // Remove from old role if switching
       if (currentRole) {
         event.roles[currentRole].users = event.roles[currentRole].users.filter(
           (id) => id !== userId,
         );
       }
-
-      // Add to new role
       role.users.push(userId);
       event.users[userId] = roleName;
 
