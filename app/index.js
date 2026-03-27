@@ -1,9 +1,5 @@
 require("dotenv").config();
 
-require("http")
-  .createServer((req, res) => res.end("Bot is running"))
-  .listen(process.env.PORT || 3000);
-
 const {
   Client,
   GatewayIntentBits,
@@ -18,12 +14,15 @@ const client = new Client({
 
 const token = process.env.TOKEN;
 
-// ⏱️ COOLDOWN
+// ======================
+// CONFIG
+// ======================
 const COOLDOWN = 3000;
+const MAX_SLOT = 8;
 const cooldowns = new Map();
 
 // ======================
-// EVENT CONFIG
+// EVENT TEMPLATE
 // ======================
 const eventTemplates = {
   gdn_hc: {
@@ -33,11 +32,12 @@ const eventTemplates = {
       MC: { max: 1, users: [] },
       SM: { max: 1, users: [] },
       MT: { max: 1, users: [] },
+      EL: { max: 1, users: [] },
+      KALI: { max: 1, users: [] },
       ARCHER: { max: 2, users: [] },
       DPS: { max: 3, users: [] },
     },
   },
-
   gdn_cl: {
     roles: {
       FU: { max: 2, users: [] },
@@ -45,6 +45,8 @@ const eventTemplates = {
       MC: { max: 1, users: [] },
       SM: { max: 1, users: [] },
       MT: { max: 1, users: [] },
+      EL: { max: 1, users: [] },
+      KALI: { max: 1, users: [] },
       ARCHER: { max: 2, users: [] },
       DPS: { max: 3, users: [] },
     },
@@ -66,8 +68,7 @@ function createButtons(event, locked = false, userId = null) {
 
   for (let roleName in event.roles) {
     const role = event.roles[roleName];
-    const totalUsers = Object.keys(event.users).length;
-    const isFull = totalUsers >= 8;
+    const isFull = role.users.length >= role.max;
 
     row.addComponents(
       new ButtonBuilder()
@@ -78,7 +79,7 @@ function createButtons(event, locked = false, userId = null) {
             : roleName,
         )
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(locked || isFull),
+        .setDisabled(locked || event.isDone || isFull),
     );
 
     count++;
@@ -90,14 +91,18 @@ function createButtons(event, locked = false, userId = null) {
 
   if (row.components.length > 0) rows.push(row);
 
-  // CANCEL BUTTON (host only)
+  // CANCEL = DONE BUTTON
   rows.push(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("cancel_role")
-        .setLabel("❌ Cancel")
-        .setStyle(ButtonStyle.Danger)
-        .setDisabled(locked || event.hostId !== userId),
+        .setLabel("✅ Done")
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(
+          event.isDone ||
+            event.hostId !== userId ||
+            Object.keys(event.users).length < MAX_SLOT,
+        ),
     ),
   );
 
@@ -108,14 +113,16 @@ function createButtons(event, locked = false, userId = null) {
 // UPDATE MESSAGE
 // ======================
 async function updateMessage(message, event, locked = false) {
-  let content = `📋 **${event.title}**\n\n`;
+  const totalUsers = Object.keys(event.users).length;
+
+  let content = `📋 **${event.title} (${totalUsers}/${MAX_SLOT})**\n`;
+  content += `Started by: <@${event.hostId}>\n\n`;
 
   for (let roleName in event.roles) {
     const role = event.roles[roleName];
     const count = role.users.length;
-    const isMulti = role.max > 1;
 
-    const slotText = isMulti && count > 0 ? ` (${count}/${role.max})` : "";
+    const slotText = role.max > 1 && count > 0 ? ` (${count}/${role.max})` : "";
 
     if (count > 0) {
       const mentions = role.users.map((id) => `<@${id}>`).join(", ");
@@ -125,11 +132,15 @@ async function updateMessage(message, event, locked = false) {
     }
   }
 
-  if (locked) content += "\n🔒 **FULL / LOCKED**";
+  if (event.isDone) {
+    content += "\n✅ **SELESAI**";
+  } else if (totalUsers >= MAX_SLOT) {
+    content += "\n🔒 **FULL**";
+  }
 
   await message.edit({
     content,
-    components: createButtons(event, locked),
+    components: createButtons(event, locked, event.hostId),
   });
 }
 
@@ -159,31 +170,35 @@ client.on("interactionCreate", async (interaction) => {
           return interaction.editReply("❌ Event tidak ditemukan");
         }
 
-        // clone template
+        // clone roles
         const roles = {};
         for (let r in template.roles) {
           roles[r] = { max: template.roles[r].max, users: [] };
         }
 
-        // cek total slot
         const totalSlot = Object.values(roles).reduce(
           (sum, r) => sum + r.max,
           0,
         );
 
-        if (totalSlot < 8) {
+        if (totalSlot < MAX_SLOT) {
           return interaction.editReply(
-            `❌ Total slot ${totalSlot}, minimal 8!`,
+            `❌ Total slot ${totalSlot}, minimal ${MAX_SLOT}!`,
           );
         }
 
         const now = new Date();
+
         const time = now.toLocaleTimeString("id-ID", {
           hour: "2-digit",
           minute: "2-digit",
           timeZone: "Asia/Jakarta",
         });
+
         const date = now.toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
           timeZone: "Asia/Jakarta",
         });
 
@@ -192,12 +207,11 @@ client.on("interactionCreate", async (interaction) => {
         const event = {
           messageId: null,
           hostId: interaction.user.id,
-          title: `${eventName.toUpperCase()} - ${date} ${time}`,
+          title: `${formattedName} - ${date} ${time} WIB`,
           roles,
           users: {},
+          isDone: false,
         };
-
-        event.title = `${formattedName} - ${date} ${time} WIB`;
 
         const msg = await interaction.channel.send({
           content: "Loading...",
@@ -213,7 +227,7 @@ client.on("interactionCreate", async (interaction) => {
     }
 
     // ======================
-    // BUTTON HANDLER
+    // BUTTON
     // ======================
     if (interaction.isButton()) {
       const event = activeEvents[interaction.message.id];
@@ -221,7 +235,15 @@ client.on("interactionCreate", async (interaction) => {
 
       const userId = interaction.user.id;
 
-      // cooldown
+      // ❌ kalau sudah selesai
+      if (event.isDone) {
+        return interaction.reply({
+          content: "❌ Event sudah selesai!",
+          ephemeral: true,
+        });
+      }
+
+      // ⏱️ cooldown
       const now = Date.now();
       const last = cooldowns.get(userId) || 0;
 
@@ -235,25 +257,31 @@ client.on("interactionCreate", async (interaction) => {
       cooldowns.set(userId, now);
 
       // ======================
-      // CANCEL (HOST ONLY)
+      // DONE BUTTON
       // ======================
       if (interaction.customId === "cancel_role") {
         if (userId !== event.hostId) {
           return interaction.reply({
-            content: "❌ Hanya host yang bisa cancel!",
+            content: "❌ Hanya host!",
             ephemeral: true,
           });
         }
 
-        event.users = {};
-        for (let role in event.roles) {
-          event.roles[role].users = [];
+        const totalUsers = Object.keys(event.users).length;
+
+        if (totalUsers < MAX_SLOT) {
+          return interaction.reply({
+            content: "❌ Belum penuh!",
+            ephemeral: true,
+          });
         }
 
-        await updateMessage(interaction.message, event, false);
+        event.isDone = true;
+
+        await updateMessage(interaction.message, event, true);
 
         return interaction.reply({
-          content: "🛑 Event di-reset oleh host",
+          content: "✅ Event selesai!",
           ephemeral: true,
         });
       }
@@ -265,25 +293,25 @@ client.on("interactionCreate", async (interaction) => {
       const role = event.roles[roleName];
 
       const currentRole = event.users[userId];
-
-      // 🔒 HARD LIMIT 8
       const totalUsers = Object.keys(event.users).length;
 
-      if (!currentRole && totalUsers >= 8) {
+      // 🔒 hard limit 8
+      if (!currentRole && totalUsers >= MAX_SLOT) {
         return interaction.reply({
           content: "❌ Slot sudah penuh (8/8)!",
           ephemeral: true,
         });
       }
 
+      // ❌ role penuh
       if (role.users.length >= role.max) {
         return interaction.reply({
-          content: "❌ Role sudah penuh!",
+          content: "❌ Role penuh!",
           ephemeral: true,
         });
       }
 
-      // pindah role
+      // 🔁 pindah role
       if (currentRole) {
         const oldRole = event.roles[currentRole];
         oldRole.users = oldRole.users.filter((id) => id !== userId);
@@ -292,9 +320,7 @@ client.on("interactionCreate", async (interaction) => {
       role.users.push(userId);
       event.users[userId] = roleName;
 
-      const isFull = Object.values(event.roles).every(
-        (r) => r.users.length >= r.max,
-      );
+      const isFull = Object.keys(event.users).length >= MAX_SLOT;
 
       await updateMessage(interaction.message, event, isFull);
 
@@ -318,6 +344,13 @@ client.on("interactionCreate", async (interaction) => {
     }
   }
 });
+
+// ======================
+// RENDER PORT FIX (FREE)
+// ======================
+require("http")
+  .createServer((req, res) => res.end("OK"))
+  .listen(process.env.PORT || 3000);
 
 // ======================
 client.login(token);
