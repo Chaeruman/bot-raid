@@ -15,7 +15,7 @@ const client = new Client({
 const token = process.env.TOKEN;
 
 // ====================== CONFIG ======================
-const COOLDOWN = 3000; // ms between button presses per user
+const COOLDOWN = 1500; // ms between button presses per user
 
 // ====================== TEMPLATES ======================
 const eventTemplates = {
@@ -55,13 +55,6 @@ const activeEvents = {};
 const cooldowns = new Map();
 
 // ====================== HELPERS ======================
-
-/**
- * Calculate max party size from a roles object.
- */
-function getMaxSlot(roles) {
-  return Object.values(roles).reduce((sum, r) => sum + r.max, 0);
-}
 
 /**
  * Build Discord button rows from the event state.
@@ -136,7 +129,7 @@ function createButtons(event) {
  */
 async function updateMessage(message, event) {
   const totalUsers = Object.keys(event.users).length;
-  const maxSlot = getMaxSlot(event.roles);
+  const maxSlot = 8;
 
   let content = `📋 **${event.title}** (${totalUsers}/${maxSlot})\n`;
   content += `Host: <@${event.hostId}>\n`;
@@ -148,17 +141,31 @@ async function updateMessage(message, event) {
   }
 
   content += `\n`;
+  content += `\n`;
+
+  // Roles hidden from the display when nobody has picked them
+  const HIDE_IF_EMPTY = new Set(["KALI"]);
+
+  // Multi-slot roles that show a filled/max count badge
+  const PER_SLOT_DISPLAY = new Set(["ARCHER", "DPS"]);
 
   for (const roleName in event.roles) {
     const role = event.roles[roleName];
     const count = role.users.length;
-    const slotText = role.max > 1 ? ` (${count}/${role.max})` : "";
 
-    if (count > 0) {
+    // Hide optional roles when empty
+    if (count === 0 && HIDE_IF_EMPTY.has(roleName)) continue;
+
+    if (count === 0) {
+      content += `**${roleName}** — *(empty)*\n`;
+    } else if (PER_SLOT_DISPLAY.has(roleName) && role.max > 1) {
+      // e.g. DPS (2/3) — @user1, @user2
+      const mentions = role.users.map((id) => `<@${id}>`).join(", ");
+      content += `**${roleName}** (${count}/${role.max}) — ${mentions}\n`;
+    } else {
+      const slotText = role.max > 1 ? ` (${count}/${role.max})` : "";
       const mentions = role.users.map((id) => `<@${id}>`).join(", ");
       content += `**${roleName}**${slotText} — ${mentions}\n`;
-    } else {
-      content += `**${roleName}** — *(empty)*\n`;
     }
   }
 
