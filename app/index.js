@@ -355,13 +355,17 @@ client.on("interactionCreate", async (interaction) => {
   } catch (err) {
     console.error(err);
 
-    if (interaction.deferred) {
-      await interaction.editReply("❌ Error");
-    } else {
-      await interaction.reply({
-        content: "❌ Terjadi error",
-        ephemeral: true,
-      });
+    try {
+      if (interaction.deferred || interaction.replied) {
+        await interaction.editReply("❌ Terjadi error");
+      } else {
+        await interaction.reply({
+          content: "❌ Terjadi error",
+          ephemeral: true,
+        });
+      }
+    } catch (e) {
+      console.error("Failed to respond to interaction:", e);
     }
   }
 });
