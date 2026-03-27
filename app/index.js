@@ -141,7 +141,6 @@ async function updateMessage(message, event) {
   }
 
   content += `\n`;
-  content += `\n`;
 
   // Roles hidden from the display when nobody has picked them
   const HIDE_IF_EMPTY = new Set(["KALI"]);
@@ -314,7 +313,7 @@ client.on("interactionCreate", async (interaction) => {
 
       // Reject if party is full and user has no existing slot
       const totalUsers = Object.keys(event.users).length;
-      const maxSlot = getMaxSlot(event.roles);
+      const maxSlot = 8;
       const currentRole = event.users[userId];
       if (!currentRole && totalUsers >= maxSlot) {
         return interaction.reply({
