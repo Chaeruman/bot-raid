@@ -14,61 +14,70 @@ const client = new Client({
 
 const token = process.env.TOKEN;
 
-// ======================
-// CONFIG
-// ======================
-const COOLDOWN = 3000;
-const MAX_SLOT = 8;
-const cooldowns = new Map();
+// ====================== CONFIG ======================
+const COOLDOWN = 3000; // ms between button presses per user
 
-// ======================
-// EVENT TEMPLATE
-// ======================
+// ====================== TEMPLATES ======================
 const eventTemplates = {
   gdn_hc: {
+    label: "GDN HC",
     roles: {
-      FU: { max: 2, users: [] },
-      PR: { max: 1, users: [] },
-      MC: { max: 1, users: [] },
-      SM: { max: 1, users: [] },
-      MT: { max: 1, users: [] },
-      EL: { max: 1, users: [] },
-      KALI: { max: 1, users: [] },
-      ARCHER: { max: 2, users: [] },
-      DPS: { max: 3, users: [] },
+      FU: { max: 2 },
+      PR: { max: 1 },
+      MC: { max: 1 },
+      SM: { max: 1 },
+      MT: { max: 1 },
+      EL: { max: 1 },
+      KALI: { max: 1 },
+      ARCHER: { max: 2 },
+      DPS: { max: 3 },
     },
   },
   gdn_cl: {
+    label: "GDN CL",
     roles: {
-      FU: { max: 2, users: [] },
-      PR: { max: 1, users: [] },
-      MC: { max: 1, users: [] },
-      SM: { max: 1, users: [] },
-      MT: { max: 1, users: [] },
-      EL: { max: 1, users: [] },
-      KALI: { max: 1, users: [] },
-      ARCHER: { max: 2, users: [] },
-      DPS: { max: 3, users: [] },
+      FU: { max: 2 },
+      PR: { max: 1 },
+      MC: { max: 1 },
+      SM: { max: 1 },
+      MT: { max: 1 },
+      EL: { max: 1 },
+      KALI: { max: 1 },
+      ARCHER: { max: 2 },
+      DPS: { max: 3 },
     },
   },
 };
 
-// ======================
-// ACTIVE EVENTS
-// ======================
+// ====================== STATE ======================
+// activeEvents[messageId] = event object
 const activeEvents = {};
+const cooldowns = new Map();
 
-// ======================
-// BUTTON UI
-// ======================
-function createButtons(event, locked = false, userId = null) {
+// ====================== HELPERS ======================
+
+/**
+ * Calculate max party size from a roles object.
+ */
+function getMaxSlot(roles) {
+  return Object.values(roles).reduce((sum, r) => sum + r.max, 0);
+}
+
+/**
+ * Build Discord button rows from the event state.
+ * Discord limit: max 5 rows, 5 buttons each = 25 buttons.
+ * We reserve 2 rows for control buttons (Cancel Role + Lock/Cancel Run),
+ * so role buttons can fill at most 3 rows (15 buttons).
+ */
+function createButtons(event) {
   const rows = [];
   let row = new ActionRowBuilder();
   let count = 0;
 
-  for (let roleName in event.roles) {
+  for (const roleName in event.roles) {
     const role = event.roles[roleName];
     const isFull = role.users.length >= role.max;
+    const isLocked = event.locked;
 
     row.addComponents(
       new ButtonBuilder()
@@ -78,36 +87,43 @@ function createButtons(event, locked = false, userId = null) {
             ? `${roleName} (${role.users.length}/${role.max})`
             : roleName,
         )
-        .setStyle(ButtonStyle.Primary)
-        .setDisabled(locked || isFull),
+        .setStyle(isFull ? ButtonStyle.Success : ButtonStyle.Primary)
+        .setDisabled(isLocked || isFull),
     );
 
     count++;
     if (count % 5 === 0) {
       rows.push(row);
       row = new ActionRowBuilder();
+      // Safety: Discord only allows 5 rows total; reserve 2 for controls
+      if (rows.length >= 3) break;
     }
   }
 
-  if (row.components.length > 0) rows.push(row);
+  if (row.components.length > 0 && rows.length < 3) {
+    rows.push(row);
+  }
 
-  // ROW: CANCEL ROLE (SEMUA USER)
+  // Row 4: Cancel my role + Lock toggle (host only handled in interaction)
   rows.push(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("cancel_my_role")
-        .setLabel("❌ Cancel")
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(event.isDone),
+        .setLabel("❌ Cancel My Role")
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId("toggle_lock")
+        .setLabel(event.locked ? "🔓 Unlock Party" : "🔒 Lock Party")
+        .setStyle(event.locked ? ButtonStyle.Success : ButtonStyle.Secondary),
     ),
   );
 
-  // ROW: CANCEL RUN (HOST ONLY)
+  // Row 5: Cancel run (host only)
   rows.push(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("cancel_run")
-        .setLabel("🛑 Cancel Run (Host only)")
+        .setLabel("🛑 Cancel Run")
         .setStyle(ButtonStyle.Danger),
     ),
   );
@@ -115,267 +131,218 @@ function createButtons(event, locked = false, userId = null) {
   return rows;
 }
 
-// ======================
-// UPDATE MESSAGE
-// ======================
-async function updateMessage(message, event, locked = false) {
+/**
+ * Rebuild the message content and buttons.
+ */
+async function updateMessage(message, event) {
   const totalUsers = Object.keys(event.users).length;
+  const maxSlot = getMaxSlot(event.roles);
 
-  let content = `📋 **${event.title} (${totalUsers}/${MAX_SLOT})**\n`;
-  content += `Started by: <@${event.hostId}>\n\n`;
+  let content = `📋 **${event.title}** (${totalUsers}/${maxSlot})\n`;
+  content += `Host: <@${event.hostId}>\n`;
 
-  for (let roleName in event.roles) {
+  if (event.locked) {
+    content += `🔒 **Party is LOCKED**\n`;
+  } else if (totalUsers >= maxSlot) {
+    content += `✅ **Party FULL**\n`;
+  }
+
+  content += `\n`;
+
+  for (const roleName in event.roles) {
     const role = event.roles[roleName];
     const count = role.users.length;
-
-    const slotText = role.max > 1 && count > 0 ? ` (${count}/${role.max})` : "";
+    const slotText = role.max > 1 ? ` (${count}/${role.max})` : "";
 
     if (count > 0) {
       const mentions = role.users.map((id) => `<@${id}>`).join(", ");
-      content += `${roleName}${slotText} - ${mentions}\n`;
+      content += `**${roleName}**${slotText} — ${mentions}\n`;
     } else {
-      content += `${roleName} - (kosong)\n`;
+      content += `**${roleName}** — *(empty)*\n`;
     }
-  }
-
-  if (event.isDone) {
-    content += "\n✅ **SELESAI**";
-  } else if (totalUsers >= MAX_SLOT) {
-    content += "\n🔒 **FULL**";
   }
 
   await message.edit({
     content,
-    components: createButtons(event, locked),
+    components: createButtons(event),
   });
 }
 
-// ======================
-// READY
-// ======================
+// ====================== BOT READY ======================
 client.on("ready", () => {
-  console.log(`✅ Login sebagai ${client.user.tag}`);
+  console.log(`✅ Logged in as ${client.user.tag}`);
 });
 
-// ======================
-// INTERACTION
-// ======================
+// ====================== INTERACTIONS ======================
 client.on("interactionCreate", async (interaction) => {
   try {
-    // ======================
-    // START COMMAND
-    // ======================
+    // ── SLASH COMMAND ──
     if (interaction.isChatInputCommand()) {
-      if (interaction.commandName === "start") {
-        await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: true });
 
+      if (interaction.commandName === "start") {
         const eventName = interaction.options.getString("event");
         const template = eventTemplates[eventName];
 
         if (!template) {
-          return interaction.editReply("❌ Event tidak ditemukan");
+          return interaction.editReply("❌ Event not found.");
         }
 
-        // clone roles
+        // Deep-copy roles from template
         const roles = {};
-        for (let r in template.roles) {
+        for (const r in template.roles) {
           roles[r] = { max: template.roles[r].max, users: [] };
         }
 
-        const totalSlot = Object.values(roles).reduce(
-          (sum, r) => sum + r.max,
-          0,
-        );
-
-        if (totalSlot < MAX_SLOT) {
-          return interaction.editReply(
-            `❌ Total slot ${totalSlot}, minimal ${MAX_SLOT}!`,
-          );
-        }
-
         const now = new Date();
-
-        const time = now.toLocaleTimeString("id-ID", {
+        const timeStr = now.toLocaleTimeString("id-ID", {
           hour: "2-digit",
           minute: "2-digit",
           timeZone: "Asia/Jakarta",
         });
-
-        const date = now.toLocaleDateString("id-ID", {
+        const dateStr = now.toLocaleDateString("id-ID", {
           day: "2-digit",
           month: "short",
           year: "numeric",
           timeZone: "Asia/Jakarta",
         });
 
-        const formattedName = eventName.toUpperCase().replace("_", " ");
-
         const event = {
           messageId: null,
           hostId: interaction.user.id,
-          title: `${formattedName} - ${date} ${time} WIB`,
+          title: `${template.label} — ${dateStr} ${timeStr} WIB`,
           roles,
-          users: {},
-          isDone: false,
+          users: {}, // userId -> roleName
+          locked: false,
         };
 
-        const msg = await interaction.channel.send({
-          content: "Loading...",
-        });
-
+        // Post placeholder then edit with full content
+        const msg = await interaction.channel.send({ content: "Loading…" });
         event.messageId = msg.id;
         activeEvents[msg.id] = event;
 
         await updateMessage(msg, event);
-
-        await interaction.editReply(`✅ Event ${event.title} dimulai!`);
+        return interaction.editReply(`✅ **${event.title}** started!`);
       }
     }
 
-    // ======================
-    // BUTTON
-    // ======================
+    // ── BUTTON ──
     if (interaction.isButton()) {
       const event = activeEvents[interaction.message.id];
-      if (!event) return;
+      if (!event) return interaction.deferUpdate();
 
       const userId = interaction.user.id;
 
-      // ❌ kalau sudah selesai
-      if (event.isDone) {
-        return interaction.reply({
-          content: "❌ Event sudah selesai!",
-          ephemeral: true,
-        });
-      }
-
-      // ⏱️ cooldown
+      // Cooldown check (silent reject)
       const now = Date.now();
       const last = cooldowns.get(userId) || 0;
-
       if (now - last < COOLDOWN) {
-        return interaction.reply({
-          content: "⏳ Tunggu sebentar!",
-          ephemeral: true,
-        });
+        return interaction.deferUpdate();
       }
-
       cooldowns.set(userId, now);
 
+      // ── Cancel My Role ──
       if (interaction.customId === "cancel_my_role") {
+        await interaction.deferUpdate();
         const currentRole = event.users[userId];
+        if (!currentRole) return;
 
-        if (!currentRole) {
+        event.roles[currentRole].users = event.roles[currentRole].users.filter(
+          (id) => id !== userId,
+        );
+        delete event.users[userId];
+
+        return updateMessage(interaction.message, event);
+      }
+
+      // ── Toggle Lock (host only) ──
+      if (interaction.customId === "toggle_lock") {
+        if (userId !== event.hostId) {
           return interaction.reply({
-            content: "❌ Kamu belum ambil role!",
+            content: "⛔ Only the host can lock/unlock the party.",
             ephemeral: true,
           });
         }
-
-        const role = event.roles[currentRole];
-        role.users = role.users.filter((id) => id !== userId);
-
-        delete event.users[userId];
-
-        await updateMessage(interaction.message, event);
-
-        return interaction.reply({
-          content: "✅ Role dibatalkan",
-          ephemeral: true,
-        });
+        await interaction.deferUpdate();
+        event.locked = !event.locked;
+        return updateMessage(interaction.message, event);
       }
 
+      // ── Cancel Run (host only) ──
       if (interaction.customId === "cancel_run") {
         if (userId !== event.hostId) {
           return interaction.reply({
-            content: "❌ Hanya host!",
+            content: "⛔ Only the host can cancel the run.",
             ephemeral: true,
           });
         }
-
-        // hapus event dari memory
+        await interaction.deferUpdate();
         delete activeEvents[event.messageId];
-
-        await interaction.message.edit({
-          content: "🛑 **RUN DIBATALKAN OLEH HOST**",
+        return interaction.message.edit({
+          content: "🛑 **Run cancelled by host.**",
           components: [],
         });
-
-        return interaction.reply({
-          content: "Run berhasil dibatalkan",
-          ephemeral: true,
-        });
       }
 
-      // ======================
-      // ROLE SELECT
-      // ======================
+      // ── Role Select ──
       const roleName = interaction.customId.replace("role_", "");
       const role = event.roles[roleName];
+      if (!role) return interaction.deferUpdate();
 
-      const currentRole = event.users[userId];
-      const totalUsers = Object.keys(event.users).length;
-
-      // 🔒 hard limit 8
-      if (!currentRole && totalUsers >= MAX_SLOT) {
+      // Reject if party is locked
+      if (event.locked) {
         return interaction.reply({
-          content: "❌ Slot sudah penuh (8/8)!",
+          content: "🔒 The party is currently locked.",
           ephemeral: true,
         });
       }
 
-      // ❌ role penuh
+      // Reject if role is full
       if (role.users.length >= role.max) {
         return interaction.reply({
-          content: "❌ Role penuh!",
+          content: `❌ **${roleName}** is already full!`,
           ephemeral: true,
         });
       }
 
-      // 🔁 pindah role
-      if (currentRole) {
-        const oldRole = event.roles[currentRole];
-        oldRole.users = oldRole.users.filter((id) => id !== userId);
+      // Reject if party is full and user has no existing slot
+      const totalUsers = Object.keys(event.users).length;
+      const maxSlot = getMaxSlot(event.roles);
+      const currentRole = event.users[userId];
+      if (!currentRole && totalUsers >= maxSlot) {
+        return interaction.reply({
+          content: "❌ Party is full!",
+          ephemeral: true,
+        });
       }
 
+      await interaction.deferUpdate();
+
+      // Remove from old role if switching
+      if (currentRole) {
+        event.roles[currentRole].users = event.roles[currentRole].users.filter(
+          (id) => id !== userId,
+        );
+      }
+
+      // Add to new role
       role.users.push(userId);
       event.users[userId] = roleName;
 
-      const isFull = Object.keys(event.users).length >= MAX_SLOT;
-
-      await updateMessage(interaction.message, event, isFull);
-
-      await interaction.reply({
-        content: currentRole
-          ? `🔁 Pindah ke ${roleName}`
-          : `✅ Ambil ${roleName}`,
-        ephemeral: true,
-      });
+      return updateMessage(interaction.message, event);
     }
   } catch (err) {
     console.error(err);
-
-    try {
-      if (interaction.deferred || interaction.replied) {
-        await interaction.editReply("❌ Terjadi error");
-      } else {
-        await interaction.reply({
-          content: "❌ Terjadi error",
-          ephemeral: true,
-        });
-      }
-    } catch (e) {
-      console.error("Failed to respond to interaction:", e);
-    }
   }
 });
 
-// ======================
-// RENDER PORT FIX (FREE)
-// ======================
+// ====================== ANTI-CRASH ======================
+client.on("error", console.error);
+process.on("unhandledRejection", console.error);
+
+// ====================== RENDER KEEP-ALIVE ======================
 require("http")
-  .createServer((req, res) => res.end("OK"))
+  .createServer((_, res) => res.end("OK"))
   .listen(process.env.PORT || 3000);
 
-// ======================
 client.login(token);
