@@ -109,7 +109,7 @@ function createButtons(event, locked = false, userId = null) {
         .setCustomId("cancel_run")
         .setLabel("🛑 Cancel Run")
         .setStyle(ButtonStyle.Danger)
-        .setDisabled(event.hostId !== userId),
+        .setDisabled(false),
     ),
   );
 
