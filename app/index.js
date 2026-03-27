@@ -79,7 +79,7 @@ function createButtons(event, locked = false, userId = null) {
             : roleName,
         )
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(locked || event.isDone || isFull),
+        .setDisabled(locked || isFull),
     );
 
     count++;
@@ -91,18 +91,25 @@ function createButtons(event, locked = false, userId = null) {
 
   if (row.components.length > 0) rows.push(row);
 
-  // CANCEL = DONE BUTTON
+  // ROW: CANCEL ROLE (SEMUA USER)
   rows.push(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId("cancel_role")
-        .setLabel("✅ Done")
-        .setStyle(ButtonStyle.Success)
-        .setDisabled(
-          event.isDone ||
-            event.hostId !== userId ||
-            Object.keys(event.users).length < MAX_SLOT,
-        ),
+        .setCustomId("cancel_my_role")
+        .setLabel("❌ Cancel")
+        .setStyle(ButtonStyle.Secondary)
+        .setDisabled(event.isDone),
+    ),
+  );
+
+  // ROW: CANCEL RUN (HOST ONLY)
+  rows.push(
+    new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId("cancel_run")
+        .setLabel("🛑 Cancel Run")
+        .setStyle(ButtonStyle.Danger)
+        .setDisabled(event.hostId !== userId),
     ),
   );
 
@@ -140,7 +147,7 @@ async function updateMessage(message, event, locked = false) {
 
   await message.edit({
     content,
-    components: createButtons(event, locked, event.hostId),
+    components: createButtons(event, locked),
   });
 }
 
@@ -282,6 +289,51 @@ client.on("interactionCreate", async (interaction) => {
 
         return interaction.reply({
           content: "✅ Event selesai!",
+          ephemeral: true,
+        });
+      }
+
+      if (interaction.customId === "cancel_my_role") {
+        const currentRole = event.users[userId];
+
+        if (!currentRole) {
+          return interaction.reply({
+            content: "❌ Kamu belum ambil role!",
+            ephemeral: true,
+          });
+        }
+
+        const role = event.roles[currentRole];
+        role.users = role.users.filter((id) => id !== userId);
+
+        delete event.users[userId];
+
+        await updateMessage(interaction.message, event);
+
+        return interaction.reply({
+          content: "✅ Role dibatalkan",
+          ephemeral: true,
+        });
+      }
+
+      if (interaction.customId === "cancel_run") {
+        if (userId !== event.hostId) {
+          return interaction.reply({
+            content: "❌ Hanya host!",
+            ephemeral: true,
+          });
+        }
+
+        // hapus event dari memory
+        delete activeEvents[event.messageId];
+
+        await interaction.message.edit({
+          content: "🛑 **RUN DIBATALKAN OLEH HOST**",
+          components: [],
+        });
+
+        return interaction.reply({
+          content: "Run berhasil dibatalkan",
           ephemeral: true,
         });
       }
