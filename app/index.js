@@ -111,13 +111,17 @@ function createButtons(event) {
     ),
   );
 
-  // Row 5: Cancel run (host only)
+  // Row 5: Cancel run + Done (host only)
   rows.push(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("cancel_run")
         .setLabel("🛑 Cancel Run")
         .setStyle(ButtonStyle.Danger),
+      new ButtonBuilder()
+        .setCustomId("done_run")
+        .setLabel("✅ Done")
+        .setStyle(ButtonStyle.Success),
     ),
   );
 
@@ -174,6 +178,53 @@ async function updateMessage(message, event) {
   });
 }
 
+/**
+ * Build the thread title: "{event label} ({seller}) - {DD MMM}"
+ * e.g. "GDN HC (Budi) - 29 Mar"
+ */
+function buildThreadTitle(event) {
+  const now = new Date();
+  const day = now.toLocaleDateString("id-ID", {
+    day: "2-digit",
+    timeZone: "Asia/Jakarta",
+  });
+  const month = now.toLocaleDateString("en-US", {
+    month: "short",
+    timeZone: "Asia/Jakarta",
+  });
+  return `${event.label} (seller) - ${day} ${month}`;
+}
+
+/**
+ * Build the thread's opening message: all joined users tagged per role.
+ */
+function buildThreadContent(event) {
+  const HIDE_IF_EMPTY = new Set(["KALI"]);
+  const PER_SLOT_DISPLAY = new Set(["ARCHER", "DPS"]);
+
+  let content = `**${event.title}**\n\n`;
+
+  for (const roleName in event.roles) {
+    const role = event.roles[roleName];
+    const count = role.users.length;
+
+    if (count === 0 && HIDE_IF_EMPTY.has(roleName)) continue;
+
+    if (count === 0) {
+      content += `**${roleName}** — *(empty)*\n`;
+    } else if (PER_SLOT_DISPLAY.has(roleName) && role.max > 1) {
+      const mentions = role.users.map((id) => `<@${id}>`).join(", ");
+      content += `**${roleName}** (${count}/${role.max}) — ${mentions}\n`;
+    } else {
+      const slotText = role.max > 1 ? ` (${count}/${role.max})` : "";
+      const mentions = role.users.map((id) => `<@${id}>`).join(", ");
+      content += `**${roleName}**${slotText} — ${mentions}\n`;
+    }
+  }
+
+  return content;
+}
+
 // ====================== BOT READY ======================
 client.on("ready", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
@@ -216,6 +267,7 @@ client.on("interactionCreate", async (interaction) => {
         const event = {
           messageId: null,
           hostId: interaction.user.id,
+          label: template.label,
           title: `${template.label} — ${dateStr} ${timeStr} WIB`,
           roles,
           users: {}, // userId -> roleName
@@ -237,14 +289,6 @@ client.on("interactionCreate", async (interaction) => {
       const userId = interaction.user.id;
       const event = activeEvents[interaction.message.id];
 
-      // --- FIX: 10062 Unknown Interaction ---
-      // Discord requires any interaction to be acknowledged within 3 seconds.
-      // The old code ran permission/cooldown checks BEFORE calling deferUpdate(),
-      // which could exceed the timeout on slow connections or cold starts.
-      //
-      // New approach: do all checks synchronously (no awaits), decide which
-      // response to send, then fire the single acknowledge call first.
-
       // 1. Cooldown — check synchronously
       const now = Date.now();
       const last = cooldowns.get(userId) || 0;
@@ -255,15 +299,18 @@ client.on("interactionCreate", async (interaction) => {
       let ephemeralError = null;
 
       if (!onCooldown && event) {
-        const hostOnlyButtons = ["toggle_lock", "cancel_run"];
+        const hostOnlyButtons = ["toggle_lock", "cancel_run", "done_run"];
         if (
           hostOnlyButtons.includes(interaction.customId) &&
           userId !== event.hostId
         ) {
-          ephemeralError =
-            interaction.customId === "toggle_lock"
-              ? "⛔ Only the host can lock/unlock the party."
-              : "⛔ Only the host can cancel the run.";
+          if (interaction.customId === "toggle_lock") {
+            ephemeralError = "⛔ Only the host can lock/unlock the party.";
+          } else if (interaction.customId === "cancel_run") {
+            ephemeralError = "⛔ Only the host can cancel the run.";
+          } else if (interaction.customId === "done_run") {
+            ephemeralError = "⛔ Only the host can mark the run as done.";
+          }
         }
 
         if (!ephemeralError && interaction.customId.startsWith("role_")) {
@@ -320,6 +367,45 @@ client.on("interactionCreate", async (interaction) => {
           content: "🛑 **Run cancelled by host.**",
           components: [],
         });
+      }
+
+      // ── Done (host only) — create thread ──
+      if (interaction.customId === "done_run") {
+        delete activeEvents[event.messageId];
+
+        const threadTitle = buildThreadTitle(event);
+        const threadContent = buildThreadContent(event);
+
+        // Disable all buttons on the signup message
+        await interaction.message.edit({ components: [] });
+
+        // Create thread in the configured fixed channel
+        const threadChannelId = process.env.THREAD_CHANNEL_ID;
+        const threadChannel = threadChannelId
+          ? await interaction.client.channels.fetch(threadChannelId)
+          : interaction.channel;
+
+        // Forum channels require the message to be passed inside .create()
+        // and optionally accept applied tag IDs.
+        const isHC = event.label.toUpperCase().includes("HC");
+        const tagId = isHC
+          ? process.env.FORUM_TAG_HC
+          : process.env.FORUM_TAG_CL;
+
+        const createOptions = {
+          name: threadTitle,
+          autoArchiveDuration: 10080, // 1 week
+          reason: `Run completed: ${event.title}`,
+          message: { content: threadContent }, // required for forum channels
+        };
+
+        if (tagId) {
+          createOptions.appliedTags = [tagId];
+        }
+
+        await threadChannel.threads.create(createOptions);
+
+        return;
       }
 
       // ── Role Select ──
