@@ -442,7 +442,7 @@ client.login(token);
 
 const url = `https://bot-raid-vgi4.onrender.com`; // Replace with your Render URL
 const interval = 30000; // Interval in milliseconds (30 seconds)
-
+import axios from "axios";
 //Reloader Function
 function reloadWebsite() {
   axios
