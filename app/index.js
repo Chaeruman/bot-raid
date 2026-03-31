@@ -62,10 +62,11 @@ const cooldowns = new Map();
  * We reserve 2 rows for control buttons (Cancel Role + Lock/Cancel Run),
  * so role buttons can fill at most 3 rows (15 buttons).
  */
-function createButtons(event) {
+function createButtons(event, viewerId = null) {
   const rows = [];
   let row = new ActionRowBuilder();
   let count = 0;
+  const isHost = viewerId === event.hostId;
 
   for (const roleName in event.roles) {
     const role = event.roles[roleName];
@@ -97,7 +98,7 @@ function createButtons(event) {
     rows.push(row);
   }
 
-  // Row 4: Cancel my role + Lock toggle (host only handled in interaction)
+  // Row 4: Cancel my role + Lock toggle (lock disabled for non-hosts)
   rows.push(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
@@ -107,21 +108,24 @@ function createButtons(event) {
       new ButtonBuilder()
         .setCustomId("toggle_lock")
         .setLabel(event.locked ? "🔓 Unlock Party" : "🔒 Lock Party")
-        .setStyle(event.locked ? ButtonStyle.Success : ButtonStyle.Secondary),
+        .setStyle(event.locked ? ButtonStyle.Success : ButtonStyle.Secondary)
+        .setDisabled(!isHost),
     ),
   );
 
-  // Row 5: Cancel run + Done (host only)
+  // Row 5: Cancel run + Done (both disabled for non-hosts)
   rows.push(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId("cancel_run")
         .setLabel("🛑 Cancel Run")
-        .setStyle(ButtonStyle.Danger),
+        .setStyle(ButtonStyle.Danger)
+        .setDisabled(!isHost),
       new ButtonBuilder()
         .setCustomId("done_run")
         .setLabel("✅ Done")
-        .setStyle(ButtonStyle.Success),
+        .setStyle(ButtonStyle.Success)
+        .setDisabled(!isHost),
     ),
   );
 
@@ -174,7 +178,7 @@ async function updateMessage(message, event) {
 
   await message.edit({
     content,
-    components: createButtons(event),
+    components: createButtons(event, event.hostId),
   });
 }
 
@@ -202,7 +206,7 @@ function buildThreadContent(event) {
   const HIDE_IF_EMPTY = new Set(["KALI"]);
   const PER_SLOT_DISPLAY = new Set(["ARCHER", "DPS"]);
 
-  let content = `**${event.title}**\n\n`;
+  let content = `📋 **${event.title}**\n\n`;
 
   for (const roleName in event.roles) {
     const role = event.roles[roleName];
@@ -332,7 +336,10 @@ client.on("interactionCreate", async (interaction) => {
         }
       }
 
-      // 3. Acknowledge FIRST — this is the only await before any logic
+      // 3. Acknowledge FIRST — exactly one response per interaction
+      // Guard against already-acknowledged interactions (error 40060)
+      if (interaction.replied || interaction.deferred) return;
+
       if (onCooldown || !event) {
         return interaction.deferUpdate();
       }
@@ -394,7 +401,7 @@ client.on("interactionCreate", async (interaction) => {
 
         const createOptions = {
           name: threadTitle,
-          autoArchiveDuration: 10080, // 1 week
+          autoArchiveDuration: 10060, // auto-archive after 24 hours
           reason: `Run completed: ${event.title}`,
           message: { content: threadContent }, // required for forum channels
         };
