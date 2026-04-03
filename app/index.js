@@ -15,7 +15,7 @@ const client = new Client({
 const token = process.env.TOKEN;
 
 // ====================== CONFIG ======================
-const COOLDOWN = 1500; // ms between button presses per user
+const COOLDOWN = 3000; // ms between button presses per user
 
 // ====================== TEMPLATES ======================
 const eventTemplates = {
@@ -29,6 +29,7 @@ const eventTemplates = {
       MT: { max: 1 },
       EL: { max: 1 },
       KALI: { max: 1 },
+      ACADEMIC: { max: 1 },
       ARCHER: { max: 2 },
       DPS: { max: 3 },
     },
@@ -43,6 +44,7 @@ const eventTemplates = {
       MT: { max: 1 },
       EL: { max: 1 },
       KALI: { max: 1 },
+      ACADEMIC: { max: 1 },
       ARCHER: { max: 2 },
       DPS: { max: 3 },
     },
@@ -151,7 +153,7 @@ async function updateMessage(message, event) {
   content += `\n`;
 
   // Roles hidden from the display when nobody has picked them
-  const HIDE_IF_EMPTY = new Set(["KALI"]);
+  const HIDE_IF_EMPTY = new Set(["KALI", "ACADEMIC"]);
 
   // Multi-slot roles that show a filled/max count badge
   const PER_SLOT_DISPLAY = new Set(["ARCHER", "DPS"]);
@@ -401,7 +403,7 @@ client.on("interactionCreate", async (interaction) => {
 
         const createOptions = {
           name: threadTitle,
-          autoArchiveDuration: 10060, // auto-archive after 24 hours
+          autoArchiveDuration: 10080, // auto-archive after 24 hours
           reason: `Run completed: ${event.title}`,
           message: { content: threadContent }, // required for forum channels
         };
