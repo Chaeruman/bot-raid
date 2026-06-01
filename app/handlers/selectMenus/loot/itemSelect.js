@@ -1,5 +1,6 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require("discord.js");
-const { CATALOG, ARMOR_PARTS, WEAPON_TYPES, ACCESSORY_TYPES, isArmor, isWeapon, isEquipment, isAccessory } = require("../../../items");
+const { CATALOG, ARMOR_PARTS, WEAPON_TYPES, ACCESSORY_TYPES, isArmor, isEquipment, isAccessory } = require("../../../items");
+const { refreshLootPanel } = require("../../../builders/lootPanel");
 
 async function handleItemSelect(interaction, panel) {
   // customId: loot-sel:item:{lootMsgId}
@@ -11,7 +12,7 @@ async function handleItemSelect(interaction, panel) {
 
   const source = panel.source;
 
-  // Equipment → pick part first
+  // Equipment → pick part first (always unique, no qty modal at the end)
   if (isEquipment(itemKey)) {
     const parts = isArmor(itemKey) ? ARMOR_PARTS : WEAPON_TYPES;
     const label = isArmor(itemKey) ? "armor part" : "weapon type";
@@ -27,7 +28,7 @@ async function handleItemSelect(interaction, panel) {
     });
   }
 
-  // Accessory → pick type (Ring / Necklace / Earrings) first
+  // Accessory → pick type first (always unique, no qty modal at the end)
   if (isAccessory(itemKey)) {
     const row = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
@@ -43,10 +44,34 @@ async function handleItemSelect(interaction, panel) {
     });
   }
 
-  // All other items → qty modal directly
-  return showQtyModal(interaction, panel.lootMsgId, itemKey, source, def, null);
+  // quantity type (fragments etc.) → show qty modal
+  if (def.type === "quantity") {
+    return showQtyModal(interaction, panel.lootMsgId, itemKey, source, def, null);
+  }
+
+  // unique type with no sub-selection → add 1 directly
+  return addUniqueItem(interaction, panel, itemKey, source, def, null);
 }
 
+// Called after all sub-selections are done for unique items (equipment/accessory).
+async function addUniqueItem(interaction, panel, itemKey, source, def, detail) {
+  const list = source === "mail" ? panel.mailItems : panel.raidItems;
+  const existing = list.find((i) => i.itemKey === itemKey && i.detail === detail);
+  if (existing) {
+    existing.qty += 1;
+  } else {
+    list.push({ itemKey, qty: 1, price: null, detail });
+  }
+
+  const detailStr = detail ? ` (${detail.replace("@", " — ")})` : "";
+  await interaction.update({
+    content: `✅ Added **${def.name}${detailStr}** to ${source === "mail" ? "✉️ Mail" : "📥 Raid Drops"}.`,
+    components: [],
+  });
+  await refreshLootPanel(interaction.client, panel);
+}
+
+// Only for quantity-type items (fragments etc.)
 async function showQtyModal(interaction, lootMsgId, itemKey, source, def, detail) {
   const detailSuffix = detail ? `:${detail}` : "";
   const modal = new ModalBuilder()
@@ -67,4 +92,4 @@ async function showQtyModal(interaction, lootMsgId, itemKey, source, def, detail
   return interaction.showModal(modal);
 }
 
-module.exports = { handleItemSelect, showQtyModal };
+module.exports = { handleItemSelect, addUniqueItem, showQtyModal };
