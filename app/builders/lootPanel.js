@@ -1,6 +1,8 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { CATALOG } = require("../items");
 
+const STAMP_RATE_GOLD = 4; // gold per stamp (market fee)
+
 function buildLootContent(panel) {
   const lines = [`📦 **Loot: ${panel.eventTitle}**\n`];
 
@@ -47,17 +49,40 @@ function buildLootContent(panel) {
   const allItems = [...panel.raidItems, ...panel.mailItems];
   if (allItems.length > 0 || panel.goldEntries.length > 0) {
     lines.push("\n📊 **Summary:**");
+
+    const memberCount = panel.members.length || 8;
+    let itemsPerPerson = 0;
+
     if (allItems.length > 0) {
       const totalStamps = allItems.reduce((sum, item) => {
         return sum + CATALOG[item.itemKey].stampsPerUnit * item.qty;
       }, 0);
-      lines.push(`• Total stamps: **${totalStamps}**`);
+      const pricedItems = allItems.filter((i) => i.price != null);
+      const stampFee = totalStamps * STAMP_RATE_GOLD;
+
+      lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
+
+      if (pricedItems.length > 0) {
+        const totalItemGold = pricedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
+        const net = totalItemGold - stampFee;
+        itemsPerPerson = Math.floor(net / memberCount);
+        const unpricedCount = allItems.length - pricedItems.length;
+        const unpricedNote = unpricedCount > 0 ? ` _(${unpricedCount} item(s) unpriced)_` : "";
+        lines.push(`• Items: ${totalItemGold.toLocaleString()}g − ${stampFee.toLocaleString()}g = **${net.toLocaleString()}g** ÷ ${memberCount} = **${itemsPerPerson.toLocaleString()}/person**${unpricedNote}`);
+      }
     }
-    if (panel.goldEntries.length > 0) {
-      const totalGoldPerPerson = panel.goldEntries.reduce((sum, g) => {
-        return sum + Math.floor(g.amount / g.splitCount);
-      }, 0);
-      lines.push(`• Gold/person: **${totalGoldPerPerson.toLocaleString()}**`);
+
+    const goldPerPerson = panel.goldEntries.reduce((sum, g) => {
+      return sum + Math.floor(g.amount / g.splitCount);
+    }, 0);
+
+    if (goldPerPerson > 0) {
+      lines.push(`• Gold drops: **${goldPerPerson.toLocaleString()}/person**`);
+    }
+
+    const totalPerPerson = itemsPerPerson + goldPerPerson;
+    if (totalPerPerson > 0) {
+      lines.push(`• **Total/person: ${totalPerPerson.toLocaleString()}**`);
     }
   }
 
