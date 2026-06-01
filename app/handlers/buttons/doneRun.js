@@ -43,6 +43,7 @@ async function handleDoneRun(interaction, event) {
     eventTitle: event.title,
     hostId: event.hostId,
     hcGoldSplit: event.hcGoldSplit,
+    subruns: event.subruns || null,
     members,
     sellerId: null,
     source: "raid",

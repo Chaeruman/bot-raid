@@ -6,6 +6,9 @@ const STAMP_RATE_GOLD = 4; // gold per stamp (market fee)
 function buildLootContent(panel) {
   const lines = [`📦 **Loot: ${panel.eventTitle}**\n`];
 
+  if (panel.subruns) {
+    lines.push(`📍 ${panel.subruns.join(" > ")}`);
+  }
   lines.push(`👤 **Seller:** ${panel.sellerId ? `<@${panel.sellerId}>` : "_Not set_"}`);
   lines.push(`📌 **Source:** ${panel.source === "raid" ? "📥 Raid Drops" : "✉️ Mail"}\n`);
 

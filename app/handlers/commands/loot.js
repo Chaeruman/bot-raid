@@ -1,5 +1,5 @@
 const { MessageFlags } = require("discord.js");
-const { activeLootPanels } = require("../../state");
+const { activeEvents, activeLootPanels } = require("../../state");
 const { buildLootContent, buildLootComponents } = require("../../builders/lootPanel");
 
 async function handleLoot(interaction) {
@@ -10,24 +10,55 @@ async function handleLoot(interaction) {
     throw err;
   }
 
-  const title = interaction.options.getString("title") || "Manual Loot";
-  const hc    = interaction.options.getBoolean("hc") ?? false;
+  const messageId = interaction.options.getString("message_id");
+  const title     = interaction.options.getString("title");
+  const hc        = interaction.options.getBoolean("hc") ?? false;
 
-  const panel = {
-    lootMsgId: null,
-    threadId: interaction.channelId,
-    eventTitle: title,
-    hostId: interaction.user.id,
-    hcGoldSplit: hc ? true : "mixed",
-    members: [],
-    sellerId: null,
-    source: "raid",
-    raidItems: [],
-    mailItems: [],
-    goldEntries: [],
-    payments: {},
-    closed: false,
-  };
+  let panel;
+
+  if (messageId) {
+    // Link to an active party signup panel
+    const event = activeEvents[messageId];
+    if (!event) {
+      return interaction.editReply("❌ No active party signup found with that message ID. Make sure the event is still running.");
+    }
+
+    const members = Object.keys(event.users);
+    panel = {
+      lootMsgId: null,
+      threadId: interaction.channelId,
+      eventTitle: event.title,
+      hostId: interaction.user.id,
+      hcGoldSplit: event.hcGoldSplit,
+      subruns: event.subruns || null,
+      members,
+      sellerId: null,
+      source: "raid",
+      raidItems: [],
+      mailItems: [],
+      goldEntries: [],
+      payments: Object.fromEntries(members.map((uid) => [uid, false])),
+      closed: false,
+    };
+  } else {
+    // Standalone panel
+    panel = {
+      lootMsgId: null,
+      threadId: interaction.channelId,
+      eventTitle: title || "Manual Loot",
+      hostId: interaction.user.id,
+      hcGoldSplit: hc ? true : "mixed",
+      subruns: null,
+      members: [],
+      sellerId: null,
+      source: "raid",
+      raidItems: [],
+      mailItems: [],
+      goldEntries: [],
+      payments: {},
+      closed: false,
+    };
+  }
 
   const msg = await interaction.channel.send({ content: buildLootContent(panel) });
   panel.lootMsgId = msg.id;
@@ -38,7 +69,8 @@ async function handleLoot(interaction) {
     components: buildLootComponents(panel),
   });
 
-  return interaction.editReply(`📦 Loot panel created for **${title}**.`);
+  const linked = messageId ? ` (linked to party \`${messageId}\`)` : "";
+  return interaction.editReply(`📦 Loot panel created for **${panel.eventTitle}**${linked}.`);
 }
 
 module.exports = { handleLoot };
