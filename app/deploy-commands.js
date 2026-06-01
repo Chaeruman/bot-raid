@@ -49,21 +49,12 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("loot")
-    .setDescription("Create a loot tracking panel")
+    .setDescription("Create a standalone loot tracking panel")
     .addStringOption((o) =>
-      o.setName("message_id")
-        .setDescription("Message ID of an active party signup to link members and settings from")
-        .setRequired(false),
-    )
-    .addStringOption((o) =>
-      o.setName("title")
-        .setDescription("Custom title (used when not linking to a party)")
-        .setRequired(false),
+      o.setName("title").setDescription("Label for the loot panel").setRequired(false),
     )
     .addBooleanOption((o) =>
-      o.setName("hc")
-        .setDescription("HC raid — gold split ÷7 (only used when not linking to a party)")
-        .setRequired(false),
+      o.setName("hc").setDescription("HC raid — gold split ÷7 (default: mixed mode)").setRequired(false),
     )
     .toJSON(),
 ];
