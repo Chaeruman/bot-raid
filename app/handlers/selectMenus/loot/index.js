@@ -8,6 +8,7 @@ const { handleEquipClass } = require("./equipClass");
 const { handleAccType } = require("./accType");
 const { handleAccSubtype } = require("./accSubtype");
 const { handleGoldType } = require("./goldType");
+const { handleGoldExclude } = require("./goldExclude");
 const { handlePriceItem } = require("./priceItem");
 const { handleMarkPaidSelect } = require("./markPaid");
 
@@ -40,8 +41,9 @@ async function handleLootSelect(interaction) {
     // Accessory: p2=itemKey, p3=source, p4=type (acc_subtype only)
     case "acc_type":    return handleAccType(interaction, panel, p2, p3);
     case "acc_subtype": return handleAccSubtype(interaction, panel, p2, p3, p4);
-    // Gold: p2=source
-    case "gold_type":   return handleGoldType(interaction, panel, p2 || panel.source);
+    // Gold: p2=source, p3=splitCount (gold_exclude only)
+    case "gold_type":    return handleGoldType(interaction, panel, p2 || panel.source);
+    case "gold_exclude": return handleGoldExclude(interaction, panel, p2, parseInt(p3, 10));
     case "price_item":  return handlePriceItem(interaction, panel);
     case "mark_paid":   return handleMarkPaidSelect(interaction, panel);
     default:

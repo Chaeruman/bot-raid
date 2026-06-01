@@ -46,7 +46,8 @@ function buildLootContent(panel) {
     for (const g of panel.goldEntries) {
       const perPerson = Math.floor(g.amount / g.splitCount);
       const src = g.source === "raid" ? "Raid" : "Mail";
-      lines.push(`• ${src}: ${g.amount.toLocaleString()} (÷${g.splitCount} = ${perPerson.toLocaleString()}/person)`);
+      const excl = g.excludedUserId ? `, <@${g.excludedUserId}> tidak dapat` : "";
+      lines.push(`• ${src}: ${g.amount.toLocaleString()} (÷${g.splitCount}${excl} = ${perPerson.toLocaleString()}/person)`);
     }
   }
 

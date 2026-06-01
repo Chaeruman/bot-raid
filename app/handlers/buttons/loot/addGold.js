@@ -1,4 +1,5 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require("discord.js");
+const { showGoldExcludeSelect } = require("../../selectMenus/loot/goldExclude");
 
 async function handleAddGold(interaction, panel) {
   if (interaction.user.id !== panel.sellerId) {
@@ -8,35 +9,38 @@ async function handleAddGold(interaction, panel) {
   const source = panel.source;
 
   if (panel.hcGoldSplit === "mixed") {
-    // Marathon: ask whether this gold is from an HC or normal run
+    // Marathon: tanya dulu HC atau Normal
     const row = new ActionRowBuilder().addComponents(
       new StringSelectMenuBuilder()
         .setCustomId(`loot-sel:gold_type:${panel.lootMsgId}:${source}`)
-        .setPlaceholder("Select gold split type")
+        .setPlaceholder("Pilih tipe split gold")
         .addOptions([
-          { label: "HC (÷7)", value: "7", description: "Gold from HC run — split among 7 members" },
-          { label: "Normal (÷8)", value: "8", description: "Gold from normal run — split among 8 members" },
+          { label: "HC (÷7)", value: "7", description: "Gold dari HC run — dibagi 7 member" },
+          { label: "Normal (÷8)", value: "8", description: "Gold dari run biasa — dibagi 8 member" },
         ]),
     );
-
     return interaction.reply({
-      content: "💰 **Add Gold** — select split type:",
+      content: "Pilih tipe split gold:",
       components: [row],
       flags: MessageFlags.Ephemeral,
     });
   }
 
-  // Single raid: split count is fixed
-  const splitCount = panel.hcGoldSplit ? 7 : 8;
+  if (panel.hcGoldSplit === true) {
+    // HC fixed: pilih siapa yang tidak dapat dulu
+    return showGoldExcludeSelect(interaction, panel, source, 7);
+  }
+
+  // Normal (÷8): langsung modal, tidak ada yang dikecualikan
   const modal = new ModalBuilder()
-    .setCustomId(`loot-modal:gold:${panel.lootMsgId}:${splitCount}:${source}`)
-    .setTitle(`Add Gold (÷${splitCount})`);
+    .setCustomId(`loot-modal:gold:${panel.lootMsgId}:8:${source}:none`)
+    .setTitle("Add Gold (÷8)");
 
   modal.addComponents(
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("amount")
-        .setLabel(`Gold amount (split ÷${splitCount})`)
+        .setLabel("Jumlah gold (dibagi 8 orang)")
         .setStyle(TextInputStyle.Short)
         .setPlaceholder("e.g. 100000")
         .setRequired(true),
