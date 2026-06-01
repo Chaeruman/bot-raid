@@ -142,10 +142,6 @@ function buildLootComponents(panel) {
       .setCustomId(`loot-btn:mark_paid:${panel.lootMsgId}`)
       .setLabel("✅ Mark Paid")
       .setStyle(ButtonStyle.Success),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:close:${panel.lootMsgId}`)
-      .setLabel("🔒 Close Loot")
-      .setStyle(ButtonStyle.Danger),
   );
 
   return [row1, row2];
