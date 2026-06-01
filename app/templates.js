@@ -1,12 +1,12 @@
 const GDN_ROLES = {
-  SM:      { max: 1 },
-  FU:      { max: 1 },
-  HEALER:  { max: 1, label: "Healer" },
-  MC:      { max: 1, hideIfEmpty: true, subRoleAsLabel: true },
-  MT:      { max: 1, label: "MT", subRoles: ["Destroyer", "Guardian"] },
-  ICE:     { max: 1, label: "Ice Stacker" },
+  SM: { max: 1 },
+  FU: { max: 1 },
+  HEALER: { max: 1, label: "Healer" },
+  MC: { max: 1, hideIfEmpty: true, subRoleAsLabel: true },
+  MT: { max: 1, label: "MT", subRoles: ["Destroyer", "Guardian"] },
+  ICE: { max: 1, label: "Ice Stacker" },
   SUPPORT: { max: 1, label: "Support" },
-  DPS:     { max: 3, label: "DPS" },
+  DPS: { max: 3, label: "DPS" },
 };
 
 module.exports = {
@@ -39,20 +39,6 @@ module.exports = {
     forumTagKey: "forumTagCL",
     roles: { ...GDN_ROLES },
   },
-  sdn_hc: {
-    label: "SDN HC",
-    maxSlot: 8,
-    hcGoldSplit: false,
-    forumTagKey: "forumTagSDNHC",
-    roles: { ...GDN_ROLES },
-  },
-  sdn_core: {
-    label: "SDN Core",
-    maxSlot: 8,
-    hcGoldSplit: false,
-    forumTagKey: "forumTagSDNCore",
-    roles: { ...GDN_ROLES },
-  },
 
   // ── Other events ──────────────────────────────────────────────
   tkn_hell: {
@@ -61,8 +47,8 @@ module.exports = {
     hcGoldSplit: false,
     noThread: true,
     roles: {
-      HEALER:  { max: 1, label: "Healer" },
-      DPS:     { max: 1, label: "DPS" },
+      HEALER: { max: 1, label: "Healer" },
+      DPS: { max: 1, label: "DPS" },
       SUPPORT: { max: 1, label: "Support" },
       SUP_DPS: { max: 1, label: "Sup-DPS" },
     },
