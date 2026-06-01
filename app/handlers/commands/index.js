@@ -1,7 +1,13 @@
-const { handleStart } = require("./start");
+const { handleStart }   = require("./start");
+const { handleRaid }    = require("./raid");
+const { handleMarathon } = require("./marathon");
+const { handleLoot }    = require("./loot");
 
 const commandHandlers = {
-  start: handleStart,
+  start:    handleStart,
+  raid:     handleRaid,
+  marathon: handleMarathon,
+  loot:     handleLoot,
 };
 
 async function handleCommand(interaction) {

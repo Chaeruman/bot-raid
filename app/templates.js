@@ -10,6 +10,7 @@ const GDN_ROLES = {
 };
 
 module.exports = {
+  // ── Raid events ───────────────────────────────────────────────
   ddn_cl: {
     label: "DDN Classic",
     maxSlot: 8,
@@ -31,6 +32,22 @@ module.exports = {
     forumTagKey: "forumTagCL",
     roles: { ...GDN_ROLES },
   },
+  sdn_hc: {
+    label: "SDN HC",
+    maxSlot: 8,
+    hcGoldSplit: false,
+    forumTagKey: "forumTagSDNHC",
+    roles: { ...GDN_ROLES },
+  },
+  sdn_core: {
+    label: "SDN Core",
+    maxSlot: 8,
+    hcGoldSplit: false,
+    forumTagKey: "forumTagSDNCore",
+    roles: { ...GDN_ROLES },
+  },
+
+  // ── Other events ──────────────────────────────────────────────
   tkn_hell: {
     label: "TKN Hell",
     maxSlot: 4,
@@ -43,6 +60,8 @@ module.exports = {
       SUP_DPS: { max: 1, label: "Sup-DPS" },
     },
   },
+
+  // ── Marathon events ───────────────────────────────────────────
   marathon_gdn: {
     label: "Marathon GDN",
     maxSlot: 8,

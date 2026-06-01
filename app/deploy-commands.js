@@ -4,20 +4,57 @@ const config = require("./config");
 const commands = [
   new SlashCommandBuilder()
     .setName("start")
-    .setDescription("Start a new party signup")
-    .addStringOption((option) =>
-      option
-        .setName("event")
-        .setDescription("Choose which event to run")
-        .setRequired(true)
+    .setDescription("Start a party signup (all events)")
+    .addStringOption((o) =>
+      o.setName("event").setDescription("Event to run").setRequired(true)
+        .addChoices(
+          { name: "DDN Classic",   value: "ddn_cl" },
+          { name: "GDN HC",        value: "gdn_hc" },
+          { name: "GDN Classic",   value: "gdn_cl" },
+          { name: "SDN HC",        value: "sdn_hc" },
+          { name: "SDN Core",      value: "sdn_core" },
+          { name: "TKN Hell",      value: "tkn_hell" },
+          { name: "Marathon GDN",  value: "marathon_gdn" },
+          { name: "Marathon DDN",  value: "marathon_ddn" },
+        ),
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("raid")
+    .setDescription("Start a single-raid party signup")
+    .addStringOption((o) =>
+      o.setName("event").setDescription("Raid to run").setRequired(true)
         .addChoices(
           { name: "DDN Classic", value: "ddn_cl" },
-          { name: "GDN HC", value: "gdn_hc" },
+          { name: "GDN HC",      value: "gdn_hc" },
           { name: "GDN Classic", value: "gdn_cl" },
-          { name: "TKN Hell", value: "tkn_hell" },
+          { name: "SDN HC",      value: "sdn_hc" },
+          { name: "SDN Core",    value: "sdn_core" },
+        ),
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("marathon")
+    .setDescription("Start a marathon party signup")
+    .addStringOption((o) =>
+      o.setName("event").setDescription("Marathon to run").setRequired(true)
+        .addChoices(
           { name: "Marathon GDN", value: "marathon_gdn" },
           { name: "Marathon DDN", value: "marathon_ddn" },
         ),
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("loot")
+    .setDescription("Create a standalone loot tracking panel")
+    .addStringOption((o) =>
+      o.setName("title").setDescription("Label for the loot panel").setRequired(false),
+    )
+    .addBooleanOption((o) =>
+      o.setName("hc").setDescription("HC raid? Gold split ÷7 for HC source (default: false = use Mixed mode)").setRequired(false),
     )
     .toJSON(),
 ];

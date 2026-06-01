@@ -39,6 +39,9 @@ async function updateMessage(message, event) {
   const totalUsers = Object.keys(event.users).length;
 
   let content = `**${event.title}** (${totalUsers}/${event.maxSlot})\n`;
+  if (event.subruns) {
+    content += `📍 ${event.subruns.join(" > ")}\n`;
+  }
   content += `Host: <@${event.hostId}>\n`;
 
   if (event.locked) {
