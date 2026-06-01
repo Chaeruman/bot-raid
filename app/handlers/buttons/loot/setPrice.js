@@ -11,13 +11,14 @@ async function handleSetPrice(interaction, panel) {
     return interaction.reply({ content: "❌ No items added yet.", flags: MessageFlags.Ephemeral });
   }
 
-  const options = allItems.map((item) => {
+  const options = allItems.map((item, idx) => {
     const def = CATALOG[item.itemKey];
     const src = panel.raidItems.includes(item) ? "Raid" : "Mail";
+    const detailStr = item.detail ? ` (${item.detail})` : "";
     const priceStr = item.price != null ? ` — ${item.price.toLocaleString()}g` : " — no price";
     return {
-      label: `${def.name} (${src})`.slice(0, 100),
-      value: item.itemKey,
+      label: `${def.name}${detailStr} [${src}]`.slice(0, 100),
+      value: String(idx), // use index as value since itemKey alone may not be unique
       description: `${item.qty}x${priceStr}`.slice(0, 100),
     };
   });

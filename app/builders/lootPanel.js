@@ -18,7 +18,8 @@ function buildLootContent(panel) {
       const def = CATALOG[item.itemKey];
       const stamps = def.stampsPerUnit * item.qty;
       const priceStr = item.price != null ? ` — ${item.price.toLocaleString()} gold` : "";
-      lines.push(`• ${def.name} — ${item.qty}x — ${stamps} stamps${priceStr}`);
+      const detailStr = item.detail ? ` (${item.detail})` : "";
+      lines.push(`• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}`);
     }
   }
 
@@ -31,7 +32,8 @@ function buildLootContent(panel) {
       const def = CATALOG[item.itemKey];
       const stamps = def.stampsPerUnit * item.qty;
       const priceStr = item.price != null ? ` — ${item.price.toLocaleString()} gold` : "";
-      lines.push(`• ${def.name} — ${item.qty}x — ${stamps} stamps${priceStr}`);
+      const detailStr = item.detail ? ` (${item.detail})` : "";
+      lines.push(`• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}`);
     }
   }
 

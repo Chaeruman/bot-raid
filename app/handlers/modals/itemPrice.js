@@ -3,10 +3,10 @@ const { activeLootPanels } = require("../../state");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
 async function handleItemPriceModal(interaction) {
-  // customId: loot-modal:item_price:{lootMsgId}:{itemKey}
+  // customId: loot-modal:item_price:{lootMsgId}:{idx}
   const parts = interaction.customId.split(":");
   const lootMsgId = parts[2];
-  const itemKey = parts[3];
+  const idx       = parseInt(parts[3], 10);
 
   const panel = activeLootPanels[lootMsgId];
   if (!panel || panel.closed) {
@@ -20,7 +20,7 @@ async function handleItemPriceModal(interaction) {
   }
 
   const allItems = [...panel.raidItems, ...panel.mailItems];
-  const item = allItems.find((i) => i.itemKey === itemKey);
+  const item = allItems[idx];
   if (!item) {
     return interaction.reply({ content: "❌ Item not found in loot list.", flags: MessageFlags.Ephemeral });
   }

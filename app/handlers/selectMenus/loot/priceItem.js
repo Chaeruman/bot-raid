@@ -1,17 +1,23 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder, MessageFlags } = require("discord.js");
 const { CATALOG } = require("../../../items");
 
 async function handlePriceItem(interaction, panel) {
   // customId: loot-sel:price_item:{lootMsgId}
-  const itemKey = interaction.values[0];
-  const def = CATALOG[itemKey];
-
+  // value is the index into [...raidItems, ...mailItems]
+  const idx = parseInt(interaction.values[0], 10);
   const allItems = [...panel.raidItems, ...panel.mailItems];
-  const item = allItems.find((i) => i.itemKey === itemKey);
+  const item = allItems[idx];
+  if (!item) {
+    return interaction.reply({ content: "❌ Item not found.", flags: MessageFlags.Ephemeral });
+  }
+
+  const def = CATALOG[item.itemKey];
+  const detailStr = item.detail ? ` (${item.detail})` : "";
+  const titleName = `${def.name}${detailStr}`.slice(0, 45);
 
   const modal = new ModalBuilder()
-    .setCustomId(`loot-modal:item_price:${panel.lootMsgId}:${itemKey}`)
-    .setTitle(`Price: ${def.name.slice(0, 40)}`);
+    .setCustomId(`loot-modal:item_price:${panel.lootMsgId}:${idx}`)
+    .setTitle(`Price: ${titleName}`);
 
   modal.addComponents(
     new ActionRowBuilder().addComponents(
@@ -19,8 +25,8 @@ async function handlePriceItem(interaction, panel) {
         .setCustomId("price")
         .setLabel("Price in gold")
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder(item?.price != null ? String(item.price) : "e.g. 50000")
-        .setValue(item?.price != null ? String(item.price) : "")
+        .setPlaceholder(item.price != null ? String(item.price) : "e.g. 50000")
+        .setValue(item.price != null ? String(item.price) : "")
         .setRequired(true),
     ),
   );

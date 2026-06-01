@@ -67,4 +67,37 @@ const CATEGORIES = [
   },
 ];
 
-module.exports = { CATALOG, CATEGORIES };
+const ARMOR_ITEMS = new Set(["ddn_armor", "gdn_armor"]);
+const WEAPON_ITEMS = new Set(["ddn_weapon", "gdn_weapon"]);
+const ACCESSORY_ITEMS = new Set([
+  "ddn_l_accessory", "gdn_l_accessory", "sdn_l_accessory",
+  "ddn_u_accessory", "gdn_u_accessory", "sdn_u_accessory",
+]);
+
+const ARMOR_PARTS = ["Head", "Top", "Lower", "Gloves", "Shoes"];
+const WEAPON_TYPES = ["Main", "Second"];
+const CLASSES = ["Kali", "Academic", "Sorceress", "Warrior", "Priest", "Archer"];
+
+const ACCESSORY_TYPES = {
+  Ring:     ["Hybrid", "Magic", "Attack"],
+  Necklace: ["VIT", "INT", "STR"],
+  Earrings: ["VIT", "INT", "STR"],
+};
+
+function isArmor(itemKey)     { return ARMOR_ITEMS.has(itemKey); }
+function isWeapon(itemKey)    { return WEAPON_ITEMS.has(itemKey); }
+function isEquipment(itemKey) { return ARMOR_ITEMS.has(itemKey) || WEAPON_ITEMS.has(itemKey); }
+function isAccessory(itemKey) { return ACCESSORY_ITEMS.has(itemKey); }
+
+module.exports = {
+  CATALOG,
+  CATEGORIES,
+  ARMOR_PARTS,
+  WEAPON_TYPES,
+  CLASSES,
+  ACCESSORY_TYPES,
+  isArmor,
+  isWeapon,
+  isEquipment,
+  isAccessory,
+};
