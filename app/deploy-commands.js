@@ -1,6 +1,5 @@
-require("dotenv").config();
-
 const { REST, Routes, SlashCommandBuilder } = require("discord.js");
+const config = require("./config");
 
 const commands = [
   new SlashCommandBuilder()
@@ -12,31 +11,32 @@ const commands = [
         .setDescription("Choose which event to run")
         .setRequired(true)
         .addChoices(
+          { name: "DDN Classic", value: "ddn_cl" },
           { name: "GDN HC", value: "gdn_hc" },
-          { name: "GDN CL", value: "gdn_cl" },
+          { name: "GDN Classic", value: "gdn_cl" },
+          { name: "TKN Hell", value: "tkn_hell" },
+          { name: "Marathon GDN", value: "marathon_gdn" },
+          { name: "Marathon DDN", value: "marathon_ddn" },
         ),
     )
     .toJSON(),
 ];
 
-const rest = new REST({ version: "10" }).setToken(process.env.TOKEN);
+const rest = new REST({ version: "10" }).setToken(config.token);
 
 (async () => {
   try {
     console.log("🔄 Registering slash commands…");
 
-    const route = process.env.GUILD_ID
-      ? Routes.applicationGuildCommands(
-          process.env.CLIENT_ID,
-          process.env.GUILD_ID,
-        )
-      : Routes.applicationCommands(process.env.CLIENT_ID);
+    const route = config.guildId
+      ? Routes.applicationGuildCommands(config.clientId, config.guildId)
+      : Routes.applicationCommands(config.clientId);
 
     await rest.put(route, { body: commands });
 
     console.log(
-      process.env.GUILD_ID
-        ? `✅ Commands registered to guild ${process.env.GUILD_ID}`
+      config.guildId
+        ? `✅ Commands registered to guild ${config.guildId}`
         : "✅ Commands registered globally (may take up to 1 hour)",
     );
   } catch (err) {
