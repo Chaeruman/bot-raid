@@ -9,6 +9,7 @@ const commands = [
       o.setName("event").setDescription("Event to run").setRequired(true)
         .addChoices(
           { name: "DDN Classic",   value: "ddn_cl" },
+          { name: "DDN HC",        value: "ddn_hc" },
           { name: "GDN HC",        value: "gdn_hc" },
           { name: "GDN Classic",   value: "gdn_cl" },
           { name: "SDN HC",        value: "sdn_hc" },
@@ -27,6 +28,7 @@ const commands = [
       o.setName("event").setDescription("Raid to run").setRequired(true)
         .addChoices(
           { name: "DDN Classic", value: "ddn_cl" },
+          { name: "DDN HC",      value: "ddn_hc" },
           { name: "GDN HC",      value: "gdn_hc" },
           { name: "GDN Classic", value: "gdn_cl" },
           { name: "SDN HC",      value: "sdn_hc" },

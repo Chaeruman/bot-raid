@@ -8,6 +8,7 @@ module.exports = {
   forumTagHC: process.env.FORUM_TAG_HC,
   forumTagCL: process.env.FORUM_TAG_CL,
   forumTagDDN: process.env.FORUM_TAG_DDN,
+  forumTagDDNHC: process.env.FORUM_TAG_DDN_HC,
   forumTagSDNHC: process.env.FORUM_TAG_SDN_HC,
   forumTagSDNCore: process.env.FORUM_TAG_SDN_CORE,
   forumTagMarathonGDN: process.env.FORUM_TAG_MARATHON_GDN,

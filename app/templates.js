@@ -18,6 +18,13 @@ module.exports = {
     forumTagKey: "forumTagDDN",
     roles: { ...GDN_ROLES },
   },
+  ddn_hc: {
+    label: "DDN HC",
+    maxSlot: 8,
+    hcGoldSplit: true,
+    forumTagKey: "forumTagDDNHC",
+    roles: { ...GDN_ROLES },
+  },
   gdn_hc: {
     label: "GDN HC",
     maxSlot: 8,
