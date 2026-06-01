@@ -2,40 +2,38 @@
 
 - **Command terpisah untuk raid dan marathon** — sekarang ada `/raid` dan `/marathon` selain `/start`
 
-- **Event baru** — SDN HC dan SDN Core sudah masuk sebagai pilihan di `/raid`
+- **Event baru** — DDN HC, SDN HC, dan SDN Core sudah masuk sebagai pilihan di `/raid`
 
 - **Urutan run marathon langsung keliatan** — panel party untuk marathon menampilkan urutan run-nya, misalnya GDN HC > GDN Classic > SDN HC
 
-- **Loot tracking otomatis** — setelah run selesai, bot langsung bikin panel loot di thread. Seller bisa catat item drop dan gold boss, set harga, dan bot otomatis hitung berapa yang harus dibayar tiap orang sudah dipotong biaya stamp
+- **Loot tracking otomatis** — setelah run selesai, bot langsung bikin panel loot di thread. Seller mencatat item drop dan gold boss, set harga jual, lalu bot hitung otomatis berapa gaji yang diterima tiap member setelah dipotong biaya stamp
 
 - **Pencatatan item detail** — item seperti armor, weapon, dan accessory bisa dicatat lengkap dengan bagian, tipe, dan job class
 
-- **Perhitungan gold otomatis** — gold dari boss langsung dibagi sesuai jumlah member, HC dibagi 7 dan yang lain dibagi 8, tanpa perlu hitung manual
+- **Perhitungan gaji otomatis** — hasil jual item dibagi rata ke semua member. Gold boss juga dibagi otomatis, HC dibagi 7 dan yang lain dibagi 8
 
-- **Status bayar per member** — host bisa tandai siapa yang member yang telah dibayar langsung dari panel
+- **Status penerimaan gaji** — host bisa tandai siapa yang sudah menerima gajinya dari seller
 
 - **Panel loot manual** — kalau butuh catat loot di luar alur run biasa, tinggal pakai `/loot`
 
 ---
 
-# Cara Pakai
+# Tombol di Panel Party
 
-**Memulai party**
+- **Role (SM, FU, Healer, dst)** — klik untuk daftar ke slot tersebut. Tombol berubah warna kalau sudah penuh
+- **Cancel My Role** — batalkan slot kamu sendiri
+- **Lock Party** — host mengunci party, tidak ada yang bisa daftar atau keluar sampai dibuka lagi
+- **Remove Member** — host memilih member tertentu untuk dikeluarkan dari party
+- **Cancel Run** — host membatalkan run dan menghapus panel
+- **Done** — host menandai run selesai. Bot otomatis membuat thread dan panel loot di dalamnya
 
-Gunakan `/raid`, `/marathon`, atau `/start` lalu pilih event yang mau dijalankan. Bot akan mengirim panel party ke channel. Member yang mau ikut tinggal klik tombol role yang sesuai.
+---
 
-**Setelah run selesai**
+# Tombol di Panel Loot
 
-Host klik tombol Done di panel party. Bot otomatis membuat thread baru berisi ringkasan siapa saja yang ikut run tersebut, sekaligus panel loot langsung tersedia di dalam thread itu.
-
-Di sini ada dua hal yang bisa dilakukan bersamaan. Pertama, judul thread bisa diganti langsung oleh member yang ikut run, biasanya diisi nama seller untuk run tersebut. Kedua, host memilih seller lewat panel loot supaya pencatatan item bisa dimulai.
-
-**Mencatat loot**
-
-Setelah seller dipilih, seller bisa mulai tambahkan item yang drop. Item dari raid dicatat dulu, lalu kalau ada yang masuk lewat mail, pindah ke sumber Mail dan catat lagi di sana. Setelah semua item masuk, seller isi harga tiap item. Bot langsung hitung totalnya.
-
-Untuk gold drop dari boss, seller tinggal klik Add Gold dan masukkan jumlahnya. Bot otomatis bagi sesuai jumlah member.
-
-**Pembayaran**
-
-Setelah semua tercatat, ringkasan di panel sudah menampilkan berapa yang harus dibayar tiap orang. Host tinggal tandai siapa yang sudah bayar lewat tombol Mark Paid.
+- **Seller** — host memilih siapa yang jadi seller untuk run ini
+- **Add Item** — seller menambahkan item yang drop. Bot akan meminta pilihan kategori, lalu item spesifiknya, lalu detail seperti bagian armor atau tipe accessory
+- **Add Gold** — seller mencatat gold drop dari boss. Untuk HC, bot akan tanya dulu siapa yang tidak dapat bagian gold, baru minta jumlahnya
+- **Raid / Mail** — seller berpindah antara sumber Raid Drops dan Mail sebelum menambahkan item
+- **Set Price** — seller mengisi harga jual per item. Bot langsung update perhitungan total per orang
+- **Sudah Terima** — host menandai member yang sudah menerima gajinya dari seller

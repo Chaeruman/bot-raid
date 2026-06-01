@@ -66,15 +66,15 @@ function buildLootContent(panel) {
       const pricedItems = allItems.filter((i) => i.price != null);
       const stampFee = totalStamps * STAMP_RATE_GOLD;
 
-      lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
+      lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g biaya)`);
 
       if (pricedItems.length > 0) {
         const totalItemGold = pricedItems.reduce((sum, item) => sum + item.price * item.qty, 0);
         const net = totalItemGold - stampFee;
         itemsPerPerson = Math.floor(net / memberCount);
         const unpricedCount = allItems.length - pricedItems.length;
-        const unpricedNote = unpricedCount > 0 ? ` _(${unpricedCount} item(s) unpriced)_` : "";
-        lines.push(`• Items: ${totalItemGold.toLocaleString()}g − ${stampFee.toLocaleString()}g = **${net.toLocaleString()}g** ÷ ${memberCount} = **${itemsPerPerson.toLocaleString()}/person**${unpricedNote}`);
+        const unpricedNote = unpricedCount > 0 ? ` _(${unpricedCount} item belum ada harga)_` : "";
+        lines.push(`• Hasil jual: ${totalItemGold.toLocaleString()}g − ${stampFee.toLocaleString()}g = **${net.toLocaleString()}g** ÷ ${memberCount} = **${itemsPerPerson.toLocaleString()}/orang**${unpricedNote}`);
       }
     }
 
@@ -83,21 +83,21 @@ function buildLootContent(panel) {
     }, 0);
 
     if (goldPerPerson > 0) {
-      lines.push(`• Gold drops: **${goldPerPerson.toLocaleString()}/person**`);
+      lines.push(`• Gold boss: **${goldPerPerson.toLocaleString()}/orang**`);
     }
 
     const totalPerPerson = itemsPerPerson + goldPerPerson;
     if (totalPerPerson > 0) {
-      lines.push(`• **Total/person: ${totalPerPerson.toLocaleString()}**`);
+      lines.push(`• **Gaji/orang: ${totalPerPerson.toLocaleString()}**`);
     }
   }
 
-  // Payment status
+  // Status penerimaan gaji
   if (panel.members.length > 0) {
-    lines.push("\n💳 **Payment Status:**");
+    lines.push("\n**Status Gaji:**");
     for (const uid of panel.members) {
-      const paid = panel.payments[uid];
-      lines.push(`${paid ? "✅" : "❌"} <@${uid}>${paid ? " — paid" : ""}`);
+      const received = panel.payments[uid];
+      lines.push(`${received ? "✅" : "❌"} <@${uid}>${received ? " — sudah terima" : ""}`);
     }
   }
 
@@ -141,7 +141,7 @@ function buildLootComponents(panel) {
       .setDisabled(!panel.sellerId || !hasItems),
     new ButtonBuilder()
       .setCustomId(`loot-btn:mark_paid:${panel.lootMsgId}`)
-      .setLabel("✅ Mark Paid")
+      .setLabel("✅ Sudah Terima")
       .setStyle(ButtonStyle.Success),
   );
 
