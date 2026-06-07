@@ -1,11 +1,11 @@
 const GDN_ROLES = {
-  SM: { max: 1 },
-  FU: { max: 1 },
+  SM: { max: 1, label: "SM/DA" },
+  FU: { max: 2 },
   HEALER: { max: 1, label: "Healer" },
   MC: { max: 1, hideIfEmpty: true, subRoleAsLabel: true },
   MT: { max: 1, label: "MT", subRoles: ["Destroyer", "Guardian"] },
   ICE: { max: 1, label: "Ice Stacker" },
-  SUPPORT: { max: 1, label: "Support" },
+  SUPPORT: { max: 2, label: "Acro/Support" },
   DPS: { max: 3, label: "DPS" },
 };
 

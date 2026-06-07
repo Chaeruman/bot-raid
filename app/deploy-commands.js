@@ -6,17 +6,18 @@ const commands = [
     .setName("start")
     .setDescription("Start a party signup (all events)")
     .addStringOption((o) =>
-      o.setName("event").setDescription("Event to run").setRequired(true)
+      o
+        .setName("event")
+        .setDescription("Event to run")
+        .setRequired(true)
         .addChoices(
-          { name: "DDN Classic",   value: "ddn_cl" },
-          { name: "DDN HC",        value: "ddn_hc" },
-          { name: "GDN HC",        value: "gdn_hc" },
-          { name: "GDN Classic",   value: "gdn_cl" },
-          { name: "SDN HC",        value: "sdn_hc" },
-          { name: "SDN Core",      value: "sdn_core" },
-          { name: "TKN Hell",      value: "tkn_hell" },
-          { name: "Marathon GDN",  value: "marathon_gdn" },
-          { name: "Marathon DDN",  value: "marathon_ddn" },
+          { name: "DDN Classic", value: "ddn_cl" },
+          { name: "DDN HC", value: "ddn_hc" },
+          { name: "GDN HC", value: "gdn_hc" },
+          { name: "GDN Classic", value: "gdn_cl" },
+          { name: "SDN HC", value: "sdn_hc" },
+          { name: "Marathon GDN", value: "marathon_gdn" },
+          { name: "Marathon DDN", value: "marathon_ddn" },
         ),
     )
     .toJSON(),
@@ -25,14 +26,16 @@ const commands = [
     .setName("raid")
     .setDescription("Start a single-raid party signup")
     .addStringOption((o) =>
-      o.setName("event").setDescription("Raid to run").setRequired(true)
+      o
+        .setName("event")
+        .setDescription("Raid to run")
+        .setRequired(true)
         .addChoices(
+          { name: "DDN HC", value: "ddn_hc" },
           { name: "DDN Classic", value: "ddn_cl" },
-          { name: "DDN HC",      value: "ddn_hc" },
-          { name: "GDN HC",      value: "gdn_hc" },
+          { name: "GDN HC", value: "gdn_hc" },
           { name: "GDN Classic", value: "gdn_cl" },
-          { name: "SDN HC",      value: "sdn_hc" },
-          { name: "SDN Core",    value: "sdn_core" },
+          { name: "SDN HC", value: "sdn_hc" },
         ),
     )
     .toJSON(),
@@ -41,7 +44,10 @@ const commands = [
     .setName("marathon")
     .setDescription("Start a marathon party signup")
     .addStringOption((o) =>
-      o.setName("event").setDescription("Marathon to run").setRequired(true)
+      o
+        .setName("event")
+        .setDescription("Marathon to run")
+        .setRequired(true)
         .addChoices(
           { name: "Marathon GDN", value: "marathon_gdn" },
           { name: "Marathon DDN", value: "marathon_ddn" },
@@ -49,14 +55,32 @@ const commands = [
     )
     .toJSON(),
 
+  // new SlashCommandBuilder()
+  //   .setName("loot")
+  //   .setDescription("Create a standalone loot tracking panel")
+  //   .addStringOption((o) =>
+  //     o
+  //       .setName("title")
+  //       .setDescription("Label for the loot panel")
+  //       .setRequired(false),
+  //   )
+  //   .addBooleanOption((o) =>
+  //     o
+  //       .setName("hc")
+  //       .setDescription("HC raid — gold split ÷7 (default: mixed mode)")
+  //       .setRequired(false),
+  //   )
+  //   .toJSON(),
+
   new SlashCommandBuilder()
-    .setName("loot")
-    .setDescription("Create a standalone loot tracking panel")
+    .setName("nest")
+    .setDescription("Start a nest party signup")
     .addStringOption((o) =>
-      o.setName("title").setDescription("Label for the loot panel").setRequired(false),
-    )
-    .addBooleanOption((o) =>
-      o.setName("hc").setDescription("HC raid — gold split ÷7 (default: mixed mode)").setRequired(false),
+      o
+        .setName("event")
+        .setDescription("Raid to run")
+        .setRequired(true)
+        .addChoices({ name: "TKN Hell", value: "tkn_hell" }),
     )
     .toJSON(),
 ];
