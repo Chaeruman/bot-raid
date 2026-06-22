@@ -1,7 +1,7 @@
 const { ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
 const { CATALOG, ACCESSORY_TYPES } = require("../../../items");
 
-async function handleAccType(interaction, panel, itemKey, source) {
+async function handleAccType(interaction, panel, itemKey) {
   // value = chosen type (e.g. "Ring")
   const type = interaction.values[0];
   const def = CATALOG[itemKey];
@@ -9,7 +9,7 @@ async function handleAccType(interaction, panel, itemKey, source) {
 
   const row = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
-      .setCustomId(`loot-sel:acc_subtype:${panel.lootMsgId}:${itemKey}:${source}:${type}`)
+      .setCustomId(`loot-sel:acc_subtype:${panel.lootMsgId}:${itemKey}:${type}`)
       .setPlaceholder(`Select ${type} subtype`)
       .addOptions(subtypes.map((s) => ({ label: s, value: s }))),
   );

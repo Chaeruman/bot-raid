@@ -1,6 +1,6 @@
 const { MessageFlags } = require("discord.js");
 const { ack } = require("../../utils/ack");
-const { activeEvents } = require("../../state");
+const { activeEvents, saveState } = require("../../state");
 const { updateMessage } = require("../../builders/content");
 
 async function handleSubRoleSelect(interaction) {
@@ -50,6 +50,7 @@ async function handleSubRoleSelect(interaction) {
 
   role.users.push(userId);
   event.users[userId] = { slot: slotKey, subRole };
+  saveState();
 
   const signupMessage = await interaction.channel.messages.fetch(messageId);
   await updateMessage(signupMessage, event);

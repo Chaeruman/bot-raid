@@ -5,8 +5,9 @@ const { handleAddItem } = require("./addItem");
 const { handleAddGold } = require("./addGold");
 const { handleSetPrice } = require("./setPrice");
 const { handleMarkPaid } = require("./markPaid");
-const { handleSwitchSource } = require("./switchSource");
 const { handleCloseLoot } = require("./closeLoot");
+const { handleAddMember } = require("./addMember");
+const { handleRemoveMember } = require("./removeMember");
 
 async function handleLootButton(interaction) {
   // customId: loot-btn:{action}:{lootMsgId}
@@ -29,8 +30,9 @@ async function handleLootButton(interaction) {
     case "add_gold":      return handleAddGold(interaction, panel);
     case "set_price":     return handleSetPrice(interaction, panel);
     case "mark_paid":     return handleMarkPaid(interaction, panel);
-    case "switch_source": return handleSwitchSource(interaction, panel);
     case "close":         return handleCloseLoot(interaction, panel);
+    case "add_member":    return handleAddMember(interaction, panel);
+    case "remove_member": return handleRemoveMember(interaction, panel);
     default:
       return interaction.reply({ content: "❌ Unknown loot action.", flags: MessageFlags.Ephemeral });
   }

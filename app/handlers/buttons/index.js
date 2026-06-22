@@ -23,8 +23,7 @@ async function handleButton(interaction) {
   const event = activeEvents[interaction.message.id];
   const onCooldown = checkCooldown(userId);
 
-  // Silently ignore: cooldown or unknown event
-  if (onCooldown || !event) {
+  if (onCooldown) {
     return ack(interaction, () => interaction.deferUpdate());
   }
 

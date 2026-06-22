@@ -1,9 +1,10 @@
 const { MessageFlags } = require("discord.js");
 const templates = require("../../templates");
-const { activeEvents } = require("../../state");
+const { activeEvents, saveState } = require("../../state");
 const { updateMessage } = require("../../builders/content");
 
 async function createEvent(interaction, templateKey) {
+  console.log(`[createEvent] called with templateKey=${templateKey}`);
   try {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   } catch (err) {
@@ -36,6 +37,7 @@ async function createEvent(interaction, templateKey) {
 
   const event = {
     messageId: null,
+    createdAt: Date.now(),
     hostId: interaction.user.id,
     label: template.label,
     title: `${template.label} — ${dateStr} ${timeStr} WIB`,
@@ -52,6 +54,7 @@ async function createEvent(interaction, templateKey) {
   const msg = await interaction.channel.send({ content: "Loading…" });
   event.messageId = msg.id;
   activeEvents[msg.id] = event;
+  saveState();
 
   await updateMessage(msg, event);
   return interaction.editReply(`**${event.title}** started!`);

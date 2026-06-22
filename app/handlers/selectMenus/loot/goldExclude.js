@@ -1,6 +1,6 @@
 const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
 
-async function showGoldExcludeSelect(interaction, panel, source, splitCount) {
+async function showGoldExcludeSelect(interaction, panel, splitCount, useUpdate = false) {
   const { ActionRowBuilder: AR, StringSelectMenuBuilder } = require("discord.js");
 
   const options = await Promise.all(
@@ -16,23 +16,22 @@ async function showGoldExcludeSelect(interaction, panel, source, splitCount) {
 
   const row = new AR().addComponents(
     new StringSelectMenuBuilder()
-      .setCustomId(`loot-sel:gold_exclude:${panel.lootMsgId}:${source}:${splitCount}`)
+      .setCustomId(`loot-sel:gold_exclude:${panel.lootMsgId}:${splitCount}`)
       .setPlaceholder("Pilih member yang tidak dapat gold")
       .addOptions(options),
   );
 
-  return interaction.reply({
-    content: `Siapa yang tidak dapat bagian gold ini?`,
-    components: [row],
-    flags: 64, // Ephemeral
-  });
+  const payload = { content: "Siapa yang tidak dapat bagian gold ini?", components: [row] };
+  return useUpdate
+    ? interaction.update(payload)
+    : interaction.reply({ ...payload, flags: 64 });
 }
 
-async function handleGoldExclude(interaction, panel, source, splitCount) {
+async function handleGoldExclude(interaction, panel, splitCount) {
   const excludedUserId = interaction.values[0];
 
   const modal = new ModalBuilder()
-    .setCustomId(`loot-modal:gold:${panel.lootMsgId}:${splitCount}:${source}:${excludedUserId}`)
+    .setCustomId(`loot-modal:gold:${panel.lootMsgId}:${splitCount}:${excludedUserId}`)
     .setTitle(`Add Gold (÷${splitCount})`);
 
   modal.addComponents(

@@ -55,22 +55,16 @@ const commands = [
     )
     .toJSON(),
 
-  // new SlashCommandBuilder()
-  //   .setName("loot")
-  //   .setDescription("Create a standalone loot tracking panel")
-  //   .addStringOption((o) =>
-  //     o
-  //       .setName("title")
-  //       .setDescription("Label for the loot panel")
-  //       .setRequired(false),
-  //   )
-  //   .addBooleanOption((o) =>
-  //     o
-  //       .setName("hc")
-  //       .setDescription("HC raid — gold split ÷7 (default: mixed mode)")
-  //       .setRequired(false),
-  //   )
-  //   .toJSON(),
+  new SlashCommandBuilder()
+    .setName("loot")
+    .setDescription("Create a standalone loot tracking panel")
+    .addStringOption((o) =>
+      o
+        .setName("title")
+        .setDescription("Label for the loot panel")
+        .setRequired(true),
+    )
+    .toJSON(),
 
   new SlashCommandBuilder()
     .setName("nest")

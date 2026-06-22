@@ -3,7 +3,6 @@ const { CATALOG, CATEGORIES } = require("../../../items");
 
 async function handleItemCategory(interaction, panel) {
   // customId: loot-sel:category:{lootMsgId}
-  // value is just the categoryKey
   const categoryKey = interaction.values[0];
   const category = CATEGORIES.find((c) => c.key === categoryKey);
   if (!category) {
@@ -27,7 +26,7 @@ async function handleItemCategory(interaction, panel) {
   );
 
   return interaction.update({
-    content: `➕ **${category.label}** — select item (source: **${panel.source === "raid" ? "📥 Raid" : "✉️ Mail"}**):`,
+    content: `➕ **${category.label}** — select item:`,
     components: [row],
   });
 }

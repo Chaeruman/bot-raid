@@ -1,24 +1,23 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
 const { CATALOG } = require("../../../items");
+const { setPendingEphemeral } = require("../../../state");
 
 async function handleSetPrice(interaction, panel) {
   if (interaction.user.id !== panel.sellerId) {
     return interaction.reply({ content: "⛔ Only the seller can set prices.", flags: MessageFlags.Ephemeral });
   }
 
-  const allItems = [...panel.raidItems, ...panel.mailItems];
-  if (allItems.length === 0) {
+  if (panel.items.length === 0) {
     return interaction.reply({ content: "❌ No items added yet.", flags: MessageFlags.Ephemeral });
   }
 
-  const options = allItems.map((item, idx) => {
+  const options = panel.items.map((item, idx) => {
     const def = CATALOG[item.itemKey];
-    const src = panel.raidItems.includes(item) ? "Raid" : "Mail";
     const detailStr = item.detail ? ` (${item.detail})` : "";
     const priceStr = item.price != null ? ` — ${item.price.toLocaleString()}g` : " — no price";
     return {
-      label: `${def.name}${detailStr} [${src}]`.slice(0, 100),
-      value: String(idx), // use index as value since itemKey alone may not be unique
+      label: `${def.name}${detailStr}`.slice(0, 100),
+      value: String(idx),
       description: `${item.qty}x${priceStr}`.slice(0, 100),
     };
   });
@@ -30,11 +29,12 @@ async function handleSetPrice(interaction, panel) {
       .addOptions(options),
   );
 
-  return interaction.reply({
+  await interaction.reply({
     content: "🏷️ **Set Price** — select item:",
     components: [row],
     flags: MessageFlags.Ephemeral,
   });
+  setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
 module.exports = { handleSetPrice };

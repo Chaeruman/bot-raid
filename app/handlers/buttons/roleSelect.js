@@ -1,5 +1,6 @@
 const { updateMessage } = require("../../builders/content");
 const { isMTDestroyer } = require("../../builders/buttons");
+const { saveState } = require("../../state");
 
 async function handleRoleSelect(interaction, event) {
   const slotKey = interaction.customId.replace("role_", "");
@@ -25,6 +26,7 @@ async function handleRoleSelect(interaction, event) {
 
   role.users.push(userId);
   event.users[userId] = { slot: slotKey, subRole };
+  saveState();
 
   return updateMessage(interaction.message, event);
 }

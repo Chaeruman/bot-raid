@@ -1,16 +1,15 @@
 const { MessageFlags } = require("discord.js");
-const { activeLootPanels } = require("../../state");
+const { activeLootPanels, saveState, clearPendingEphemeral } = require("../../state");
 const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
 async function handleItemQtyModal(interaction) {
-  // customId: loot-modal:item_qty:{lootMsgId}:{itemKey}:{source}[:{detail}]
+  // customId: loot-modal:item_qty:{lootMsgId}:{itemKey}[:{detail}]
   // detail (optional) encoded as "Class@Part" or "Type@Subtype"
   const parts = interaction.customId.split(":");
   const lootMsgId = parts[2];
   const itemKey   = parts[3];
-  const source    = parts[4];
-  const rawDetail = parts[5] || null; // e.g. "Warrior@Head" or "Ring@Hybrid"
+  const rawDetail = parts[4] || null; // e.g. "Warrior@Head" or "Ring@Hybrid"
   const detail    = rawDetail ? rawDetail.replace("@", " — ") : null;
 
   const panel = activeLootPanels[lootMsgId];
@@ -29,18 +28,17 @@ async function handleItemQtyModal(interaction) {
     return interaction.reply({ content: "❌ Unknown item.", flags: MessageFlags.Ephemeral });
   }
 
-  const list = source === "mail" ? panel.mailItems : panel.raidItems;
-
-  // Match on both itemKey and detail so e.g. two different armor pieces are tracked separately
-  const existing = list.find((i) => i.itemKey === itemKey && i.detail === detail);
+  const existing = panel.items.find((i) => i.itemKey === itemKey && i.detail === detail);
   if (existing) {
     existing.qty += qty;
   } else {
-    list.push({ itemKey, qty, price: null, detail });
+    panel.items.push({ itemKey, qty, price: null, detail });
   }
+  saveState();
 
   await interaction.deferUpdate();
   await refreshLootPanel(interaction.client, panel);
+  clearPendingEphemeral(lootMsgId, interaction.user.id);
 }
 
 module.exports = { handleItemQtyModal };

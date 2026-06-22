@@ -1,5 +1,5 @@
 const { MessageFlags } = require("discord.js");
-const { activeLootPanels } = require("../../state");
+const { activeLootPanels, saveState, clearPendingEphemeral } = require("../../state");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
 async function handleItemPriceModal(interaction) {
@@ -19,16 +19,17 @@ async function handleItemPriceModal(interaction) {
     return interaction.reply({ content: "❌ Invalid price. Enter a non-negative number.", flags: MessageFlags.Ephemeral });
   }
 
-  const allItems = [...panel.raidItems, ...panel.mailItems];
-  const item = allItems[idx];
+  const item = panel.items[idx];
   if (!item) {
     return interaction.reply({ content: "❌ Item not found in loot list.", flags: MessageFlags.Ephemeral });
   }
 
   item.price = price;
+  saveState();
 
   await interaction.deferUpdate();
   await refreshLootPanel(interaction.client, panel);
+  clearPendingEphemeral(lootMsgId, interaction.user.id);
 }
 
 module.exports = { handleItemPriceModal };

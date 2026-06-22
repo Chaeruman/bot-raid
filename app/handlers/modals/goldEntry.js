@@ -1,14 +1,13 @@
 const { MessageFlags } = require("discord.js");
-const { activeLootPanels } = require("../../state");
+const { activeLootPanels, saveState, clearPendingEphemeral } = require("../../state");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
 async function handleGoldEntryModal(interaction) {
-  // customId: loot-modal:gold:{lootMsgId}:{splitCount}:{source}:{excludedUserId|none}
+  // customId: loot-modal:gold:{lootMsgId}:{splitCount}:{excludedUserId|none}
   const parts = interaction.customId.split(":");
   const lootMsgId      = parts[2];
   const splitCount     = parseInt(parts[3], 10);
-  const source         = parts[4];
-  const excludedUserId = parts[5] && parts[5] !== "none" ? parts[5] : null;
+  const excludedUserId = parts[4] && parts[4] !== "none" ? parts[4] : null;
 
   const panel = activeLootPanels[lootMsgId];
   if (!panel || panel.closed) {
@@ -21,10 +20,12 @@ async function handleGoldEntryModal(interaction) {
     return interaction.reply({ content: "❌ Invalid gold amount. Enter a positive number.", flags: MessageFlags.Ephemeral });
   }
 
-  panel.goldEntries.push({ amount, splitCount, source, excludedUserId });
+  panel.goldEntries.push({ amount, splitCount, excludedUserId });
+  saveState();
 
   await interaction.deferUpdate();
   await refreshLootPanel(interaction.client, panel);
+  clearPendingEphemeral(lootMsgId, interaction.user.id);
 }
 
 module.exports = { handleGoldEntryModal };

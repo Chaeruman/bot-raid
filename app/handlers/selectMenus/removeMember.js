@@ -1,6 +1,6 @@
 const { MessageFlags } = require("discord.js");
 const { ack } = require("../../utils/ack");
-const { activeEvents } = require("../../state");
+const { activeEvents, saveState } = require("../../state");
 const { updateMessage } = require("../../builders/content");
 
 async function handleRemoveMemberSelect(interaction) {
@@ -30,6 +30,7 @@ async function handleRemoveMemberSelect(interaction) {
     targetRole.users = targetRole.users.filter((id) => id !== targetId);
   }
   delete event.users[targetId];
+  saveState();
 
   const signupMessage = await interaction.channel.messages.fetch(messageId);
   await updateMessage(signupMessage, event);

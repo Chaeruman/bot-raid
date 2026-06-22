@@ -1,43 +1,43 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
 const { setPendingEphemeral } = require("../../../state");
 
-async function handleSelectSeller(interaction, panel) {
+async function handleRemoveMember(interaction, panel) {
   if (interaction.user.id !== panel.hostId) {
-    return interaction.reply({ content: "⛔ Only the host can select the seller.", flags: MessageFlags.Ephemeral });
+    return interaction.reply({ content: "⛔ Only the host can manage members.", flags: MessageFlags.Ephemeral });
   }
 
-  // Fetch guild member display names for the option labels
+  if (panel.members.length === 0) {
+    return interaction.reply({ content: "❌ No members to remove.", flags: MessageFlags.Ephemeral });
+  }
+
   const options = await Promise.all(
     panel.members.map(async (uid) => {
       let label = uid;
       try {
         const member = await interaction.guild.members.fetch(uid);
         label = member.displayName;
-      } catch {
-        // fallback to ID if fetch fails
-      }
+      } catch { /* fallback to ID */ }
       return {
         label: label.slice(0, 100),
         value: uid,
-        description: uid === panel.sellerId ? "✅ Current seller" : "Party member",
-        default: uid === panel.sellerId,
+        description: panel.payments[uid] ? "✅ Paid" : "❌ Not paid",
       };
     }),
   );
 
   const row = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
-      .setCustomId(`loot-sel:seller:${panel.lootMsgId}`)
-      .setPlaceholder("Select a seller")
+      .setCustomId(`loot-sel:remove_member:${panel.lootMsgId}`)
+      .setPlaceholder("Select member to remove…")
       .addOptions(options),
   );
 
   await interaction.reply({
-    content: "👤 Select the seller for this loot panel:",
+    content: "➖ **Remove Member** — select:",
     components: [row],
     flags: MessageFlags.Ephemeral,
   });
   setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
-module.exports = { handleSelectSeller };
+module.exports = { handleRemoveMember };

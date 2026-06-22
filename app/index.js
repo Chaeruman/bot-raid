@@ -1,12 +1,40 @@
+const fs = require("fs");
+const path = require("path");
 const { Client, GatewayIntentBits, MessageFlags } = require("discord.js");
 const config = require("./config");
 const { handleCommand } = require("./handlers/commands");
 const { handleButton } = require("./handlers/buttons");
 const { handleSelectMenu } = require("./handlers/selectMenus");
 const { handleModal } = require("./handlers/modals");
+const { activeEvents, activeLootPanels, saveState } = require("./state");
 const keepAlive = require("./utils/keepAlive");
 
-const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+const STATE_FILE = path.join(__dirname, "../state.json");
+try {
+  if (fs.existsSync(STATE_FILE)) {
+    const saved = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
+    Object.assign(activeEvents, saved.activeEvents || {});
+    Object.assign(activeLootPanels, saved.activeLootPanels || {});
+    console.log(`📂 Loaded state: ${Object.keys(activeEvents).length} events, ${Object.keys(activeLootPanels).length} loot panels`);
+  }
+} catch (err) {
+  console.warn("⚠️ Could not load state.json, starting fresh:", err.message);
+}
+
+// Prune activeEvents older than 24 h (no TTL on loot panels — they can last weeks)
+const TTL_MS = 24 * 60 * 60 * 1000;
+const staleIds = Object.keys(activeEvents).filter(
+  (id) => activeEvents[id].createdAt && Date.now() - activeEvents[id].createdAt > TTL_MS,
+);
+if (staleIds.length > 0) {
+  staleIds.forEach((id) => delete activeEvents[id]);
+  saveState();
+  console.log(`🧹 Pruned ${staleIds.length} stale event(s) older than 24h`);
+}
+
+const client = new Client({
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+});
 
 client.on("clientReady", () => {
   console.log(`✅ Logged in as ${client.user.tag}`);
@@ -19,10 +47,17 @@ client.on("interactionCreate", async (interaction) => {
   try {
     if (interaction.isChatInputCommand())
       return await handleCommand(interaction);
-    if (interaction.isStringSelectMenu())
+    if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu())
       return await handleSelectMenu(interaction);
-    if (interaction.isButton())
+    if (interaction.isButton()) {
+      if (!interaction.customId.startsWith("loot-btn:") && !activeEvents[interaction.message.id]) {
+        return interaction.reply({
+          content: "❌ This panel is no longer active.",
+          flags: MessageFlags.Ephemeral,
+        });
+      }
       return await handleButton(interaction);
+    }
     if (interaction.isModalSubmit())
       return await handleModal(interaction);
   } catch (err) {
@@ -40,6 +75,31 @@ client.on("interactionCreate", async (interaction) => {
     } catch {
       /* ignore */
     }
+  }
+});
+
+client.on("threadDelete", (thread) => {
+  let changed = false;
+  for (const [msgId, panel] of Object.entries(activeLootPanels)) {
+    if (panel.threadId === thread.id) {
+      delete activeLootPanels[msgId];
+      changed = true;
+      console.log(`🗑️ Removed loot panel ${msgId} (thread ${thread.id} deleted)`);
+    }
+  }
+  if (changed) saveState();
+});
+
+client.on("messageDelete", (message) => {
+  if (activeEvents[message.id]) {
+    delete activeEvents[message.id];
+    saveState();
+    console.log(`🗑️ Removed deleted event ${message.id} from state`);
+  }
+  if (activeLootPanels[message.id]) {
+    delete activeLootPanels[message.id];
+    saveState();
+    console.log(`🗑️ Removed deleted loot panel ${message.id} from state`);
   }
 });
 

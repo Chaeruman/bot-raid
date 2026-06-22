@@ -3,10 +3,9 @@ const { CATALOG } = require("../../../items");
 
 async function handlePriceItem(interaction, panel) {
   // customId: loot-sel:price_item:{lootMsgId}
-  // value is the index into [...raidItems, ...mailItems]
+  // value is the index into panel.items
   const idx = parseInt(interaction.values[0], 10);
-  const allItems = [...panel.raidItems, ...panel.mailItems];
-  const item = allItems[idx];
+  const item = panel.items[idx];
   if (!item) {
     return interaction.reply({ content: "❌ Item not found.", flags: MessageFlags.Ephemeral });
   }

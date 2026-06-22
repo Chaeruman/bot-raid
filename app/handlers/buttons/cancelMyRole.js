@@ -1,4 +1,5 @@
 const { updateMessage } = require("../../builders/content");
+const { saveState } = require("../../state");
 
 async function handleCancelMyRole(interaction, event) {
   const userId = interaction.user.id;
@@ -10,6 +11,7 @@ async function handleCancelMyRole(interaction, event) {
     currentRole.users = currentRole.users.filter((id) => id !== userId);
   }
   delete event.users[userId];
+  saveState();
 
   return updateMessage(interaction.message, event);
 }

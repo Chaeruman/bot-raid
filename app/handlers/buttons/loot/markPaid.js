@@ -1,4 +1,5 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
+const { setPendingEphemeral } = require("../../../state");
 
 async function handleMarkPaid(interaction, panel) {
   if (interaction.user.id !== panel.hostId) {
@@ -31,11 +32,12 @@ async function handleMarkPaid(interaction, panel) {
       .addOptions(options),
   );
 
-  return interaction.reply({
+  await interaction.reply({
     content: "💳 **Mark Paid** — select member to toggle:",
     components: [row],
     flags: MessageFlags.Ephemeral,
   });
+  setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
 module.exports = { handleMarkPaid };

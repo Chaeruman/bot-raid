@@ -1,5 +1,6 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
 const { CATEGORIES } = require("../../../items");
+const { setPendingEphemeral } = require("../../../state");
 
 async function handleAddItem(interaction, panel) {
   if (interaction.user.id !== panel.sellerId) {
@@ -19,11 +20,12 @@ async function handleAddItem(interaction, panel) {
       .addOptions(options),
   );
 
-  return interaction.reply({
-    content: `➕ **Add Item** — current source: **${panel.source === "raid" ? "📥 Raid Drops" : "✉️ Mail"}**\nSelect a category:`,
+  await interaction.reply({
+    content: "➕ **Add Item** — select a category:",
     components: [row],
     flags: MessageFlags.Ephemeral,
   });
+  setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
 module.exports = { handleAddItem };
