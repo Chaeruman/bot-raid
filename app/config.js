@@ -16,4 +16,5 @@ module.exports = {
   renderUrl: process.env.RENDER_URL,
   port: process.env.PORT || 3000,
   mongoUri: process.env.MONGODB_URI,
+  coLeaderRoleId: process.env.COLEADER_ROLE_ID,
 };

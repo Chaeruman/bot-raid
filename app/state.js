@@ -17,7 +17,7 @@ async function loadState() {
 
   const client = new MongoClient(config.mongoUri);
   await client.connect();
-  collection = client.db("raidgdn").collection("state");
+  collection = client.db("bot-raid").collection("balance");
 
   const doc = await collection.findOne({ _id: "state" });
   if (doc) {

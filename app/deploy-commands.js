@@ -77,6 +77,22 @@ const commands = [
         .addChoices({ name: "TKN Hell", value: "tkn_hell" }),
     )
     .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("state")
+    .setDescription("Co-Leader: view active events & loot panels in state")
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("clear")
+    .setDescription("Co-Leader: clear an active event or loot panel from state")
+    .addStringOption((o) =>
+      o
+        .setName("id")
+        .setDescription("Message ID of the event/panel (from /state)")
+        .setRequired(true),
+    )
+    .toJSON(),
 ];
 
 const rest = new REST({ version: "10" }).setToken(config.token);
