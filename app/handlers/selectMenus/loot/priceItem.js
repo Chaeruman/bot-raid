@@ -27,6 +27,16 @@ async function handlePriceItem(interaction, panel) {
         .setValue(item.price != null ? String(item.price) : "")
         .setRequired(true),
     ),
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("note")
+        .setLabel("Note (optional)")
+        .setStyle(TextInputStyle.Short)
+        .setPlaceholder("e.g. for Budi")
+        .setValue(item.note || "")
+        .setMaxLength(100)
+        .setRequired(false),
+    ),
   );
 
   return interaction.showModal(modal);

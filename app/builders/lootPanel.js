@@ -18,7 +18,8 @@ function buildClosedContent(panel) {
         ? ` — ${item.price.toLocaleString()} gold${def.type === "quantity" ? " total" : ""}`
         : "";
       const detailStr = item.detail ? ` (${item.detail})` : "";
-      lines.push(`• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}`);
+      const noteStr = item.note ? ` _(${item.note})_` : "";
+      lines.push(`• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}${noteStr}`);
     }
   }
 
@@ -116,8 +117,9 @@ function buildLootContent(panel) {
           ? ` — ${item.price.toLocaleString()} gold${def.type === "quantity" ? " total" : ""}`
           : "";
       const detailStr = item.detail ? ` (${item.detail})` : "";
+      const noteStr = item.note ? ` _(${item.note})_` : "";
       lines.push(
-        `• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}`,
+        `• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}${noteStr}`,
       );
     }
   }

@@ -25,6 +25,8 @@ async function handleItemPriceModal(interaction) {
   }
 
   item.price = price;
+  const note = interaction.fields.getTextInputValue("note").trim();
+  item.note = note || null;
   saveState();
 
   await interaction.deferUpdate();
