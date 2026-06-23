@@ -1,16 +1,40 @@
-const fs = require("fs");
-const path = require("path");
+const { MongoClient } = require("mongodb");
+const config = require("./config");
 
 const activeEvents = {};
 const cooldowns = new Map();
 const activeLootPanels = {};
 const pendingEphemerals = new Map(); // `${lootMsgId}:${userId}` → original button interaction
 
-const STATE_FILE = path.join(__dirname, "../state.json");
+let collection = null;
 
+// Connect to MongoDB and hydrate in-memory state. Call once before login.
+async function loadState() {
+  if (!config.mongoUri) {
+    console.warn("⚠️ MONGODB_URI not set — state will NOT persist across restarts.");
+    return;
+  }
+
+  const client = new MongoClient(config.mongoUri);
+  await client.connect();
+  collection = client.db("raidgdn").collection("state");
+
+  const doc = await collection.findOne({ _id: "state" });
+  if (doc) {
+    Object.assign(activeEvents, doc.activeEvents || {});
+    Object.assign(activeLootPanels, doc.activeLootPanels || {});
+  }
+  console.log(
+    `📂 Loaded state from MongoDB: ${Object.keys(activeEvents).length} events, ${Object.keys(activeLootPanels).length} loot panels`,
+  );
+}
+
+// Fire-and-forget: kicks off the write without blocking the caller.
 function saveState() {
-  fs.writeFileSync(STATE_FILE, JSON.stringify({ activeEvents, activeLootPanels }, null, 2));
-  console.log(`💾 state.json saved → ${STATE_FILE} (events: ${Object.keys(activeEvents).length})`);
+  if (!collection) return;
+  collection
+    .replaceOne({ _id: "state" }, { _id: "state", activeEvents, activeLootPanels }, { upsert: true })
+    .catch((err) => console.error("❌ saveState failed:", err.message));
 }
 
 function setPendingEphemeral(lootMsgId, userId, interaction) {
@@ -26,4 +50,12 @@ function clearPendingEphemeral(lootMsgId, userId) {
   }
 }
 
-module.exports = { activeEvents, cooldowns, activeLootPanels, saveState, setPendingEphemeral, clearPendingEphemeral };
+module.exports = {
+  activeEvents,
+  cooldowns,
+  activeLootPanels,
+  loadState,
+  saveState,
+  setPendingEphemeral,
+  clearPendingEphemeral,
+};

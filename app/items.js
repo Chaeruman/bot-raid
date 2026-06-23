@@ -7,7 +7,9 @@ const CATALOG = {
   storm_l_good:    { name: "Storm Triangular L (Good/Perfect)", type: "unique", stampsPerUnit: 8 },
   storm_u_junk:    { name: "Storm Triangular U (Junk)", type: "unique", stampsPerUnit: 4 },
   storm_u_good:    { name: "Storm Triangular U (Good/Perfect)", type: "unique", stampsPerUnit: 4 },
+  forest_l_junk:   { name: "Forest L (Junk)", type: "unique", stampsPerUnit: 8 },
   forest_l_good:   { name: "Forest L (Good/Perfect)", type: "unique", stampsPerUnit: 8 },
+  forest_u_junk:   { name: "Forest U (Junk)", type: "unique", stampsPerUnit: 4 },
   forest_u_good:   { name: "Forest U (Good/Perfect)", type: "unique", stampsPerUnit: 4 },
   hot_sand_l_junk: { name: "Hot Sand Circular L (Junk)", type: "unique", stampsPerUnit: 8 },
   hot_sand_l_good: { name: "Hot Sand Circular L (Good/Perfect)", type: "unique", stampsPerUnit: 8 },
@@ -47,7 +49,10 @@ const CATEGORIES = [
   {
     key: "forest",
     label: "🌿 Forest",
-    items: ["forest_l_good", "forest_u_good"],
+    items: [
+      "forest_l_junk", "forest_l_good",
+      "forest_u_junk", "forest_u_good",
+    ],
   },
   {
     key: "hot_sand",

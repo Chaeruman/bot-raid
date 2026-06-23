@@ -15,4 +15,5 @@ module.exports = {
   forumTagMarathonDDN: process.env.FORUM_TAG_MARATHON_DDN,
   renderUrl: process.env.RENDER_URL,
   port: process.env.PORT || 3000,
+  mongoUri: process.env.MONGODB_URI,
 };

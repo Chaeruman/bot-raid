@@ -1,36 +1,11 @@
-const fs = require("fs");
-const path = require("path");
 const { Client, GatewayIntentBits, MessageFlags } = require("discord.js");
 const config = require("./config");
 const { handleCommand } = require("./handlers/commands");
 const { handleButton } = require("./handlers/buttons");
 const { handleSelectMenu } = require("./handlers/selectMenus");
 const { handleModal } = require("./handlers/modals");
-const { activeEvents, activeLootPanels, saveState } = require("./state");
+const { activeEvents, activeLootPanels, loadState, saveState } = require("./state");
 const keepAlive = require("./utils/keepAlive");
-
-const STATE_FILE = path.join(__dirname, "../state.json");
-try {
-  if (fs.existsSync(STATE_FILE)) {
-    const saved = JSON.parse(fs.readFileSync(STATE_FILE, "utf8"));
-    Object.assign(activeEvents, saved.activeEvents || {});
-    Object.assign(activeLootPanels, saved.activeLootPanels || {});
-    console.log(`📂 Loaded state: ${Object.keys(activeEvents).length} events, ${Object.keys(activeLootPanels).length} loot panels`);
-  }
-} catch (err) {
-  console.warn("⚠️ Could not load state.json, starting fresh:", err.message);
-}
-
-// Prune activeEvents older than 24 h (no TTL on loot panels — they can last weeks)
-const TTL_MS = 24 * 60 * 60 * 1000;
-const staleIds = Object.keys(activeEvents).filter(
-  (id) => activeEvents[id].createdAt && Date.now() - activeEvents[id].createdAt > TTL_MS,
-);
-if (staleIds.length > 0) {
-  staleIds.forEach((id) => delete activeEvents[id]);
-  saveState();
-  console.log(`🧹 Pruned ${staleIds.length} stale event(s) older than 24h`);
-}
 
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
@@ -106,5 +81,24 @@ client.on("messageDelete", (message) => {
 client.on("error", console.error);
 process.on("unhandledRejection", console.error);
 
-keepAlive.start();
-client.login(config.token);
+(async () => {
+  try {
+    await loadState();
+  } catch (err) {
+    console.error("❌ Could not load state from MongoDB, starting fresh:", err.message);
+  }
+
+  // Prune activeEvents older than 24h (no TTL on loot panels — they can last weeks)
+  const TTL_MS = 24 * 60 * 60 * 1000;
+  const staleIds = Object.keys(activeEvents).filter(
+    (id) => activeEvents[id].createdAt && Date.now() - activeEvents[id].createdAt > TTL_MS,
+  );
+  if (staleIds.length > 0) {
+    staleIds.forEach((id) => delete activeEvents[id]);
+    saveState();
+    console.log(`🧹 Pruned ${staleIds.length} stale event(s) older than 24h`);
+  }
+
+  keepAlive.start();
+  await client.login(config.token);
+})();
