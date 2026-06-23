@@ -28,8 +28,8 @@ async function buildMarkPaidRow(interaction, panel) {
 }
 
 async function handleMarkPaid(interaction, panel) {
-  if (interaction.user.id !== panel.hostId) {
-    return interaction.reply({ content: "⛔ Only the host can mark payments.", flags: MessageFlags.Ephemeral });
+  if (interaction.user.id !== panel.hostId && interaction.user.id !== panel.sellerId) {
+    return interaction.reply({ content: "⛔ Only the host or seller can mark payments.", flags: MessageFlags.Ephemeral });
   }
 
   const row = await buildMarkPaidRow(interaction, panel);
