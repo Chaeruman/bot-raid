@@ -14,7 +14,9 @@ function buildClosedContent(panel) {
     for (const item of panel.items) {
       const def = CATALOG[item.itemKey];
       const stamps = def.stampsPerUnit * item.qty;
-      const priceStr = item.price != null ? ` — ${item.price.toLocaleString()} gold` : "";
+      const priceStr = item.price != null
+        ? ` — ${item.price.toLocaleString()} gold${def.type === "quantity" ? " total" : ""}`
+        : "";
       const detailStr = item.detail ? ` (${item.detail})` : "";
       lines.push(`• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}`);
     }
@@ -34,7 +36,10 @@ function buildClosedContent(panel) {
     const soldItems = panel.items.filter((i) => i.price != null);
     const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
     const stampFee = soldStamps * STAMP_RATE_GOLD;
-    const totalItemGold = soldItems.reduce((sum, i) => sum + i.price * i.qty, 0);
+    const totalItemGold = soldItems.reduce(
+      (sum, i) => sum + (CATALOG[i.itemKey].type === "quantity" ? i.price : i.price * i.qty),
+      0,
+    );
     const itemNet = totalItemGold - stampFee;
     const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
     let gold7PerPerson = 0;
@@ -45,24 +50,31 @@ function buildClosedContent(panel) {
     }
     const pool = itemNet + gold8Total;
     const basePerPerson = Math.floor(pool / 8);
-    const goldBossDisplay = Math.floor(gold8Total / 8) + gold7PerPerson;
 
     if (panel.items.length > 0) {
       const totalStamps = panel.items.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
       lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
-      if (soldItems.length > 0) {
-        const unpricedCount = panel.items.length - soldItems.length;
-        const note = unpricedCount > 0 ? ` _(${unpricedCount} item belum ada harga)_` : "";
-        lines.push(`• Hasil jual: ${totalItemGold.toLocaleString()}g − ${stampFee.toLocaleString()}g = **${itemNet.toLocaleString()}g**${note}`);
-      }
     }
-    if (panel.goldEntries.length > 0) {
-      lines.push(`• Gold raid: **${goldBossDisplay.toLocaleString()}/orang**`);
-    }
+
     if (soldItems.length > 0 || panel.goldEntries.length > 0) {
-      lines.push(`• **Gaji/orang: ${(basePerPerson + gold7PerPerson).toLocaleString()}**`);
+      const formulaParts = [];
+      if (pool > 0) {
+        const numParts = [];
+        if (totalItemGold > 0) numParts.push(totalItemGold.toLocaleString());
+        if (gold8Total > 0) numParts.push(gold8Total.toLocaleString());
+        const base = numParts.join(" + ");
+        const numerator = (stampFee > 0 && totalItemGold > 0)
+          ? `(${base} − ${stampFee.toLocaleString()})`
+          : numParts.length > 1 ? `(${base})` : base;
+        formulaParts.push(`${numerator} ÷ 8`);
+      }
+      for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
+        formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
+      }
+      const total = basePerPerson + gold7PerPerson;
+      lines.push(`• **Gaji/orang:** ${formulaParts.join(" + ")} = **${total.toLocaleString()}**`);
       for (const uid of excludedUids) {
-        lines.push(`• **Gaji <@${uid}>: ${basePerPerson.toLocaleString()}**`);
+        lines.push(`• **Gaji <@${uid}>: ${basePerPerson.toLocaleString()}** (tidak dapat HC)`);
       }
     }
   }
@@ -100,7 +112,9 @@ function buildLootContent(panel) {
       const def = CATALOG[item.itemKey];
       const stamps = def.stampsPerUnit * item.qty;
       const priceStr =
-        item.price != null ? ` — ${item.price.toLocaleString()} gold` : "";
+        item.price != null
+          ? ` — ${item.price.toLocaleString()} gold${def.type === "quantity" ? " total" : ""}`
+          : "";
       const detailStr = item.detail ? ` (${item.detail})` : "";
       lines.push(
         `• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}`,
@@ -126,11 +140,6 @@ function buildLootContent(panel) {
   if (panel.items.length > 0 || panel.goldEntries.length > 0) {
     lines.push("\n📊 **Summary:**");
 
-    // Stamps — total for display, but fee only from sold items
-    const totalStamps = panel.items.reduce(
-      (sum, item) => sum + CATALOG[item.itemKey].stampsPerUnit * item.qty,
-      0,
-    );
     const soldItems = panel.items.filter((i) => i.price != null);
     const soldStamps = soldItems.reduce(
       (sum, item) => sum + CATALOG[item.itemKey].stampsPerUnit * item.qty,
@@ -138,7 +147,7 @@ function buildLootContent(panel) {
     );
     const stampFee = soldStamps * STAMP_RATE_GOLD;
     const totalItemGold = soldItems.reduce(
-      (sum, item) => sum + item.price * item.qty,
+      (sum, item) => sum + (CATALOG[item.itemKey].type === "quantity" ? item.price : item.price * item.qty),
       0,
     );
     const itemNet = totalItemGold - stampFee;
@@ -155,35 +164,33 @@ function buildLootContent(panel) {
       if (g.excludedUserId) excludedUids.push(g.excludedUserId);
     }
 
-    // pool combines item net + ÷8 gold; ÷7 gold is added per-person separately
     const pool = itemNet + gold8Total;
     const basePerPerson = Math.floor(pool / 8);
-    const goldBossDisplay = Math.floor(gold8Total / 8) + gold7PerPerson;
 
     if (panel.items.length > 0) {
-      lines.push(
-        `• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g total fee stamp used for current sold items)`,
-      );
-      if (soldItems.length > 0) {
-        const unpricedCount = panel.items.length - soldItems.length;
-        const unpricedNote =
-          unpricedCount > 0 ? ` _(${unpricedCount} item belum ada harga)_` : "";
-        lines.push(
-          `• Hasil jual: ${totalItemGold.toLocaleString()}g − ${stampFee.toLocaleString()}g = **${itemNet.toLocaleString()}g**${unpricedNote}`,
-        );
-      }
-    }
-
-    if (panel.goldEntries.length > 0) {
-      lines.push(`• Gold raid: **${goldBossDisplay.toLocaleString()}/orang**`);
+      const totalStamps = panel.items.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
+      lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
     }
 
     if (soldItems.length > 0 || panel.goldEntries.length > 0) {
-      lines.push(
-        `• **Gaji/orang: ${(basePerPerson + gold7PerPerson).toLocaleString()}**`,
-      );
+      const formulaParts = [];
+      if (pool > 0) {
+        const numParts = [];
+        if (totalItemGold > 0) numParts.push(totalItemGold.toLocaleString());
+        if (gold8Total > 0) numParts.push(gold8Total.toLocaleString());
+        const base = numParts.join(" + ");
+        const numerator = (stampFee > 0 && totalItemGold > 0)
+          ? `(${base} − ${stampFee.toLocaleString()})`
+          : numParts.length > 1 ? `(${base})` : base;
+        formulaParts.push(`${numerator} ÷ 8`);
+      }
+      for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
+        formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
+      }
+      const total = basePerPerson + gold7PerPerson;
+      lines.push(`• **Gaji/orang:** ${formulaParts.join(" + ")} = **${total.toLocaleString()}**`);
       for (const uid of excludedUids) {
-        lines.push(`• **Gaji <@${uid}>: ${basePerPerson.toLocaleString()}**`);
+        lines.push(`• **Gaji <@${uid}>: ${basePerPerson.toLocaleString()}** (tidak dapat HC)`);
       }
     }
   }

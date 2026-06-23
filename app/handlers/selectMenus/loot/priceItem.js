@@ -12,17 +12,16 @@ async function handlePriceItem(interaction, panel) {
 
   const def = CATALOG[item.itemKey];
   const detailStr = item.detail ? ` (${item.detail})` : "";
-  const titleName = `${def.name}${detailStr}`.slice(0, 45);
-
   const modal = new ModalBuilder()
     .setCustomId(`loot-modal:item_price:${panel.lootMsgId}:${idx}`)
-    .setTitle(`Price: ${titleName}`);
+    .setTitle("Set Item Price");
 
+  const itemLabel = `${def.name}${detailStr}`.slice(0, 40);
   modal.addComponents(
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("price")
-        .setLabel("Price in gold")
+        .setLabel(def.type === "quantity" ? `Total price: ${itemLabel}`.slice(0, 45) : `Price: ${itemLabel}`.slice(0, 45))
         .setStyle(TextInputStyle.Short)
         .setPlaceholder(item.price != null ? String(item.price) : "e.g. 50000")
         .setValue(item.price != null ? String(item.price) : "")

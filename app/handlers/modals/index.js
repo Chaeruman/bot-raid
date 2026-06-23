@@ -1,7 +1,6 @@
 const { handleItemQtyModal } = require("./itemQty");
 const { handleItemPriceModal } = require("./itemPrice");
 const { handleGoldEntryModal } = require("./goldEntry");
-
 async function handleModal(interaction) {
   if (interaction.customId.startsWith("loot-modal:item_qty:")) {
     return handleItemQtyModal(interaction);

@@ -2,7 +2,7 @@ const GDN_ROLES = {
   SM: { max: 1, label: "SM/DA" },
   FU: { max: 2 },
   HEALER: { max: 1, label: "Healer" },
-  MC: { max: 1, hideIfEmpty: true, subRoleAsLabel: true },
+  MC: { max: 1, subRoleAsLabel: true },
   MT: { max: 1, label: "MT", subRoles: ["Destroyer", "Guardian"] },
   ICE: { max: 1, label: "Ice Stacker" },
   SUPPORT: { max: 2, label: "Acro/Support" },
@@ -60,7 +60,7 @@ module.exports = {
     maxSlot: 8,
     hcGoldSplit: "mixed",
     forumTagKey: "forumTagMarathonGDN",
-    subruns: ["GDN HC", "GDN CL", "SDN HC"],
+    subruns: ["GDN HC", "GDN CL"],
     roles: { ...GDN_ROLES },
   },
   marathon_ddn: {
@@ -68,7 +68,7 @@ module.exports = {
     maxSlot: 8,
     hcGoldSplit: "mixed",
     forumTagKey: "forumTagMarathonDDN",
-    subruns: ["DDN CL", "GDN HC", "GDN CL", "SDN HC"],
+    subruns: ["DDN CL", "GDN HC", "GDN CL"],
     roles: { ...GDN_ROLES },
   },
 };

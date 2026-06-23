@@ -76,7 +76,7 @@ async function showQtyModal(interaction, lootMsgId, itemKey, def, detail) {
   const detailSuffix = detail ? `:${detail}` : "";
   const modal = new ModalBuilder()
     .setCustomId(`loot-modal:item_qty:${lootMsgId}:${itemKey}${detailSuffix}`)
-    .setTitle(`Add: ${(detail ? `${def.name} (${detail.replace("@", " — ")})` : def.name).slice(0, 45)}`);
+    .setTitle(`Add: ${(detail ? `${def.name} (${detail.replace("@", " — ")})` : def.name).slice(0, 40)}`);
 
   modal.addComponents(
     new ActionRowBuilder().addComponents(
