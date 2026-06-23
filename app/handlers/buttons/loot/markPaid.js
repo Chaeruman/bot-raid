@@ -1,11 +1,6 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
-const { setPendingEphemeral } = require("../../../state");
 
-async function handleMarkPaid(interaction, panel) {
-  if (interaction.user.id !== panel.hostId) {
-    return interaction.reply({ content: "⛔ Only the host can mark payments.", flags: MessageFlags.Ephemeral });
-  }
-
+async function buildMarkPaidRow(interaction, panel) {
   const options = await Promise.all(
     panel.members.map(async (uid) => {
       let label = uid;
@@ -24,19 +19,25 @@ async function handleMarkPaid(interaction, panel) {
     }),
   );
 
-  const row = new ActionRowBuilder().addComponents(
+  return new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`loot-sel:mark_paid:${panel.lootMsgId}`)
       .setPlaceholder("Select member to toggle payment status")
       .addOptions(options),
   );
+}
 
+async function handleMarkPaid(interaction, panel) {
+  if (interaction.user.id !== panel.hostId) {
+    return interaction.reply({ content: "⛔ Only the host can mark payments.", flags: MessageFlags.Ephemeral });
+  }
+
+  const row = await buildMarkPaidRow(interaction, panel);
   await interaction.reply({
-    content: "💳 **Mark Paid** — select member to toggle:",
+    content: "💳 **Mark Paid** — select member to toggle (you can toggle several):",
     components: [row],
     flags: MessageFlags.Ephemeral,
   });
-  setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
-module.exports = { handleMarkPaid };
+module.exports = { handleMarkPaid, buildMarkPaidRow };

@@ -1,11 +1,16 @@
-const { saveState, clearPendingEphemeral } = require("../../../state");
+const { saveState } = require("../../../state");
 const { refreshLootPanel } = require("../../../builders/lootPanel");
+const { buildAddMemberRow } = require("../../buttons/loot/addMember");
 
 async function handleAddMemberSelect(interaction, panel) {
   const userId = interaction.values[0];
+  const row = buildAddMemberRow(panel);
 
   if (panel.members.includes(userId)) {
-    await interaction.update({ content: "⚠️ Member is already in the panel.", components: [] });
+    await interaction.update({
+      content: `⚠️ <@${userId}> is already in the panel. Add another or dismiss.`,
+      components: [row],
+    });
     return;
   }
 
@@ -13,9 +18,11 @@ async function handleAddMemberSelect(interaction, panel) {
   panel.payments[userId] = false;
   saveState();
 
-  await interaction.deferUpdate();
+  await interaction.update({
+    content: `✅ Added <@${userId}>. Add another or dismiss.`,
+    components: [row],
+  });
   await refreshLootPanel(interaction.client, panel);
-  clearPendingEphemeral(panel.lootMsgId, interaction.user.id);
 }
 
 module.exports = { handleAddMemberSelect };
