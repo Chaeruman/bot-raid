@@ -1,17 +1,12 @@
-const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("discord.js");
 const { CATALOG } = require("../items");
 
 const STAMP_RATE_GOLD = 4; // gold per stamp (market fee)
 
-function buildClosedContent(panel) {
-  const lines = [`📦 **Loot: ${panel.eventTitle}** — 🔒 Closed\n`];
-  if (panel.subruns) lines.push(`📍 ${panel.subruns.join(" > ")}\n`);
-
-  lines.push("📦 **Items:**");
-  if (panel.items.length === 0) {
-    lines.push("_None_");
-  } else {
-    for (const item of panel.items) {
+function itemsText(panel) {
+  if (panel.items.length === 0) return "_None_";
+  return panel.items
+    .map((item) => {
       const def = CATALOG[item.itemKey];
       const stamps = def.stampsPerUnit * item.qty;
       const priceStr = item.price != null
@@ -19,196 +14,110 @@ function buildClosedContent(panel) {
         : "";
       const detailStr = item.detail ? ` (${item.detail})` : "";
       const noteStr = item.note ? ` _(${item.note})_` : "";
-      lines.push(`• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}${noteStr}`);
-    }
-  }
-
-  if (panel.goldEntries.length > 0) {
-    lines.push("\n💰 **Gold Drops:**");
-    for (const g of panel.goldEntries) {
-      const perPerson = Math.floor(g.amount / g.splitCount);
-      const excl = g.excludedUserId ? `, <@${g.excludedUserId}> tidak dapat` : "";
-      lines.push(`• ${g.amount.toLocaleString()} (÷${g.splitCount}${excl} = ${perPerson.toLocaleString()}/person)`);
-    }
-  }
-
-  if (panel.items.length > 0 || panel.goldEntries.length > 0) {
-    lines.push("\n📊 **Summary:**");
-    const soldItems = panel.items.filter((i) => i.price != null);
-    const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
-    const stampFee = soldStamps * STAMP_RATE_GOLD;
-    const totalItemGold = soldItems.reduce(
-      (sum, i) => sum + (CATALOG[i.itemKey].type === "quantity" ? i.price : i.price * i.qty),
-      0,
-    );
-    const itemNet = totalItemGold - stampFee;
-    const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
-    let gold7PerPerson = 0;
-    const excludedUids = [];
-    for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
-      gold7PerPerson += Math.floor(g.amount / 7);
-      if (g.excludedUserId) excludedUids.push(g.excludedUserId);
-    }
-    const pool = itemNet + gold8Total;
-    const basePerPerson = Math.floor(pool / 8);
-
-    if (panel.items.length > 0) {
-      const totalStamps = panel.items.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
-      lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
-    }
-
-    if (soldItems.length > 0 || panel.goldEntries.length > 0) {
-      const formulaParts = [];
-      if (pool > 0) {
-        const numParts = [];
-        if (totalItemGold > 0) numParts.push(totalItemGold.toLocaleString());
-        if (gold8Total > 0) numParts.push(gold8Total.toLocaleString());
-        const base = numParts.join(" + ");
-        const numerator = (stampFee > 0 && totalItemGold > 0)
-          ? `(${base} − ${stampFee.toLocaleString()})`
-          : numParts.length > 1 ? `(${base})` : base;
-        formulaParts.push(`${numerator} ÷ 8`);
-      }
-      for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
-        formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
-      }
-      const total = basePerPerson + gold7PerPerson;
-      lines.push(`• **Gaji/orang:** ${formulaParts.join(" + ")} = **${total.toLocaleString()}**`);
-      for (const uid of excludedUids) {
-        lines.push(`• **Gaji <@${uid}>: ${basePerPerson.toLocaleString()}** (tidak dapat HC)`);
-      }
-    }
-  }
-
-  if (panel.members.length > 0) {
-    lines.push("\n💳 **Status Gaji:**");
-    for (const uid of panel.members) {
-      const received = panel.payments[uid];
-      lines.push(`${received ? "✅" : "❌"} <@${uid}>${received ? " — received" : ""}`);
-    }
-  }
-
-  return lines.join("\n");
+      return `• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}${noteStr}`;
+    })
+    .join("\n")
+    .slice(0, 1024);
 }
 
-function buildLootContent(panel) {
-  if (panel.closed) return buildClosedContent(panel);
-
-  const lines = [`📦 **Loot: ${panel.eventTitle}**\n`];
-
-  if (panel.subruns) {
-    lines.push(`📍 ${panel.subruns.join(" > ")}`);
-  }
-  lines.push(`👑 **Host:** <@${panel.hostId}>`);
-  lines.push(
-    `👤 **Seller:** ${panel.sellerId ? `<@${panel.sellerId}>` : "_Not set_"}\n`,
-  );
-
-  // Items
-  lines.push("📦 **Items:**");
-  if (panel.items.length === 0) {
-    lines.push("_None_");
-  } else {
-    for (const item of panel.items) {
-      const def = CATALOG[item.itemKey];
-      const stamps = def.stampsPerUnit * item.qty;
-      const priceStr =
-        item.price != null
-          ? ` — ${item.price.toLocaleString()} gold${def.type === "quantity" ? " total" : ""}`
-          : "";
-      const detailStr = item.detail ? ` (${item.detail})` : "";
-      const noteStr = item.note ? ` _(${item.note})_` : "";
-      lines.push(
-        `• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}${noteStr}`,
-      );
-    }
-  }
-
-  // Gold entries
-  if (panel.goldEntries.length > 0) {
-    lines.push("\n💰 **Gold Drops:**");
-    for (const g of panel.goldEntries) {
+function goldText(panel) {
+  if (panel.goldEntries.length === 0) return null;
+  return panel.goldEntries
+    .map((g) => {
       const perPerson = Math.floor(g.amount / g.splitCount);
-      const excl = g.excludedUserId
-        ? `, <@${g.excludedUserId}> tidak dapat`
-        : "";
-      lines.push(
-        `• ${g.amount.toLocaleString()} (÷${g.splitCount}${excl} = ${perPerson.toLocaleString()}/person)`,
-      );
-    }
+      const excl = g.excludedUserId ? `, <@${g.excludedUserId}> tidak dapat` : "";
+      return `• ${g.amount.toLocaleString()} (÷${g.splitCount}${excl} = ${perPerson.toLocaleString()}/person)`;
+    })
+    .join("\n")
+    .slice(0, 1024);
+}
+
+function summaryText(panel) {
+  if (panel.items.length === 0 && panel.goldEntries.length === 0) return null;
+
+  const lines = [];
+  const soldItems = panel.items.filter((i) => i.price != null);
+  const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
+  const stampFee = soldStamps * STAMP_RATE_GOLD;
+  const totalItemGold = soldItems.reduce(
+    (sum, i) => sum + (CATALOG[i.itemKey].type === "quantity" ? i.price : i.price * i.qty),
+    0,
+  );
+  const itemNet = totalItemGold - stampFee;
+  const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
+  let gold7PerPerson = 0;
+  const excludedUids = [];
+  for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
+    gold7PerPerson += Math.floor(g.amount / 7);
+    if (g.excludedUserId) excludedUids.push(g.excludedUserId);
+  }
+  const pool = itemNet + gold8Total;
+  const basePerPerson = Math.floor(pool / 8);
+
+  if (panel.items.length > 0) {
+    const totalStamps = panel.items.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
+    lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
   }
 
-  // Summary
-  if (panel.items.length > 0 || panel.goldEntries.length > 0) {
-    lines.push("\n📊 **Summary:**");
-
-    const soldItems = panel.items.filter((i) => i.price != null);
-    const soldStamps = soldItems.reduce(
-      (sum, item) => sum + CATALOG[item.itemKey].stampsPerUnit * item.qty,
-      0,
-    );
-    const stampFee = soldStamps * STAMP_RATE_GOLD;
-    const totalItemGold = soldItems.reduce(
-      (sum, item) => sum + (CATALOG[item.itemKey].type === "quantity" ? item.price : item.price * item.qty),
-      0,
-    );
-    const itemNet = totalItemGold - stampFee;
-
-    // Gold splits
-    const gold8Total = panel.goldEntries
-      .filter((g) => g.splitCount === 8)
-      .reduce((sum, g) => sum + g.amount, 0);
-
-    let gold7PerPerson = 0;
-    const excludedUids = [];
+  if (soldItems.length > 0 || panel.goldEntries.length > 0) {
+    const formulaParts = [];
+    if (pool > 0) {
+      const numParts = [];
+      if (totalItemGold > 0) numParts.push(totalItemGold.toLocaleString());
+      if (gold8Total > 0) numParts.push(gold8Total.toLocaleString());
+      const base = numParts.join(" + ");
+      const numerator = (stampFee > 0 && totalItemGold > 0)
+        ? `(${base} − ${stampFee.toLocaleString()})`
+        : numParts.length > 1 ? `(${base})` : base;
+      formulaParts.push(`${numerator} ÷ 8`);
+    }
     for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
-      gold7PerPerson += Math.floor(g.amount / 7);
-      if (g.excludedUserId) excludedUids.push(g.excludedUserId);
+      formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
     }
-
-    const pool = itemNet + gold8Total;
-    const basePerPerson = Math.floor(pool / 8);
-
-    if (panel.items.length > 0) {
-      const totalStamps = panel.items.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
-      lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
-    }
-
-    if (soldItems.length > 0 || panel.goldEntries.length > 0) {
-      const formulaParts = [];
-      if (pool > 0) {
-        const numParts = [];
-        if (totalItemGold > 0) numParts.push(totalItemGold.toLocaleString());
-        if (gold8Total > 0) numParts.push(gold8Total.toLocaleString());
-        const base = numParts.join(" + ");
-        const numerator = (stampFee > 0 && totalItemGold > 0)
-          ? `(${base} − ${stampFee.toLocaleString()})`
-          : numParts.length > 1 ? `(${base})` : base;
-        formulaParts.push(`${numerator} ÷ 8`);
-      }
-      for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
-        formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
-      }
-      const total = basePerPerson + gold7PerPerson;
-      lines.push(`• **Gaji/orang:** ${formulaParts.join(" + ")} = **${total.toLocaleString()}**`);
-      for (const uid of excludedUids) {
-        lines.push(`• **Gaji <@${uid}>: ${basePerPerson.toLocaleString()}** (tidak dapat HC)`);
-      }
+    const total = basePerPerson + gold7PerPerson;
+    lines.push(`• **Gaji/orang:** ${formulaParts.join(" + ")} = **${total.toLocaleString()}**`);
+    for (const uid of excludedUids) {
+      lines.push(`• **Gaji <@${uid}>: ${basePerPerson.toLocaleString()}** (tidak dapat HC)`);
     }
   }
 
-  // Status penerimaan gaji
-  if (panel.members.length > 0) {
-    lines.push("\n**Status Gaji:**");
-    for (const uid of panel.members) {
+  return lines.length ? lines.join("\n").slice(0, 1024) : null;
+}
+
+function statusText(panel) {
+  if (panel.members.length === 0) return null;
+  return panel.members
+    .map((uid) => {
       const received = panel.payments[uid];
-      lines.push(
-        `${received ? "✅" : "❌"} <@${uid}>${received ? " — received salary" : ""}`,
-      );
-    }
-  }
+      return `${received ? "✅" : "❌"} <@${uid}>${received ? " — received" : ""}`;
+    })
+    .join("\n")
+    .slice(0, 1024);
+}
 
-  return lines.join("\n");
+function buildLootEmbed(panel) {
+  const embed = new EmbedBuilder()
+    .setTitle(`📦 Loot: ${panel.eventTitle}${panel.closed ? " — 🔒 Closed" : ""}`)
+    .setColor(panel.closed ? 0x95a5a6 : 0xe67e22);
+
+  const desc = [];
+  if (panel.subruns) desc.push(`📍 ${panel.subruns.join(" > ")}`);
+  desc.push(`👑 **Host:** <@${panel.hostId}>`);
+  desc.push(`👤 **Seller:** ${panel.sellerId ? `<@${panel.sellerId}>` : "_Not set_"}`);
+  embed.setDescription(desc.join("\n"));
+
+  embed.addFields({ name: "📦 Items", value: itemsText(panel) });
+
+  const gold = goldText(panel);
+  if (gold) embed.addFields({ name: "💰 Gold Drops", value: gold });
+
+  const summary = summaryText(panel);
+  if (summary) embed.addFields({ name: "📊 Summary", value: summary });
+
+  const status = statusText(panel);
+  if (status) embed.addFields({ name: "💳 Status Gaji", value: status });
+
+  return embed;
 }
 
 function buildLootComponents(panel) {
@@ -228,10 +137,20 @@ function buildLootComponents(panel) {
       .setStyle(ButtonStyle.Primary)
       .setDisabled(!panel.sellerId),
     new ButtonBuilder()
+      .setCustomId(`loot-btn:remove_item:${panel.lootMsgId}`)
+      .setLabel("🗑️ Remove Item")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(!panel.sellerId || !hasItems),
+    new ButtonBuilder()
       .setCustomId(`loot-btn:add_gold:${panel.lootMsgId}`)
       .setLabel("💰 Add Gold")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(!panel.sellerId),
+    new ButtonBuilder()
+      .setCustomId(`loot-btn:remove_gold:${panel.lootMsgId}`)
+      .setLabel("🗑️ Remove Gold")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(!panel.sellerId || panel.goldEntries.length === 0),
   );
 
   const row2 = new ActionRowBuilder().addComponents(
@@ -270,9 +189,10 @@ async function refreshLootPanel(client, panel) {
   const channel = await client.channels.fetch(panel.threadId);
   const msg = await channel.messages.fetch(panel.lootMsgId);
   await msg.edit({
-    content: buildLootContent(panel),
+    content: "",
+    embeds: [buildLootEmbed(panel)],
     components: buildLootComponents(panel),
   });
 }
 
-module.exports = { buildLootContent, buildLootComponents, refreshLootPanel };
+module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel };

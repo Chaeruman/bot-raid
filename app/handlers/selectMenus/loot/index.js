@@ -13,6 +13,8 @@ const { handlePriceItem } = require("./priceItem");
 const { handleMarkPaidSelect } = require("./markPaid");
 const { handleAddMemberSelect } = require("./addMember");
 const { handleRemoveMemberSelect } = require("./removeMember");
+const { handleRemoveItemSelect } = require("./removeItem");
+const { handleRemoveGoldSelect } = require("./removeGold");
 
 async function handleLootSelect(interaction) {
   // customId: loot-sel:{action}:{lootMsgId}[:{p2}:{p3}]
@@ -48,6 +50,8 @@ async function handleLootSelect(interaction) {
     case "mark_paid":      return handleMarkPaidSelect(interaction, panel);
     case "add_member":     return handleAddMemberSelect(interaction, panel);
     case "remove_member":  return handleRemoveMemberSelect(interaction, panel);
+    case "remove_item":    return handleRemoveItemSelect(interaction, panel);
+    case "remove_gold":    return handleRemoveGoldSelect(interaction, panel);
     default:
       return interaction.reply({ content: "❌ Unknown loot action.", flags: MessageFlags.Ephemeral });
   }

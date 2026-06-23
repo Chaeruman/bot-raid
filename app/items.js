@@ -20,7 +20,7 @@ const CATALOG = {
   ddn_l_accessory:  { name: "DDN Legend Accessory", type: "unique", stampsPerUnit: 37 },
   gdn_l_accessory:  { name: "GDN Legend Accessory", type: "unique", stampsPerUnit: 34 },
   sdn_l_accessory:  { name: "SDN Legend Accessory", type: "unique", stampsPerUnit: 31 },
-  ddn_u_accessory:  { name: "DDN Unique Accessory", type: "unique", stampsPerUnit: 21 },
+  ddn_u_accessory:  { name: "DDN Unique Accessory", type: "unique", stampsPerUnit: 22 },
   gdn_u_accessory:  { name: "GDN Unique Accessory", type: "unique", stampsPerUnit: 20 },
   sdn_u_accessory:  { name: "SDN Unique Accessory", type: "unique", stampsPerUnit: 19 },
   ddn_fragment:     { name: "DDN Fragment", type: "quantity", stampsPerUnit: 1 },

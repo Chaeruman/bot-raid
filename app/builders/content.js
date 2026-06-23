@@ -1,3 +1,4 @@
+const { EmbedBuilder } = require("discord.js");
 const { createButtons } = require("./buttons");
 
 function buildRoleLines(event) {
@@ -35,26 +36,33 @@ function buildRoleLines(event) {
   return content;
 }
 
-async function updateMessage(message, event) {
+function buildSignupEmbed(event) {
   const totalUsers = Object.keys(event.users).length;
 
-  let content = `**${event.title}** (${totalUsers}/${event.maxSlot})\n`;
-  if (event.subruns) {
-    content += `📍 ${event.subruns.join(" > ")}\n`;
-  }
-  content += `Host: <@${event.hostId}>\n`;
+  const desc = [];
+  if (event.subruns) desc.push(`📍 ${event.subruns.join(" > ")}`);
+  desc.push(`**Host:** <@${event.hostId}>`);
+  if (event.locked) desc.push(`🔒 **Party is LOCKED**`);
+  else if (totalUsers >= event.maxSlot) desc.push(`✅ **Party FULL**`);
+  desc.push("");
+  desc.push(buildRoleLines(event).trim());
 
-  if (event.locked) {
-    content += `🔒 **Party is LOCKED**\n`;
-  } else if (totalUsers >= event.maxSlot) {
-    content += `✅ **Party FULL**\n`;
-  }
+  const color = event.locked
+    ? 0xe74c3c
+    : totalUsers >= event.maxSlot
+      ? 0x2ecc71
+      : 0x5865f2;
 
-  content += `\n`;
-  content += buildRoleLines(event);
+  return new EmbedBuilder()
+    .setTitle(`${event.title} (${totalUsers}/${event.maxSlot})`)
+    .setColor(color)
+    .setDescription(desc.join("\n"));
+}
 
+async function updateMessage(message, event) {
   await message.edit({
-    content,
+    content: "",
+    embeds: [buildSignupEmbed(event)],
     components: createButtons(event, event.hostId),
   });
 }

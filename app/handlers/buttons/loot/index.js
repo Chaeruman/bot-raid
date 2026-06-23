@@ -6,6 +6,8 @@ const { handleAddGold } = require("./addGold");
 const { handleSetPrice } = require("./setPrice");
 const { handleMarkPaid } = require("./markPaid");
 const { handleCloseLoot } = require("./closeLoot");
+const { handleRemoveItem } = require("./removeItem");
+const { handleRemoveGold } = require("./removeGold");
 const { handleAddMember } = require("./addMember");
 const { handleRemoveMember } = require("./removeMember");
 
@@ -29,6 +31,8 @@ async function handleLootButton(interaction) {
     case "add_item":      return handleAddItem(interaction, panel);
     case "add_gold":      return handleAddGold(interaction, panel);
     case "set_price":     return handleSetPrice(interaction, panel);
+    case "remove_item":   return handleRemoveItem(interaction, panel);
+    case "remove_gold":   return handleRemoveGold(interaction, panel);
     case "mark_paid":     return handleMarkPaid(interaction, panel);
     case "close":         return handleCloseLoot(interaction, panel);
     case "add_member":    return handleAddMember(interaction, panel);

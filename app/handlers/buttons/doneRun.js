@@ -4,7 +4,7 @@ const {
   buildThreadContent,
 } = require("../../builders/content");
 const {
-  buildLootContent,
+  buildLootEmbed,
   buildLootComponents,
 } = require("../../builders/lootPanel");
 const config = require("../../config");
@@ -58,13 +58,13 @@ async function handleDoneRun(interaction, event) {
     closed: false,
   };
 
-  const lootMsg = await thread.send({ content: buildLootContent(panel) });
+  const lootMsg = await thread.send({ embeds: [buildLootEmbed(panel)] });
   panel.lootMsgId = lootMsg.id;
   activeLootPanels[lootMsg.id] = panel;
   saveState();
 
   await lootMsg.edit({
-    content: buildLootContent(panel),
+    embeds: [buildLootEmbed(panel)],
     components: buildLootComponents(panel),
   });
 }

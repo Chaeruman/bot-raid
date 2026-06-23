@@ -1,6 +1,6 @@
 const { MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState } = require("../../state");
-const { buildLootContent, buildLootComponents } = require("../../builders/lootPanel");
+const { buildLootEmbed, buildLootComponents } = require("../../builders/lootPanel");
 
 async function handleLoot(interaction) {
   try {
@@ -28,13 +28,13 @@ async function handleLoot(interaction) {
     closed: false,
   };
 
-  const msg = await interaction.channel.send({ content: buildLootContent(panel) });
+  const msg = await interaction.channel.send({ embeds: [buildLootEmbed(panel)] });
   panel.lootMsgId = msg.id;
   activeLootPanels[msg.id] = panel;
   saveState();
 
   await msg.edit({
-    content: buildLootContent(panel),
+    embeds: [buildLootEmbed(panel)],
     components: buildLootComponents(panel),
   });
 
