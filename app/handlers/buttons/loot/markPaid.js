@@ -20,7 +20,6 @@ async function handleMarkPaid(interaction, panel) {
         label: label.slice(0, 100),
         value: uid,
         description: paid ? "✅ Paid" : "❌ Not paid",
-        default: paid,
       };
     }),
   );
