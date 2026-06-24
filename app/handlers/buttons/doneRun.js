@@ -46,6 +46,8 @@ async function handleDoneRun(interaction, event) {
   const panel = {
     lootMsgId: null,
     threadId: thread.id,
+    ownThread: true,
+    threadBaseTitle: threadTitle,
     eventTitle: event.title,
     hostId: event.hostId,
     hcGoldSplit: event.hcGoldSplit,

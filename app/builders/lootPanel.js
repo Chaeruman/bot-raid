@@ -3,6 +3,46 @@ const { CATALOG } = require("../items");
 
 const STAMP_RATE_GOLD = 4; // gold per stamp (market fee)
 
+// Headline salary per person (base ÷8 pool share + per-person ÷7 HC gold).
+function salaryPerPerson(panel) {
+  const soldItems = panel.items.filter((i) => i.price != null);
+  const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
+  const stampFee = soldStamps * STAMP_RATE_GOLD;
+  const totalItemGold = soldItems.reduce(
+    (sum, i) => sum + (CATALOG[i.itemKey].type === "quantity" ? i.price : i.price * i.qty),
+    0,
+  );
+  const itemNet = totalItemGold - stampFee;
+  const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
+  const gold7PerPerson = panel.goldEntries
+    .filter((g) => g.splitCount === 7)
+    .reduce((sum, g) => sum + Math.floor(g.amount / 7), 0);
+  return Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson;
+}
+
+function allItemsSold(panel) {
+  return panel.items.length > 0 && panel.items.every((i) => i.price != null);
+}
+
+// Rename the dedicated loot thread once all items are priced (💵) or all paid (✅).
+// No-op for /loot panels (no own thread) and when the name is unchanged.
+async function updateThreadTitle(thread, panel) {
+  if (!panel.ownThread) return;
+  if (!panel.closed && !allItemsSold(panel)) return;
+
+  const emoji = panel.closed ? "✅" : "💵";
+  const base = panel.threadBaseTitle || panel.eventTitle;
+  const name = `${emoji} ${salaryPerPerson(panel).toLocaleString()}g — ${base}`.slice(0, 100);
+
+  if (thread.name !== name) {
+    try {
+      await thread.setName(name);
+    } catch (err) {
+      console.error("❌ thread title update failed:", err.message);
+    }
+  }
+}
+
 function itemsText(panel) {
   if (panel.items.length === 0) return "_None_";
   return panel.items
@@ -193,6 +233,7 @@ async function refreshLootPanel(client, panel) {
     embeds: [buildLootEmbed(panel)],
     components: buildLootComponents(panel),
   });
+  await updateThreadTitle(channel, panel);
 }
 
 module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel };
