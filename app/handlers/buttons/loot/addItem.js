@@ -2,6 +2,15 @@ const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("dis
 const { CATEGORIES } = require("../../../items");
 const { setPendingEphemeral } = require("../../../state");
 
+function buildAddItemRow(panel) {
+  return new ActionRowBuilder().addComponents(
+    new StringSelectMenuBuilder()
+      .setCustomId(`loot-sel:category:${panel.lootMsgId}`)
+      .setPlaceholder("Select item category")
+      .addOptions(options),
+  );
+}
+
 async function handleAddItem(interaction, panel) {
   if (interaction.user.id !== panel.sellerId) {
     return interaction.reply({ content: "⛔ Only the seller can add items.", flags: MessageFlags.Ephemeral });
@@ -13,19 +22,12 @@ async function handleAddItem(interaction, panel) {
     description: `${cat.items.length} items`,
   }));
 
-  const row = new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId(`loot-sel:category:${panel.lootMsgId}`)
-      .setPlaceholder("Select item category")
-      .addOptions(options),
-  );
-
   await interaction.reply({
     content: "➕ **Add Item** — select a category:",
-    components: [row],
+    components: [buildAddItemRow(panel)],
     flags: MessageFlags.Ephemeral,
   });
   setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
-module.exports = { handleAddItem };
+module.exports = { buildAddItemRow, handleAddItem };

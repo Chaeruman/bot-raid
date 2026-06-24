@@ -2,7 +2,7 @@ const { ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilde
 const { CATALOG, ARMOR_PARTS, WEAPON_TYPES, ACCESSORY_TYPES, isArmor, isEquipment, isAccessory } = require("../../../items");
 const { refreshLootPanel } = require("../../../builders/lootPanel");
 const { saveState, clearPendingEphemeral } = require("../../../state");
-const { handleAddItem } = require("../../buttons/loot/addItem");
+const { buildAddItemRow } = require("../../buttons/loot/addItem");
 
 async function handleItemSelect(interaction, panel) {
   // customId: loot-sel:item:{lootMsgId}
@@ -64,7 +64,7 @@ async function addUniqueItem(interaction, panel, itemKey, def, detail) {
   saveState();
 
   const detailStr = detail ? ` (${detail.replace("@", " — ")})` : "";
-  const row = handleAddItem(interaction, panel); // Rebuild the "Add Item" row for the next selection
+  const row = buildAddItemRow(panel); // Rebuild the "Add Item" row for the next selection
   await interaction.update({
     content: `✅ Added **${def.name}${detailStr}**.`,
     components: [row],
