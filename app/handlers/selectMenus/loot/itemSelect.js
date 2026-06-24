@@ -66,7 +66,7 @@ async function addUniqueItem(interaction, panel, itemKey, def, detail) {
   const detailStr = detail ? ` (${detail.replace("@", " — ")})` : "";
   const row = buildAddItemRow(panel); // Rebuild the "Add Item" row for the next selection
   await interaction.update({
-    content: `✅ Added **${def.name}${detailStr}**.`,
+    content: `✅ Added **${def.name}${detailStr}**. You can add another items or dismiss.`,
     components: [row],
   });
   await refreshLootPanel(interaction.client, panel);
