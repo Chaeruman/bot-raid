@@ -31,7 +31,9 @@ async function updateThreadTitle(thread, panel) {
   if (!panel.closed && !allItemsSold(panel)) return;
 
   const emoji = panel.closed ? "✅" : "💵";
-  const base = panel.threadBaseTitle || panel.eventTitle;
+  // Derive the base from the CURRENT thread name (minus any prefix we added before),
+  // so manual renames are respected and the prefix never stacks.
+  const base = thread.name.replace(/^(?:💵|✅)\s*[\d,]+g\s*—\s*/u, "");
   const name = `${emoji} ${salaryPerPerson(panel).toLocaleString()}g — ${base}`.slice(0, 100);
 
   if (thread.name !== name) {
