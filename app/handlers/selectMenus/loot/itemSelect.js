@@ -63,12 +63,12 @@ async function addUniqueItem(interaction, panel, itemKey, def, detail) {
   saveState();
 
   const detailStr = detail ? ` (${detail.replace("@", " — ")})` : "";
+  const row = handleaddItem(interaction, panel); // Rebuild the "Add Item" row for the next selection
   await interaction.update({
     content: `✅ Added **${def.name}${detailStr}**.`,
-    components: [],
+    components: [row],
   });
   await refreshLootPanel(interaction.client, panel);
-    clearPendingEphemeral(panel.lootMsgId, interaction.user.id);
 }
 
 // Only for quantity-type items (fragments etc.)
