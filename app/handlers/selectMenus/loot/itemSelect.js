@@ -49,11 +49,11 @@ async function handleItemSelect(interaction, panel) {
   }
 
   // unique type with no sub-selection → add 1 directly
-  return addUniqueItem(interaction, panel, itemKey, def, null);
+  return addUniqueItem(interaction, panel, itemKey, def, null, false);
 }
 
 // Called after all sub-selections are done for unique items (equipment/accessory).
-async function addUniqueItem(interaction, panel, itemKey, def, detail) {
+async function addUniqueItem(interaction, panel, itemKey, def, detail, clearEphemeral = true) {
   const existing = panel.items.find((i) => i.itemKey === itemKey && i.detail === detail);
   if (existing) {
     existing.qty += 1;
@@ -68,7 +68,9 @@ async function addUniqueItem(interaction, panel, itemKey, def, detail) {
     components: [],
   });
   await refreshLootPanel(interaction.client, panel);
-  clearPendingEphemeral(panel.lootMsgId, interaction.user.id);
+  if (clearEphemeral) {
+    clearPendingEphemeral(panel.lootMsgId, interaction.user.id);
+  }
 }
 
 // Only for quantity-type items (fragments etc.)
