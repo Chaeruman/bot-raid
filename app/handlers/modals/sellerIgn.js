@@ -16,15 +16,20 @@ async function handleSellerIgnModal(interaction) {
   panel.sellerIgn = ign || null;
   saveState();
 
-  // Replace the "(seller)" placeholder (or the previous IGN) in the thread title
+  // Replace the seller placeholder (or the previous IGN) in the thread title.
+  // First time: match a placeholder word with/without parens (ign, seller, name, xxx, xx).
+  // Afterwards: swap the known "(prevIgn)" token.
   if (panel.ownThread && ign) {
     try {
       const thread = await interaction.client.channels.fetch(panel.threadId);
-      const prevToken = prevIgn ? `(${prevIgn})` : "(seller)";
-      if (thread.name.includes(prevToken)) {
-        const name = thread.name.replace(prevToken, `(${ign})`).slice(0, 100);
-        if (name !== thread.name) await thread.setName(name);
+      let name = thread.name;
+      if (prevIgn) {
+        if (name.includes(`(${prevIgn})`)) name = name.replace(`(${prevIgn})`, `(${ign})`);
+      } else {
+        name = name.replace(/\(?\b(?:ign|seller|name|xxx|xx)\b\)?/i, `(${ign})`);
       }
+      name = name.slice(0, 100);
+      if (name !== thread.name) await thread.setName(name);
     } catch (err) {
       console.error("❌ seller IGN title update failed:", err.message);
     }
