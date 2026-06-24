@@ -3,6 +3,11 @@ const { CATEGORIES } = require("../../../items");
 const { setPendingEphemeral } = require("../../../state");
 
 function buildAddItemRow(panel) {
+  const options = CATEGORIES.map((cat) => ({
+    label: cat.label,
+    value: cat.key,
+    description: `${cat.items.length} items`,
+  }));
   return new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`loot-sel:category:${panel.lootMsgId}`)
@@ -15,12 +20,6 @@ async function handleAddItem(interaction, panel) {
   if (interaction.user.id !== panel.sellerId) {
     return interaction.reply({ content: "⛔ Only the seller can add items.", flags: MessageFlags.Ephemeral });
   }
-
-  const options = CATEGORIES.map((cat) => ({
-    label: cat.label,
-    value: cat.key,
-    description: `${cat.items.length} items`,
-  }));
 
   await interaction.reply({
     content: "➕ **Add Item** — select a category:",
