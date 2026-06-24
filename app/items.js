@@ -15,7 +15,7 @@ const CATALOG = {
   hot_sand_l_good: { name: "Hot Sand Circular L (Good/Perfect)", type: "unique", stampsPerUnit: 8 },
   hot_sand_u_junk: { name: "Hot Sand Circular U (Junk)", type: "unique", stampsPerUnit: 4 },
   hot_sand_u_good: { name: "Hot Sand Circular U (Good/Perfect)", type: "unique", stampsPerUnit: 4 },
-  ddn_armor:        { name: "DDN Armor", type: "unique", stampsPerUnit: 2 },
+  ddn_armor:        { name: "DDN Armor", type: "unique", stampsPerUnit: 1 },
   ddn_weapon:       { name: "DDN Weapon", type: "unique", stampsPerUnit: 4 },
   gdn_armor:        { name: "GDN Armor", type: "unique", stampsPerUnit: 1 },
   gdn_weapon:       { name: "GDN Weapon", type: "unique", stampsPerUnit: 3 },
