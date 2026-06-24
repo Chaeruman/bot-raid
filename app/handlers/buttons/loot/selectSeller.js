@@ -1,5 +1,4 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
-const { setPendingEphemeral } = require("../../../state");
 
 async function handleSelectSeller(interaction, panel) {
   if (interaction.user.id !== panel.hostId) {
@@ -37,7 +36,6 @@ async function handleSelectSeller(interaction, panel) {
     components: [row],
     flags: MessageFlags.Ephemeral,
   });
-  setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
 module.exports = { handleSelectSeller };

@@ -145,7 +145,9 @@ function buildLootEmbed(panel) {
   const desc = [];
   if (panel.subruns) desc.push(`📍 ${panel.subruns.join(" > ")}`);
   desc.push(`👑 **Host:** <@${panel.hostId}>`);
-  desc.push(`👤 **Seller:** ${panel.sellerId ? `<@${panel.sellerId}>` : "_Not set_"}`);
+  desc.push(
+    `👤 **Seller:** ${panel.sellerId ? `<@${panel.sellerId}>${panel.sellerIgn ? ` (${panel.sellerIgn})` : ""}` : "_Not set_"}`,
+  );
   embed.setDescription(desc.join("\n"));
 
   embed.addFields({ name: "📦 Items", value: itemsText(panel) });

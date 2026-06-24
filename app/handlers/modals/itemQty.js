@@ -1,5 +1,5 @@
 const { MessageFlags } = require("discord.js");
-const { activeLootPanels, saveState, clearPendingEphemeral } = require("../../state");
+const { activeLootPanels, saveState } = require("../../state");
 const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
@@ -36,9 +36,12 @@ async function handleItemQtyModal(interaction) {
   }
   saveState();
 
-  await interaction.deferUpdate();
+  const detailStr = detail ? ` (${detail})` : "";
+  await interaction.update({
+    content: `✅ Added **${def.name}${detailStr}** ×${qty}.`,
+    components: [],
+  });
   await refreshLootPanel(interaction.client, panel);
-  clearPendingEphemeral(lootMsgId, interaction.user.id);
 }
 
 module.exports = { handleItemQtyModal };
