@@ -1,6 +1,7 @@
 const { MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState } = require("../../state");
 const { buildLootEmbed, buildLootComponents } = require("../../builders/lootPanel");
+const config = require("../../config");
 
 async function handleLoot(interaction) {
   try {
@@ -10,12 +11,21 @@ async function handleLoot(interaction) {
     throw err;
   }
 
+  const inSalaryThread =
+    interaction.channel?.isThread() &&
+    (!config.threadChannelId || interaction.channel.parentId === config.threadChannelId);
+  if (!inSalaryThread) {
+    return interaction.editReply("❌ /loot can only be used inside a salary thread.");
+  }
+
   const title  = interaction.options.getString("title");
   const hostId = interaction.user.id;
 
   const panel = {
     lootMsgId: null,
     threadId: interaction.channelId,
+    ownThread: true,
+    threadBaseTitle: interaction.channel.name,
     eventTitle: title,
     hostId,
     hcGoldSplit: "mixed",
