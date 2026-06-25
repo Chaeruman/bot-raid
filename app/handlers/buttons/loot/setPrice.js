@@ -1,16 +1,8 @@
-const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
+const { ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require("discord.js");
 const { CATALOG } = require("../../../items");
-const { setPendingEphemeral } = require("../../../state");
 
-async function handleSetPrice(interaction, panel) {
-  if (interaction.user.id !== panel.sellerId) {
-    return interaction.reply({ content: "⛔ Only the seller can set prices.", flags: MessageFlags.Ephemeral });
-  }
-
-  if (panel.items.length === 0) {
-    return interaction.reply({ content: "❌ No items added yet.", flags: MessageFlags.Ephemeral });
-  }
-
+// Kept for compatibility with the (now-orphaned) select price flow.
+function buildSetPriceRow(panel) {
   const options = panel.items.map((item, idx) => {
     const def = CATALOG[item.itemKey];
     const detailStr = item.detail ? ` (${item.detail})` : "";
@@ -22,19 +14,52 @@ async function handleSetPrice(interaction, panel) {
     };
   });
 
-  const row = new ActionRowBuilder().addComponents(
+  return new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`loot-sel:price_item:${panel.lootMsgId}`)
       .setPlaceholder("Select item to set price")
       .addOptions(options),
   );
-
-  await interaction.reply({
-    content: "🏷️ **Set Price** — select item:",
-    components: [row],
-    flags: MessageFlags.Ephemeral,
-  });
-  setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
-module.exports = { handleSetPrice };
+// One numbered line per item, price goes in the trailing ().
+function buildPricePrefill(panel) {
+  return panel.items
+    .map((item, i) => {
+      const def = CATALOG[item.itemKey];
+      const detail = item.detail ? ` (${item.detail})` : "";
+      const cur = item.price != null ? item.price : "";
+      return `${i + 1}) ${def.name}${detail} x${item.qty} = (${cur})`;
+    })
+    .join("\n")
+    .slice(0, 4000);
+}
+
+async function handleSetPrice(interaction, panel) {
+  if (interaction.user.id !== panel.sellerId) {
+    return interaction.reply({ content: "⛔ Only the seller can set prices.", flags: MessageFlags.Ephemeral });
+  }
+
+  if (panel.items.length === 0) {
+    return interaction.reply({ content: "❌ No items added yet.", flags: MessageFlags.Ephemeral });
+  }
+
+  const modal = new ModalBuilder()
+    .setCustomId(`loot-modal:set_prices:${panel.lootMsgId}`)
+    .setTitle("Set Item Prices");
+
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("prices")
+        .setLabel("Fill the (brackets) — e.g. (50000g)")
+        .setStyle(TextInputStyle.Paragraph)
+        .setValue(buildPricePrefill(panel))
+        .setRequired(false),
+    ),
+  );
+
+  return interaction.showModal(modal);
+}
+
+module.exports = { handleSetPrice, buildSetPriceRow };

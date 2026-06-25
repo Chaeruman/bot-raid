@@ -1,7 +1,7 @@
 const { MessageFlags } = require("discord.js");
 const { activeLootPanels } = require("../../../state");
 const { handleSelectSeller } = require("./selectSeller");
-const { handleAddItem } = require("./addItem");
+const { handleAddItem, handleBrowseItem } = require("./addItem");
 const { handleAddGold } = require("./addGold");
 const { handleSetPrice } = require("./setPrice");
 const { handleMarkPaid } = require("./markPaid");
@@ -30,6 +30,7 @@ async function handleLootButton(interaction) {
   switch (action) {
     case "select_seller": return handleSelectSeller(interaction, panel);
     case "add_item":      return handleAddItem(interaction, panel);
+    case "browse_item":   return handleBrowseItem(interaction, panel);
     case "add_gold":      return handleAddGold(interaction, panel);
     case "set_price":     return handleSetPrice(interaction, panel);
     case "remove_item":   return handleRemoveItem(interaction, panel);

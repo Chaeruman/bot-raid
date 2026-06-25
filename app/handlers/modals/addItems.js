@@ -22,10 +22,11 @@ async function handleAddItemsModal(interaction) {
     return interaction.reply({ content: "⛔ Only the seller can add items.", flags: MessageFlags.Ephemeral });
   }
 
-  const { added, unresolved, errors } = parseItemLines(interaction.fields.getTextInputValue("items"));
+  const { added, golds, unresolved, errors } = parseItemLines(interaction.fields.getTextInputValue("items"));
 
   for (const it of added) addToPanel(panel, it);
-  if (added.length) saveState();
+  for (const g of golds) panel.goldEntries.push(g);
+  if (added.length || golds.length) saveState();
 
   const lines = [];
   if (added.length) {
@@ -34,6 +35,12 @@ async function handleAddItemsModal(interaction) {
       const def = CATALOG[it.itemKey];
       const d = it.detail ? ` (${it.detail})` : "";
       lines.push(`• ${def.name}${d} ×${it.qty}`);
+    }
+  }
+  if (golds.length) {
+    lines.push(`${lines.length ? "\n" : ""}💰 Added ${golds.length} gold drop(s):`);
+    for (const g of golds) {
+      lines.push(`• ${g.amount.toLocaleString()} ÷${g.splitCount} = ${Math.floor(g.amount / g.splitCount).toLocaleString()}/person`);
     }
   }
   if (errors.length) {
@@ -71,7 +78,7 @@ async function handleAddItemsModal(interaction) {
     components,
     flags: MessageFlags.Ephemeral,
   });
-  if (added.length) await refreshLootPanel(interaction.client, panel);
+  if (added.length || golds.length) await refreshLootPanel(interaction.client, panel);
 }
 
 module.exports = { handleAddItemsModal };

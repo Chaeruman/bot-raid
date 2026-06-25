@@ -149,6 +149,16 @@ function parseStructural(raw) {
   return null;
 }
 
+// Gold line: "gold 294/7", "258/8", "gold 1,000,000/8" → { amount, splitCount }.
+// split must be 7 or 8 (HC ÷7 / normal ÷8). No exclusion via text (use the button for that).
+function parseGoldLine(raw) {
+  const m = raw.toLowerCase().replace(/,/g, "").match(/^(?:gold\s+)?(\d+)\s*\/\s*(7|8)$/);
+  if (!m) return null;
+  const amount = parseInt(m[1], 10);
+  if (amount <= 0) return null;
+  return { amount, splitCount: parseInt(m[2], 10), excludedUserId: null };
+}
+
 // A bare "ddn armor" / "gdn armor" (just dungeon + kind, nothing else) is ambiguous:
 // it collides with the Cleric "Armor" named piece and the generic item. Ask to clarify.
 function bareArmorClarify(raw) {
@@ -167,10 +177,16 @@ function bareArmorClarify(raw) {
 // Returns { added: [{itemKey,qty,detail}], unresolved: [{raw,qty,candidates}], errors: [string] }.
 function parseItemLines(text) {
   const added = [];
+  const golds = [];
   const unresolved = [];
   const errors = [];
 
   for (const raw of text.split(/[\n|]+/).map((s) => s.trim()).filter(Boolean)) {
+    const gold = parseGoldLine(raw);
+    if (gold) {
+      golds.push(gold);
+      continue;
+    }
     const bare = bareArmorClarify(raw);
     if (bare) {
       errors.push(`${raw} — ${bare.error}`);
@@ -195,7 +211,7 @@ function parseItemLines(text) {
     else errors.push(raw);
   }
 
-  return { added, unresolved, errors };
+  return { added, golds, unresolved, errors };
 }
 
 module.exports = { parseItemLines };

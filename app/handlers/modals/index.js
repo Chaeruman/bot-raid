@@ -4,10 +4,14 @@ const { handleGoldEntryModal } = require("./goldEntry");
 const { handleSellerIgnModal } = require("./sellerIgn");
 const { handleAddItemsModal } = require("./addItems");
 const { handleResolveItemsModal } = require("./resolveItems");
+const { handleSetPricesModal } = require("./setPrices");
 
 async function handleModal(interaction) {
   if (interaction.customId.startsWith("loot-modal:add_items:")) {
     return handleAddItemsModal(interaction);
+  }
+  if (interaction.customId.startsWith("loot-modal:set_prices:")) {
+    return handleSetPricesModal(interaction);
   }
   if (interaction.customId.startsWith("loot-modal:resolve_items:")) {
     return handleResolveItemsModal(interaction);

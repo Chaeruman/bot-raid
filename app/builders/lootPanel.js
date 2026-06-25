@@ -161,6 +161,10 @@ function buildLootEmbed(panel) {
   const status = statusText(panel);
   if (status) embed.addFields({ name: "💳 Status Gaji", value: status });
 
+  if (!panel.closed) {
+    embed.setFooter({ text: "Tip: ✍️ Type Items also accepts gold — e.g. gold 294/7 or 258/8" });
+  }
+
   return embed;
 }
 
@@ -169,6 +173,7 @@ function buildLootComponents(panel) {
 
   const hasItems = panel.items.length > 0;
 
+  // Row 1 — item workflow
   const row1 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`loot-btn:select_seller:${panel.lootMsgId}`)
@@ -177,14 +182,28 @@ function buildLootComponents(panel) {
       .setDisabled(panel.members.length === 0),
     new ButtonBuilder()
       .setCustomId(`loot-btn:add_item:${panel.lootMsgId}`)
-      .setLabel("➕ Add Item")
+      .setLabel("✍️ Type Items")
       .setStyle(ButtonStyle.Primary)
+      .setDisabled(!panel.sellerId),
+    new ButtonBuilder()
+      .setCustomId(`loot-btn:browse_item:${panel.lootMsgId}`)
+      .setLabel("📋 Browse Item")
+      .setStyle(ButtonStyle.Secondary)
       .setDisabled(!panel.sellerId),
     new ButtonBuilder()
       .setCustomId(`loot-btn:remove_item:${panel.lootMsgId}`)
       .setLabel("🗑️ Remove Item")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(!panel.sellerId || !hasItems),
+    new ButtonBuilder()
+      .setCustomId(`loot-btn:set_price:${panel.lootMsgId}`)
+      .setLabel("🏷️ Set Price")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(!panel.sellerId || !hasItems),
+  );
+
+  // Row 2 — gold
+  const row2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`loot-btn:add_gold:${panel.lootMsgId}`)
       .setLabel("💰 Add Gold")
@@ -197,23 +216,7 @@ function buildLootComponents(panel) {
       .setDisabled(!panel.sellerId || panel.goldEntries.length === 0),
   );
 
-  const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:set_price:${panel.lootMsgId}`)
-      .setLabel("🏷️ Set Item Price")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!panel.sellerId || !hasItems),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:mark_paid:${panel.lootMsgId}`)
-      .setLabel("✅ Mark Paid")
-      .setStyle(ButtonStyle.Success)
-      .setDisabled(panel.members.length === 0),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:close:${panel.lootMsgId}`)
-      .setLabel("🔒 Close Panel")
-      .setStyle(ButtonStyle.Danger),
-  );
-
+  // Row 3 — members
   const row3 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`loot-btn:add_member:${panel.lootMsgId}`)
@@ -226,7 +229,20 @@ function buildLootComponents(panel) {
       .setDisabled(panel.members.length === 0),
   );
 
-  return [row1, row2, row3];
+  // Row 4 — finalize
+  const row4 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`loot-btn:mark_paid:${panel.lootMsgId}`)
+      .setLabel("✅ Mark Paid")
+      .setStyle(ButtonStyle.Success)
+      .setDisabled(panel.members.length === 0),
+    new ButtonBuilder()
+      .setCustomId(`loot-btn:close:${panel.lootMsgId}`)
+      .setLabel("🔒 Close Panel")
+      .setStyle(ButtonStyle.Danger),
+  );
+
+  return [row1, row2, row3, row4];
 }
 
 async function refreshLootPanel(client, panel) {

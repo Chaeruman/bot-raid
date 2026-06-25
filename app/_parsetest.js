@@ -13,7 +13,7 @@ if (!input.trim()) {
   process.exit(1);
 }
 
-const { added, unresolved, errors } = parseItemLines(input);
+const { added, golds, unresolved, errors } = parseItemLines(input);
 
 console.log(`\nInput:\n${input}\n`);
 
@@ -23,6 +23,13 @@ if (added.length) {
     const def = CATALOG[a.itemKey];
     const d = a.detail ? ` (${a.detail})` : "";
     console.log(`   • ${def.name}${d} ×${a.qty} — ${def.stampsPerUnit} stamp/unit  [${a.itemKey}]`);
+  }
+}
+
+if (golds.length) {
+  console.log("💰 Gold:");
+  for (const g of golds) {
+    console.log(`   • ${g.amount.toLocaleString()} ÷${g.splitCount} = ${Math.floor(g.amount / g.splitCount).toLocaleString()}/person`);
   }
 }
 
@@ -42,4 +49,4 @@ if (errors.length) {
   for (const e of errors) console.log(`   • ${e}`);
 }
 
-if (!added.length && !unresolved.length && !errors.length) console.log("(nothing parsed)");
+if (!added.length && !golds.length && !unresolved.length && !errors.length) console.log("(nothing parsed)");

@@ -30,16 +30,16 @@ async function handleAddItem(interaction, panel) {
 
   const modal = new ModalBuilder()
     .setCustomId(`loot-modal:add_items:${panel.lootMsgId}`)
-    .setTitle("Add Items");
+    .setTitle("Add Items & Gold");
 
   modal.addComponents(
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("items")
-        .setLabel("One item per line (or | separated)")
+        .setLabel("One per line (items or gold, | separated)")
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder(
-          "gdn armor warrior head\ngdn fragment x5\nstorm u junk\nddn unique accessory ring hybrid",
+          "gdn (one piece)\ngdn fragment x5\nstorm u junk\ngold 294/7\n258/8",
         )
         .setRequired(true),
     ),
@@ -48,4 +48,17 @@ async function handleAddItem(interaction, panel) {
   return interaction.showModal(modal);
 }
 
-module.exports = { buildAddItemRow, handleAddItem };
+// 📋 Browse — the tap-through category → item select flow (mobile-friendly).
+async function handleBrowseItem(interaction, panel) {
+  if (interaction.user.id !== panel.sellerId) {
+    return interaction.reply({ content: "⛔ Only the seller can add items.", flags: MessageFlags.Ephemeral });
+  }
+
+  return interaction.reply({
+    content: "📋 **Browse** — select a category:",
+    components: [buildAddItemRow(panel)],
+    flags: MessageFlags.Ephemeral,
+  });
+}
+
+module.exports = { buildAddItemRow, handleAddItem, handleBrowseItem };

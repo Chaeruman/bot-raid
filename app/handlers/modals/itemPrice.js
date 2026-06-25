@@ -1,6 +1,7 @@
 const { MessageFlags } = require("discord.js");
-const { activeLootPanels, saveState, clearPendingEphemeral } = require("../../state");
+const { activeLootPanels, saveState } = require("../../state");
 const { refreshLootPanel } = require("../../builders/lootPanel");
+const { buildSetPriceRow } = require("../buttons/loot/setPrice");
 
 async function handleItemPriceModal(interaction) {
   // customId: loot-modal:item_price:{lootMsgId}:{idx}
@@ -29,9 +30,14 @@ async function handleItemPriceModal(interaction) {
   item.note = note || null;
   saveState();
 
-  await interaction.deferUpdate();
+  // Keep the picker open for the next price; clear once every item has a price.
+  const allPriced = panel.items.every((i) => i.price != null);
+  if (allPriced) {
+    await interaction.update({ content: "✅ All items priced.", components: [] });
+  } else {
+    await interaction.update({ content: "🏷️ **Set Price** — select item:", components: [buildSetPriceRow(panel)] });
+  }
   await refreshLootPanel(interaction.client, panel);
-  clearPendingEphemeral(lootMsgId, interaction.user.id);
 }
 
 module.exports = { handleItemPriceModal };
