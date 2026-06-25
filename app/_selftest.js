@@ -1,0 +1,81 @@
+// Standalone parser self-test — run:  node app/_selftest.js
+// No Discord/network needed; just exercises items.js + utils/parseItems.js.
+
+const { NAMED_EQUIPMENT, CATALOG } = require("./items");
+const { parseItemLines } = require("./utils/parseItems");
+
+let pass = 0;
+const fails = [];
+function check(name, cond, detail) {
+  if (cond) pass++;
+  else fails.push(`${name}${detail ? ` — ${detail}` : ""}`);
+}
+
+// 1) Every named item is reachable+unique via `<dungeon> (<name minus prefix>)`.
+for (const e of NAMED_EQUIPMENT) {
+  const kw = e.name.replace(/^(ddn|gdn|sdn)\s+/i, "");
+  const line = `${e.dungeon} (${kw})`;
+  const { added, unresolved, errors } = parseItemLines(line);
+  if (added.length === 1 && added[0].itemKey === e.key) check(line, true);
+  else if (unresolved.length === 1 && unresolved[0].candidates.some((c) => c.key === e.key))
+    check(line, true);
+  else check(line, false, `added=${JSON.stringify(added.map((a) => a.itemKey))} err=${JSON.stringify(errors)}`);
+}
+
+// 2) Structural categories.
+const structural = [
+  ["thorns l junk", "thorns_l_junk"],
+  ["thorns u good", "thorns_u_good"],
+  ["storm u junk", "storm_u_junk"],
+  ["storm triangular l good", "storm_l_good"],
+  ["forest l junk", "forest_l_junk"],
+  ["forest u good", "forest_u_good"],
+  ["hot sand l junk", "hot_sand_l_junk"],
+  ["hot sand circular u good", "hot_sand_u_good"],
+  ["gdn fragment x5", "gdn_fragment", 5],
+  ["ddn fragment", "ddn_fragment"],
+  ["ddn unique accessory ring hybrid", "ddn_u_accessory", 1, "Ring@Hybrid"],
+  ["gdn legend accessory necklace str agi", "gdn_l_accessory", 1, "Necklace@STR AGI"],
+  ["gdn armor warrior head", "gdn_armor"],
+  ["ddn weapon kali main", "ddn_weapon"],
+];
+for (const [line, key, qty, detail] of structural) {
+  const { added } = parseItemLines(line);
+  const a = added[0];
+  check(
+    `structural: ${line}`,
+    a && a.itemKey === key && (qty === undefined || a.qty === qty) && (detail === undefined || a.detail === detail),
+    a ? JSON.stringify(a) : "no add",
+  );
+}
+
+// 3) Bare-armor guard → must be flagged, not added.
+for (const line of ["gdn armor", "ddn armor", "armor gdn"]) {
+  const { added, errors } = parseItemLines(line);
+  check(`bare guard: ${line}`, added.length === 0 && errors.length === 1, JSON.stringify({ added, errors }));
+}
+
+// 4) Quantity parsing.
+for (const [line, q] of [["gdn fragment x3", 3], ["gdn fragment 7", 7]]) {
+  const { added } = parseItemLines(line);
+  check(`qty: ${line}`, added[0] && added[0].qty === q, added[0] ? added[0].qty : "no add");
+}
+
+// 5) Duplicate-name safety: no two named items share a name.
+const seen = new Map();
+for (const e of NAMED_EQUIPMENT) {
+  const n = e.name.toLowerCase();
+  if (seen.has(n)) fails.push(`DUPLICATE NAME: "${e.name}" (${seen.get(n)} & ${e.key})`);
+  else seen.set(n, e.key);
+}
+
+console.log(`\nNamed items loaded: ${NAMED_EQUIPMENT.length}`);
+console.log(`Catalog size: ${Object.keys(CATALOG).length}`);
+console.log(`\n✅ PASS: ${pass}`);
+if (fails.length) {
+  console.log(`❌ FAIL: ${fails.length}`);
+  for (const f of fails) console.log(`   • ${f}`);
+  process.exit(1);
+} else {
+  console.log("🎉 All checks passed.");
+}

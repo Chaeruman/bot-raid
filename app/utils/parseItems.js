@@ -149,6 +149,20 @@ function parseStructural(raw) {
   return null;
 }
 
+// A bare "ddn armor" / "gdn armor" (just dungeon + kind, nothing else) is ambiguous:
+// it collides with the Cleric "Armor" named piece and the generic item. Ask to clarify.
+function bareArmorClarify(raw) {
+  if (/\([^)]*\)/.test(raw)) return null;
+  const tokens = raw.toLowerCase().split(/\s+/).filter(Boolean).filter((t) => !/^x?\d+x?$/.test(t));
+  if (tokens.length !== 2) return null;
+  const dungeon = tokens.find((t) => t === "ddn" || t === "gdn");
+  const isArmor = tokens.includes("armor") || tokens.includes("arm");
+  if (!dungeon || !isArmor) return null;
+  return {
+    error: `ambiguous — use a keyword: \`${dungeon} (armor)\` for the Cleric chest, or \`${dungeon} (keyword)\` for another piece (e.g. \`${dungeon} (helmet)\`, \`${dungeon} (one piece)\`)`,
+  };
+}
+
 // Split on newlines and pipes; classify each line.
 // Returns { added: [{itemKey,qty,detail}], unresolved: [{raw,qty,candidates}], errors: [string] }.
 function parseItemLines(text) {
@@ -157,6 +171,11 @@ function parseItemLines(text) {
   const errors = [];
 
   for (const raw of text.split(/[\n|]+/).map((s) => s.trim()).filter(Boolean)) {
+    const bare = bareArmorClarify(raw);
+    if (bare) {
+      errors.push(`${raw} — ${bare.error}`);
+      continue;
+    }
     const named = matchNamed(raw);
     if (named && named.itemKey) {
       added.push({ itemKey: named.itemKey, qty: named.qty, detail: null });
