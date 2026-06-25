@@ -5,6 +5,7 @@ const activeEvents = {};
 const cooldowns = new Map();
 const activeLootPanels = {};
 const pendingEphemerals = new Map(); // `${lootMsgId}:${userId}` → original button interaction
+const pendingResolutions = new Map(); // `${lootMsgId}:${userId}` → [{ raw, qty, candidates }]
 
 let collection = null;
 
@@ -50,6 +51,17 @@ function clearPendingEphemeral(lootMsgId, userId) {
   }
 }
 
+function setPendingResolution(lootMsgId, userId, list) {
+  pendingResolutions.set(`${lootMsgId}:${userId}`, list);
+}
+
+function takePendingResolution(lootMsgId, userId) {
+  const key = `${lootMsgId}:${userId}`;
+  const list = pendingResolutions.get(key);
+  pendingResolutions.delete(key);
+  return list || null;
+}
+
 module.exports = {
   activeEvents,
   cooldowns,
@@ -58,4 +70,6 @@ module.exports = {
   saveState,
   setPendingEphemeral,
   clearPendingEphemeral,
+  setPendingResolution,
+  takePendingResolution,
 };

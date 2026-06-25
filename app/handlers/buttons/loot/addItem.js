@@ -1,7 +1,14 @@
-const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
+const {
+  ActionRowBuilder,
+  StringSelectMenuBuilder,
+  ModalBuilder,
+  TextInputBuilder,
+  TextInputStyle,
+  MessageFlags,
+} = require("discord.js");
 const { CATEGORIES } = require("../../../items");
-const { setPendingEphemeral } = require("../../../state");
 
+// Still used by the select-based flow (kept for reference / re-show).
 function buildAddItemRow(panel) {
   const options = CATEGORIES.map((cat) => ({
     label: cat.label,
@@ -21,12 +28,24 @@ async function handleAddItem(interaction, panel) {
     return interaction.reply({ content: "⛔ Only the seller can add items.", flags: MessageFlags.Ephemeral });
   }
 
-  await interaction.reply({
-    content: "➕ **Add Item** — select a category:",
-    components: [buildAddItemRow(panel)],
-    flags: MessageFlags.Ephemeral,
-  });
-  setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
+  const modal = new ModalBuilder()
+    .setCustomId(`loot-modal:add_items:${panel.lootMsgId}`)
+    .setTitle("Add Items");
+
+  modal.addComponents(
+    new ActionRowBuilder().addComponents(
+      new TextInputBuilder()
+        .setCustomId("items")
+        .setLabel("One item per line (or | separated)")
+        .setStyle(TextInputStyle.Paragraph)
+        .setPlaceholder(
+          "gdn armor warrior head\ngdn fragment x5\nstorm u junk\nddn unique accessory ring hybrid",
+        )
+        .setRequired(true),
+    ),
+  );
+
+  return interaction.showModal(modal);
 }
 
 module.exports = { buildAddItemRow, handleAddItem };

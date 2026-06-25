@@ -104,9 +104,32 @@ function isWeapon(itemKey)    { return WEAPON_ITEMS.has(itemKey); }
 function isEquipment(itemKey) { return ARMOR_ITEMS.has(itemKey) || WEAPON_ITEMS.has(itemKey); }
 function isAccessory(itemKey) { return ACCESSORY_ITEMS.has(itemKey); }
 
+// --- Named equipment (modal-only; not added to CATEGORIES/selects) ---
+// Each bucket's items inherit a fixed stamp value. Merged into CATALOG so
+// display + salary work, and indexed in NAMED_EQUIPMENT for the text parser.
+const namedEquipmentBuckets = require("./namedEquipment");
+const NAMED_STAMPS = { ddn_armor: 2, gdn_armor: 1, ddn_weapon: 4, gdn_weapon: 3 };
+const NAMED_EQUIPMENT = [];
+for (const [bucket, list] of Object.entries(namedEquipmentBuckets)) {
+  const stampsPerUnit = NAMED_STAMPS[bucket];
+  if (!stampsPerUnit) continue;
+  const [dungeon, kind] = bucket.split("_");
+  for (const entry of list) {
+    const name = typeof entry === "string" ? entry : entry.name;
+    const cls = typeof entry === "string" ? null : entry.class || null;
+    const part = typeof entry === "string" ? null : entry.part || null;
+    if (!name) continue;
+    let key = "eq_" + name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+    while (CATALOG[key]) key += "_x";
+    CATALOG[key] = { name, type: "unique", stampsPerUnit };
+    NAMED_EQUIPMENT.push({ key, name, class: cls, part, dungeon, kind });
+  }
+}
+
 module.exports = {
   CATALOG,
   CATEGORIES,
+  NAMED_EQUIPMENT,
   ARMOR_PARTS,
   WEAPON_TYPES,
   CLASSES,
