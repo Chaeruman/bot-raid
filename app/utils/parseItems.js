@@ -83,6 +83,42 @@ function matchNamed(raw) {
   return exact ? { itemKey: exact.key, qty } : null;
 }
 
+// No-bracket keyword fallback (mobile-friendly — no () needed). Tried AFTER structural.
+// Every keyword token must appear in the item name. Returns same shape as matchNamed.
+function matchNamedFuzzy(raw) {
+  if (/\([^)]*\)/.test(raw)) return null;
+
+  let tokens = raw.toLowerCase().split(/\s+/).filter(Boolean);
+  let qty = 1;
+  tokens = tokens.filter((t) => {
+    const m = t.match(/^x?(\d+)x?$/);
+    if (m) { qty = parseInt(m[1], 10); return false; }
+    return true;
+  });
+  if (qty <= 0) qty = 1;
+
+  const dungeon = ["ddn", "gdn", "sdn"].find((d) => tokens.includes(d));
+  const kindWords = ["weapon", "wep", "armor", "arm"];
+  const kind = tokens.includes("weapon") || tokens.includes("wep") ? "weapon"
+    : tokens.includes("armor") || tokens.includes("arm") ? "armor" : null;
+
+  let pool = NAMED_EQUIPMENT;
+  if (dungeon) pool = pool.filter((e) => e.dungeon === dungeon);
+  if (kind) pool = pool.filter((e) => e.kind === kind);
+
+  const kwTokens = tokens.filter((t) => t !== dungeon && !kindWords.includes(t));
+  if (!kwTokens.length) return null;
+
+  const hits = pool.filter((e) => {
+    const n = e.name.toLowerCase();
+    return kwTokens.every((t) => n.includes(t));
+  });
+  if (hits.length === 1) return { itemKey: hits[0].key, qty };
+  if (hits.length > 10) return { error: `"${kwTokens.join(" ")}" matches too many — be more specific` };
+  if (hits.length > 1) return { qty, candidates: hits };
+  return null;
+}
+
 // Structural catalog match (fragments, accessories, equipment, thorns/etc.).
 // Returns { itemKey, qty, detail } or null.
 function parseStructural(raw) {
@@ -105,19 +141,21 @@ function parseStructural(raw) {
     return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
   }
 
-  if (has("accessory") || has("acc")) {
-    const tier = has("legend") ? "l" : has("unique") ? "u" : null;
+  // Accessory: triggered by "accessory"/"acc" OR a type word (ring/necklace/earrings).
+  // Tier from legend/unique or short l/u. e.g. "gdn u ring magic" → gdn_u_accessory Ring@Magic
+  const accType = Object.keys(ACCESSORY_TYPES).find((t) => has(t.toLowerCase()));
+  if (has("accessory") || has("acc") || accType) {
+    const tier = has("legend") || has("l") ? "l" : has("unique") || has("u") ? "u" : null;
     if (!dungeon || !tier) return null;
     const key = `${dungeon}_${tier}_accessory`;
     if (!CATALOG[key]) return null;
 
-    const type = Object.keys(ACCESSORY_TYPES).find((t) => has(t.toLowerCase()));
     let detail = null;
-    if (type) {
-      const sub = ACCESSORY_TYPES[type].find((s) =>
+    if (accType) {
+      const sub = ACCESSORY_TYPES[accType].find((s) =>
         s.toLowerCase().split(/\s+/).every((w) => tokens.includes(w)),
       );
-      detail = sub ? `${type}@${sub}` : type;
+      detail = sub ? `${accType}@${sub}` : accType;
     }
     return { itemKey: key, qty, detail };
   }
@@ -205,10 +243,29 @@ function parseItemLines(text) {
       errors.push(`${raw} — ${named.error}`);
       continue;
     }
-    // No named intent → structural
+    // Structural (fragments, accessories, equipment, thorns/etc.)
     const s = parseStructural(raw);
-    if (s) added.push(s);
-    else errors.push(raw);
+    if (s) {
+      added.push(s);
+      continue;
+    }
+
+    // Last resort: no-bracket keyword search of named equipment
+    const fuzzy = matchNamedFuzzy(raw);
+    if (fuzzy && fuzzy.itemKey) {
+      added.push({ itemKey: fuzzy.itemKey, qty: fuzzy.qty, detail: null });
+      continue;
+    }
+    if (fuzzy && fuzzy.candidates) {
+      unresolved.push({ raw, qty: fuzzy.qty, candidates: fuzzy.candidates });
+      continue;
+    }
+    if (fuzzy && fuzzy.error) {
+      errors.push(`${raw} — ${fuzzy.error}`);
+      continue;
+    }
+
+    errors.push(raw);
   }
 
   return { added, golds, unresolved, errors };

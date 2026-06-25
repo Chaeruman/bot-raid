@@ -36,6 +36,8 @@ const structural = [
   ["ddn fragment", "ddn_fragment"],
   ["ddn unique accessory ring hybrid", "ddn_u_accessory", 1, "Ring@Hybrid"],
   ["gdn legend accessory necklace str agi", "gdn_l_accessory", 1, "Necklace@STR AGI"],
+  ["gdn u ring magic", "gdn_u_accessory", 1, "Ring@Magic"],
+  ["ddn l necklace str agi", "ddn_l_accessory", 1, "Necklace@STR AGI"],
   ["gdn armor warrior head", "gdn_armor"],
   ["ddn weapon kali main", "ddn_weapon"],
 ];
@@ -59,6 +61,18 @@ for (const line of ["gdn armor", "ddn armor", "armor gdn"]) {
 for (const [line, q] of [["gdn fragment x3", 3], ["gdn fragment 7", 7]]) {
   const { added } = parseItemLines(line);
   check(`qty: ${line}`, added[0] && added[0].qty === q, added[0] ? added[0].qty : "no add");
+}
+
+// 4b) No-bracket keyword fallback reaches the named item (mobile-friendly).
+for (const e of NAMED_EQUIPMENT) {
+  const kw = e.name.replace(/^(ddn|gdn|sdn)\s+/i, "");
+  const line = `${e.dungeon} ${kw}`; // same as bracket form, but without ()
+  const { added, unresolved } = parseItemLines(line);
+  const ok =
+    (added.length === 1 && added[0].itemKey === e.key) ||
+    (unresolved.length === 1 && unresolved[0].candidates.some((c) => c.key === e.key)) ||
+    /^(ddn|gdn) armor$/i.test(line); // bare-armor is intentionally guarded
+  check(`no-bracket: ${line}`, ok);
 }
 
 // 5) Duplicate-name safety: no two named items share a name.
