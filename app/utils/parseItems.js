@@ -207,14 +207,22 @@ function parseStructural(raw) {
   return null;
 }
 
-// Gold line: "gold 294/7", "258/8", "gold 1,000,000/8" → { amount, splitCount }.
-// split must be 7 or 8 (HC ÷7 / normal ÷8). No exclusion via text (use the button for that).
+// Gold line: "gold 294/7 @ol", "258/8", "gold 1,000,000/8".
+// split must be 7 or 8 (HC ÷7 / normal ÷8). For ÷7, an optional trailing "@name"
+// marks the excluded member (resolved to a uid later, where member names are known).
+// Returns { amount, splitCount, excludeName }.
 function parseGoldLine(raw) {
-  const m = raw.toLowerCase().replace(/,/g, "").match(/^(?:gold\s+)?(\d+)\s*\/\s*(7|8)$/);
+  const cleaned = raw.replace(/,/g, "");
+  const m = cleaned.match(/^(?:gold\s+)?(\d+)\s*\/\s*(7|8)\b(.*)$/i);
   if (!m) return null;
   const amount = parseInt(m[1], 10);
   if (amount <= 0) return null;
-  return { amount, splitCount: parseInt(m[2], 10), excludedUserId: null };
+  const tag = (m[3] || "").match(/@\s*([^\s,@]+)/);
+  return {
+    amount,
+    splitCount: parseInt(m[2], 10),
+    excludeName: tag ? tag[1].toLowerCase() : null,
+  };
 }
 
 // A bare "ddn armor" / "gdn armor" (just dungeon + kind, nothing else) is ambiguous:

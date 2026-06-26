@@ -25,7 +25,32 @@ async function handleAddItemsModal(interaction) {
   const { added, golds, unresolved, errors } = parseItemLines(interaction.fields.getTextInputValue("items"));
 
   for (const it of added) addToPanel(panel, it);
-  for (const g of golds) panel.goldEntries.push(g);
+
+  // Resolve gold ÷7 exclusions (@name → panel member) and collect warnings.
+  const goldWarnings = [];
+  if (golds.length) {
+    const nameOf = {};
+    for (const uid of panel.members) {
+      let dn = uid;
+      try { dn = (await interaction.guild.members.fetch(uid)).displayName; } catch { /* keep id */ }
+      nameOf[uid] = dn;
+    }
+    for (const g of golds) {
+      let excludedUserId = null;
+      if (g.splitCount === 7) {
+        if (!g.excludeName) {
+          goldWarnings.push(`\`${g.amount}/7\` — tag the excluded member, e.g. \`${g.amount}/7 @name\``);
+        } else {
+          const hits = panel.members.filter((uid) => nameOf[uid].toLowerCase().includes(g.excludeName));
+          if (hits.length === 1) excludedUserId = hits[0];
+          else if (hits.length === 0) goldWarnings.push(`\`${g.amount}/7\` — no member matches \`@${g.excludeName}\``);
+          else goldWarnings.push(`\`${g.amount}/7\` — \`@${g.excludeName}\` is ambiguous (${hits.length} members)`);
+        }
+      }
+      panel.goldEntries.push({ amount: g.amount, splitCount: g.splitCount, excludedUserId });
+    }
+  }
+
   if (added.length || golds.length) saveState();
 
   const lines = [];
@@ -39,9 +64,15 @@ async function handleAddItemsModal(interaction) {
   }
   if (golds.length) {
     lines.push(`${lines.length ? "\n" : ""}💰 Added ${golds.length} gold drop(s):`);
-    for (const g of golds) {
-      lines.push(`• ${g.amount.toLocaleString()} ÷${g.splitCount} = ${Math.floor(g.amount / g.splitCount).toLocaleString()}/person`);
+    for (const g of panel.goldEntries.slice(-golds.length)) {
+      const per = Math.floor(g.amount / g.splitCount).toLocaleString();
+      const excl = g.excludedUserId ? `, <@${g.excludedUserId}> excluded` : "";
+      lines.push(`• ${g.amount.toLocaleString()} ÷${g.splitCount}${excl} = ${per}/person`);
     }
+  }
+  if (goldWarnings.length) {
+    lines.push(`${lines.length ? "\n" : ""}⚠️ Gold needs attention:`);
+    for (const w of goldWarnings) lines.push(`• ${w}`);
   }
   if (errors.length) {
     lines.push(`${lines.length ? "\n" : ""}⚠️ Couldn't match ${errors.length} line(s):`);
