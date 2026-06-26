@@ -1,5 +1,4 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
-const { setPendingEphemeral } = require("../../../state");
 
 async function handleRemoveMember(interaction, panel) {
   if (interaction.user.id !== panel.hostId) {
@@ -28,16 +27,17 @@ async function handleRemoveMember(interaction, panel) {
   const row = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`loot-sel:remove_member:${panel.lootMsgId}`)
-      .setPlaceholder("Select member to remove…")
+      .setPlaceholder("Select member(s) to remove…")
+      .setMinValues(1)
+      .setMaxValues(Math.min(panel.members.length, 25))
       .addOptions(options),
   );
 
   await interaction.reply({
-    content: "➖ **Remove Member** — select:",
+    content: "➖ **Remove Member** — select one or more:",
     components: [row],
     flags: MessageFlags.Ephemeral,
   });
-  setPendingEphemeral(panel.lootMsgId, interaction.user.id, interaction);
 }
 
 module.exports = { handleRemoveMember };

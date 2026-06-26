@@ -1,16 +1,17 @@
-const { saveState, clearPendingEphemeral } = require("../../../state");
+const { saveState } = require("../../../state");
 const { refreshLootPanel } = require("../../../builders/lootPanel");
 
 async function handleRemoveMemberSelect(interaction, panel) {
-  const userId = interaction.values[0];
-
-  panel.members = panel.members.filter((id) => id !== userId);
-  delete panel.payments[userId];
+  const removed = interaction.values;
+  panel.members = panel.members.filter((id) => !removed.includes(id));
+  for (const id of removed) delete panel.payments[id];
   saveState();
 
-  await interaction.deferUpdate();
+  await interaction.update({
+    content: `✅ Removed ${removed.map((u) => `<@${u}>`).join(", ")}.`,
+    components: [],
+  });
   await refreshLootPanel(interaction.client, panel);
-  clearPendingEphemeral(panel.lootMsgId, interaction.user.id);
 }
 
 module.exports = { handleRemoveMemberSelect };

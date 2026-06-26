@@ -38,6 +38,12 @@ const structural = [
   ["gdn legend accessory necklace str agi", "gdn_l_accessory", 1, "Necklace@STR AGI"],
   ["gdn u ring magic", "gdn_u_accessory", 1, "Ring@Magic"],
   ["ddn l necklace str agi", "ddn_l_accessory", 1, "Necklace@STR AGI"],
+  ["gdn ring u atk", "gdn_u_accessory", 1, "Ring@Attack"],
+  ["gdn ring u atp", "gdn_u_accessory", 1, "Ring@Attack"],
+  ["gdn ring l mtp", "gdn_l_accessory", 1, "Ring@Magic"],
+  ["gdn ring u hyb", "gdn_u_accessory", 1, "Ring@Hybrid"],
+  ["gdn neck u int vit", "gdn_u_accessory", 1, "Necklace@INT VIT"],
+  ["ddn ear l agi int", "ddn_l_accessory", 1, "Earrings@AGI INT"],
   ["gdn armor warrior head", "gdn_armor"],
   ["ddn weapon kali main", "ddn_weapon"],
 ];

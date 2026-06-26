@@ -4,7 +4,9 @@ function buildAddMemberRow(panel) {
   return new ActionRowBuilder().addComponents(
     new UserSelectMenuBuilder()
       .setCustomId(`loot-sel:add_member:${panel.lootMsgId}`)
-      .setPlaceholder("Search for a member to add…"),
+      .setPlaceholder("Search & select member(s) to add…")
+      .setMinValues(1)
+      .setMaxValues(25),
   );
 }
 

@@ -14,6 +14,19 @@ const FAMILIES = [
   { key: "hot_sand", words: ["hot", "sand", "circular"] },
 ];
 
+// Accessory type words/aliases → canonical type.
+const ACC_TYPES = {
+  ring: "Ring",
+  necklace: "Necklace", neck: "Necklace",
+  earrings: "Earrings", earring: "Earrings", ear: "Earrings",
+};
+// Ring subtype aliases → canonical. (Necklace/Earrings use INT VIT / AGI INT / STR AGI words.)
+const RING_SUBS = {
+  attack: "Attack", atk: "Attack", atp: "Attack",
+  magic: "Magic", matk: "Magic", mtp: "Magic",
+  hybrid: "Hybrid", hyb: "Hybrid",
+};
+
 function levenshtein(a, b) {
   const m = a.length, n = b.length;
   const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
@@ -141,9 +154,11 @@ function parseStructural(raw) {
     return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
   }
 
-  // Accessory: triggered by "accessory"/"acc" OR a type word (ring/necklace/earrings).
-  // Tier from legend/unique or short l/u. e.g. "gdn u ring magic" → gdn_u_accessory Ring@Magic
-  const accType = Object.keys(ACCESSORY_TYPES).find((t) => has(t.toLowerCase()));
+  // Accessory: triggered by "accessory"/"acc" OR a type word/alias (ring / neck / ear).
+  // Tier from legend/unique or short l/u. Ring subtype via alias (atk/magic/hyb…);
+  // Necklace/Earrings via INT VIT / AGI INT / STR AGI words.
+  // e.g. "gdn ring u atk" → gdn_u_accessory Ring@Attack ; "gdn neck u int vit" → Necklace@INT VIT
+  const accType = tokens.map((t) => ACC_TYPES[t]).find(Boolean) || null;
   if (has("accessory") || has("acc") || accType) {
     const tier = has("legend") || has("l") ? "l" : has("unique") || has("u") ? "u" : null;
     if (!dungeon || !tier) return null;
@@ -152,9 +167,14 @@ function parseStructural(raw) {
 
     let detail = null;
     if (accType) {
-      const sub = ACCESSORY_TYPES[accType].find((s) =>
-        s.toLowerCase().split(/\s+/).every((w) => tokens.includes(w)),
-      );
+      let sub = null;
+      if (accType === "Ring") {
+        sub = tokens.map((t) => RING_SUBS[t]).find(Boolean) || null;
+      } else {
+        sub = ACCESSORY_TYPES[accType].find((s) =>
+          s.toLowerCase().split(/\s+/).every((w) => tokens.includes(w)),
+        );
+      }
       detail = sub ? `${accType}@${sub}` : accType;
     }
     return { itemKey: key, qty, detail };
