@@ -21,20 +21,35 @@ async function handleLoot(interaction) {
   const title  = interaction.options.getString("title");
   const hostId = interaction.user.id;
 
+  // Optional team scope: guard by role, then auto-fill members from that role.
+  let members = [];
+  const tim = interaction.options.getString("tim"); // "1" | "2" | null
+  if (tim) {
+    const roleId = tim === "1" ? config.tim1RoleId : config.tim2RoleId;
+    if (!roleId) {
+      return interaction.editReply(`❌ Tim ${tim} role is not configured (set TIM${tim}_ROLE_ID).`);
+    }
+    if (!interaction.member.roles.cache.has(roleId)) {
+      return interaction.editReply(`⛔ Only members of Tim ${tim} can create a Tim ${tim} panel.`);
+    }
+    const all = await interaction.guild.members.fetch();
+    members = all.filter((m) => !m.user.bot && m.roles.cache.has(roleId)).map((m) => m.id);
+  }
+
   const panel = {
     lootMsgId: null,
     threadId: interaction.channelId,
     ownThread: true,
     threadBaseTitle: interaction.channel.name,
-    eventTitle: title,
+    eventTitle: tim ? `${title} (Tim ${tim})` : title,
     hostId,
     hcGoldSplit: "mixed",
     subruns: null,
-    members: [],
+    members,
     sellerId: null,
     items: [],
     goldEntries: [],
-    payments: {},
+    payments: Object.fromEntries(members.map((uid) => [uid, false])),
     closed: false,
   };
 
@@ -48,7 +63,8 @@ async function handleLoot(interaction) {
     components: buildLootComponents(panel),
   });
 
-  return interaction.editReply(`📦 Loot panel created for **${title}**.`);
+  const memberNote = tim ? ` with ${members.length} Tim ${tim} member(s)` : "";
+  return interaction.editReply(`📦 Loot panel created for **${title}**${memberNote}.`);
 }
 
 module.exports = { handleLoot };

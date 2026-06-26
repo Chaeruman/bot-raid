@@ -8,7 +8,11 @@ const { activeEvents, activeLootPanels, loadState, saveState } = require("./stat
 const keepAlive = require("./utils/keepAlive");
 
 const client = new Client({
-  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+  intents: [
+    GatewayIntentBits.Guilds,
+    GatewayIntentBits.GuildMessages,
+    GatewayIntentBits.GuildMembers,
+  ],
 });
 
 client.on("clientReady", () => {

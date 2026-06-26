@@ -64,6 +64,16 @@ const commands = [
         .setDescription("Label for the loot panel")
         .setRequired(true),
     )
+    .addStringOption((o) =>
+      o
+        .setName("tim")
+        .setDescription("Scope to a team — auto-fills members from that role (must have the role)")
+        .setRequired(false)
+        .addChoices(
+          { name: "Tim 1", value: "1" },
+          { name: "Tim 2", value: "2" },
+        ),
+    )
     .toJSON(),
 
   new SlashCommandBuilder()
