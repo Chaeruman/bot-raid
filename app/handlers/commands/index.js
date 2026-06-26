@@ -4,6 +4,7 @@ const { handleMarathon } = require("./marathon");
 const { handleLoot }    = require("./loot");
 const { handleState }   = require("./state");
 const { handleClear }   = require("./clear");
+const { handleLootAction } = require("./lootAction");
 
 const commandHandlers = {
   start:    handleStart,
@@ -12,6 +13,7 @@ const commandHandlers = {
   loot:     handleLoot,
   state:    handleState,
   clear:    handleClear,
+  "loot-action": handleLootAction,
 };
 
 async function handleCommand(interaction) {

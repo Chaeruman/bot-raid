@@ -93,6 +93,35 @@ const commands = [
         .setRequired(true),
     )
     .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("loot-action")
+    .setDescription("Run a loot-panel action by panel ID (ID is in the panel footer)")
+    .addStringOption((o) =>
+      o
+        .setName("id")
+        .setDescription("Loot panel ID (shown in the panel footer)")
+        .setRequired(true),
+    )
+    .addStringOption((o) =>
+      o
+        .setName("action")
+        .setDescription("What to do")
+        .setRequired(true)
+        .addChoices(
+          { name: "Set Seller", value: "seller" },
+          { name: "Type Items", value: "type-items" },
+          { name: "Browse Item", value: "browse" },
+          { name: "Remove Item", value: "remove-item" },
+          { name: "Set Price", value: "set-price" },
+          { name: "Add Gold", value: "add-gold" },
+          { name: "Remove Gold", value: "remove-gold" },
+          { name: "Mark Paid", value: "mark-paid" },
+          { name: "Add Member", value: "add-member" },
+          { name: "Remove Member", value: "remove-member" },
+        ),
+    )
+    .toJSON(),
 ];
 
 const rest = new REST({ version: "10" }).setToken(config.token);

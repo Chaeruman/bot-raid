@@ -162,7 +162,7 @@ function buildLootEmbed(panel) {
   if (status) embed.addFields({ name: "💳 Status Gaji", value: status });
 
   if (!panel.closed) {
-    embed.setFooter({ text: "Tip: ✍️ Type Items also accepts gold — e.g. gold 294/7 or 258/8" });
+    embed.setFooter({ text: `Panel ID: ${panel.lootMsgId}  ·  ✍️ Type Items also accepts gold (e.g. gold 294/7)` });
   }
 
   return embed;
