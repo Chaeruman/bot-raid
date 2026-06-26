@@ -62,4 +62,20 @@ async function handleSetPrice(interaction, panel) {
   return interaction.showModal(modal);
 }
 
-module.exports = { handleSetPrice, buildSetPriceRow };
+// Per-item pricing — pick one item from the dropdown, then a modal (price + note).
+async function handleSetPriceOne(interaction, panel) {
+  if (interaction.user.id !== panel.sellerId) {
+    return interaction.reply({ content: "⛔ Only the seller can set prices.", flags: MessageFlags.Ephemeral });
+  }
+  if (panel.items.length === 0) {
+    return interaction.reply({ content: "❌ No items added yet.", flags: MessageFlags.Ephemeral });
+  }
+
+  return interaction.reply({
+    content: "🏷️ **Price Item** — select item:",
+    components: [buildSetPriceRow(panel)],
+    flags: MessageFlags.Ephemeral,
+  });
+}
+
+module.exports = { handleSetPrice, handleSetPriceOne, buildSetPriceRow };

@@ -3,7 +3,7 @@ const { activeLootPanels } = require("../../state");
 const { handleSelectSeller } = require("../buttons/loot/selectSeller");
 const { handleAddItem, handleBrowseItem } = require("../buttons/loot/addItem");
 const { handleRemoveItem } = require("../buttons/loot/removeItem");
-const { handleSetPrice } = require("../buttons/loot/setPrice");
+const { handleSetPrice, handleSetPriceOne } = require("../buttons/loot/setPrice");
 const { handleAddGold } = require("../buttons/loot/addGold");
 const { handleRemoveGold } = require("../buttons/loot/removeGold");
 const { handleMarkPaid } = require("../buttons/loot/markPaid");
@@ -17,6 +17,7 @@ const ACTIONS = {
   browse: handleBrowseItem,
   "remove-item": handleRemoveItem,
   "set-price": handleSetPrice,
+  "price-item": handleSetPriceOne,
   "add-gold": handleAddGold,
   "remove-gold": handleRemoveGold,
   "mark-paid": handleMarkPaid,

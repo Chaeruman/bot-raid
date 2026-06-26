@@ -5,7 +5,8 @@ const GDN_ROLES = {
   MC: { max: 1, subRoleAsLabel: true },
   MT: { max: 1, label: "MT", subRoles: ["Destroyer", "Guardian"] },
   ICE: { max: 1, label: "Ice Stacker" },
-  SUPPORT: { max: 2, label: "Acro/Support" },
+  ACRO: { max: 2, label: "Acro" },
+  SUPPORT: { max: 2, hideIfEmpty: true, label: "Support" },
   DPS: { max: 3, label: "DPS" },
 };
 

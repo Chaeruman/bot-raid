@@ -195,15 +195,20 @@ function buildLootComponents(panel) {
       .setLabel("🗑️ Remove Item")
       .setStyle(ButtonStyle.Secondary)
       .setDisabled(!panel.sellerId || !hasItems),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:set_price:${panel.lootMsgId}`)
-      .setLabel("🏷️ Set Price")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!panel.sellerId || !hasItems),
   );
 
-  // Row 2 — gold
+  // Row 2 — pricing + gold
   const row2 = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`loot-btn:set_price:${panel.lootMsgId}`)
+      .setLabel("🏷️ Price All")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(!panel.sellerId || !hasItems),
+    new ButtonBuilder()
+      .setCustomId(`loot-btn:price_one:${panel.lootMsgId}`)
+      .setLabel("🏷️ Price One")
+      .setStyle(ButtonStyle.Secondary)
+      .setDisabled(!panel.sellerId || !hasItems),
     new ButtonBuilder()
       .setCustomId(`loot-btn:add_gold:${panel.lootMsgId}`)
       .setLabel("💰 Add Gold")
