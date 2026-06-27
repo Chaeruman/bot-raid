@@ -72,7 +72,7 @@ async function handleSetPriceOne(interaction, panel) {
   }
 
   return interaction.reply({
-    content: "🏷️ **Price Item** — select item:",
+    content: "🏷️ **Price One** — select item:",
     components: [buildSetPriceRow(panel)],
     flags: MessageFlags.Ephemeral,
   });

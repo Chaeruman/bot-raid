@@ -1,3 +1,4 @@
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { activeEvents, activeLootPanels, saveState } = require("../../state");
 const {
   buildThreadTitle,
@@ -22,8 +23,6 @@ async function handleDoneRun(interaction, event) {
 
   const threadTitle = buildThreadTitle(event);
   const threadContent = buildThreadContent(event);
-
-  await interaction.message.edit({ components: [] });
 
   const threadChannel = config.threadChannelId
     ? await interaction.client.channels.fetch(config.threadChannelId)
@@ -68,6 +67,19 @@ async function handleDoneRun(interaction, event) {
   await lootMsg.edit({
     embeds: [buildLootEmbed(panel)],
     components: buildLootComponents(panel),
+  });
+
+  // Point the original signup message at the new loot post + let the host set the seller.
+  await interaction.message.edit({
+    content: `✅ **${event.title}** completed! Loot panel → <#${thread.id}>`,
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(`loot-btn:select_seller:${lootMsg.id}`)
+          .setLabel("👤 Set Seller")
+          .setStyle(ButtonStyle.Secondary),
+      ),
+    ],
   });
 }
 
