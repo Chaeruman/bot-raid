@@ -65,10 +65,10 @@ for (const [line, key, qty, detail] of structural) {
   );
 }
 
-// 3) Bare-armor guard → must be flagged, not added.
-for (const line of ["gdn armor", "ddn armor", "armor gdn"]) {
-  const { added, errors } = parseItemLines(line);
-  check(`bare guard: ${line}`, added.length === 0 && errors.length === 1, JSON.stringify({ added, errors }));
+// 3) Bare "gdn armor" / "ddn armor" → adds the Cleric "Armor" named piece directly.
+for (const [line, key] of [["gdn armor", "eq_gdn_armor"], ["ddn armor", "eq_ddn_armor"]]) {
+  const { added } = parseItemLines(line);
+  check(`bare armor: ${line}`, added.length === 1 && added[0].itemKey === key, JSON.stringify(added));
 }
 
 // 4) Quantity parsing.

@@ -24,27 +24,38 @@ async function handleSetPricesModal(interaction) {
     const item = panel.items[parseInt(idxM[1], 10) - 1];
     if (!item) continue;
 
-    // Price is in the LAST () on the line (detail may have its own brackets).
-    const brackets = [...line.matchAll(/\(([^)]*)\)/g)];
-    if (!brackets.length) continue;
-    const raw = brackets[brackets.length - 1][1].replace(/[,\sgG]/g, "");
-    if (raw === "") continue; // left blank → leave unchanged
+    let changed = false;
 
-    const price = parseInt(raw, 10);
-    if (isNaN(price) || price < 0) continue;
+    // Inline note after '#' (present but empty → clears the note).
+    const hashIdx = line.indexOf("#");
+    const body = hashIdx >= 0 ? line.slice(0, hashIdx) : line;
+    if (hashIdx >= 0) {
+      const note = line.slice(hashIdx + 1).trim() || null;
+      if (item.note !== note) { item.note = note; changed = true; }
+    }
 
-    item.price = price;
-    updated.push({ name: CATALOG[item.itemKey].name, detail: item.detail, price });
+    // Price = digits after the trailing "—"/"-" (optional g). Blank → unchanged.
+    const pm = body.match(/[—-]\s*([\d,]+)\s*g?\s*$/i);
+    if (pm) {
+      const price = parseInt(pm[1].replace(/,/g, ""), 10);
+      if (!isNaN(price) && price >= 0 && item.price !== price) {
+        item.price = price;
+        changed = true;
+      }
+    }
+
+    if (changed) updated.push({ name: CATALOG[item.itemKey].name, detail: item.detail, price: item.price });
   }
 
   if (updated.length) saveState();
 
   const lines = [];
   if (updated.length) {
-    lines.push(`✅ Set price on ${updated.length} item(s):`);
+    lines.push(`✅ Updated ${updated.length} item(s):`);
     for (const u of updated) {
       const d = u.detail ? ` (${u.detail})` : "";
-      lines.push(`• ${u.name}${d} — ${u.price.toLocaleString()}g`);
+      const p = u.price != null ? `${u.price.toLocaleString()}g` : "(note only)";
+      lines.push(`• ${u.name}${d} — ${p}`);
     }
   }
   const unpriced = panel.items.filter((i) => i.price == null).length;

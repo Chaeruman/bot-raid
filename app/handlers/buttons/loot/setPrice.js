@@ -22,14 +22,15 @@ function buildSetPriceRow(panel) {
   );
 }
 
-// One numbered line per item, price goes in the trailing ().
+// One numbered line per item; type the price after the "—" (and optional #note).
 function buildPricePrefill(panel) {
   return panel.items
     .map((item, i) => {
       const def = CATALOG[item.itemKey];
       const detail = item.detail ? ` (${item.detail})` : "";
       const cur = item.price != null ? item.price : "";
-      return `${i + 1}) ${def.name}${detail} x${item.qty} = (${cur})`;
+      const note = item.note ? ` #${item.note}` : "";
+      return `${i + 1}. ${def.name}${detail} x${item.qty} — ${cur}${note}`;
     })
     .join("\n")
     .slice(0, 4000);
@@ -52,7 +53,7 @@ async function handleSetPrice(interaction, panel) {
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("prices")
-        .setLabel("Fill the (brackets) — e.g. (50000g)")
+        .setLabel("Price after — · #note optional")
         .setStyle(TextInputStyle.Paragraph)
         .setValue(buildPricePrefill(panel))
         .setRequired(false),
