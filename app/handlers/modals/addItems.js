@@ -6,8 +6,12 @@ const { parseItemLines } = require("../../utils/parseItems");
 
 function addToPanel(panel, it) {
   const existing = panel.items.find((i) => i.itemKey === it.itemKey && i.detail === (it.detail || null));
-  if (existing) existing.qty += it.qty;
-  else panel.items.push({ itemKey: it.itemKey, qty: it.qty, price: null, detail: it.detail || null });
+  if (existing) {
+    existing.qty += it.qty;
+    if (it.note) existing.note = it.note;
+  } else {
+    panel.items.push({ itemKey: it.itemKey, qty: it.qty, price: null, detail: it.detail || null, note: it.note || null });
+  }
 }
 
 async function handleAddItemsModal(interaction) {

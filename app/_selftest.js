@@ -26,9 +26,13 @@ for (const e of NAMED_EQUIPMENT) {
 const structural = [
   ["thorns l junk", "thorns_l_junk"],
   ["thorns u good", "thorns_u_good"],
+  ["thorns legend junk", "thorns_l_junk"],
+  ["thorn destroy legend good", "thorns_l_good"],
+  ["thorns unique junk", "thorns_u_junk"],
   ["storm u junk", "storm_u_junk"],
   ["storm triangular l good", "storm_l_good"],
   ["forest l junk", "forest_l_junk"],
+  ["forest guardian u good", "forest_u_good"],
   ["forest u good", "forest_u_good"],
   ["hot sand l junk", "hot_sand_l_junk"],
   ["hot sand circular u good", "hot_sand_u_good"],
@@ -79,6 +83,26 @@ for (const e of NAMED_EQUIPMENT) {
     (unresolved.length === 1 && unresolved[0].candidates.some((c) => c.key === e.key)) ||
     /^(ddn|gdn) armor$/i.test(line); // bare-armor is intentionally guarded
   check(`no-bracket: ${line}`, ok);
+}
+
+// 4c) Rune without junk/good → numbered choice (not added directly).
+{
+  const { added, unresolved } = parseItemLines("thorn destroy legend");
+  check(
+    "rune ambiguous: thorn destroy legend",
+    added.length === 0 && unresolved.length === 1 && unresolved[0].candidates.length === 2,
+    JSON.stringify({ added, unresolved }),
+  );
+}
+
+// 4d) Inline #note attaches to the item.
+{
+  const { added } = parseItemLines("gdn fragment x2 #for budi");
+  check(
+    "note: gdn fragment x2 #for budi",
+    added[0] && added[0].note === "for budi" && added[0].qty === 2 && added[0].itemKey === "gdn_fragment",
+    JSON.stringify(added),
+  );
 }
 
 // 5) Duplicate-name safety: no two named items share a name.

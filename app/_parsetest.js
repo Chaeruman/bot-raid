@@ -22,7 +22,8 @@ if (added.length) {
   for (const a of added) {
     const def = CATALOG[a.itemKey];
     const d = a.detail ? ` (${a.detail})` : "";
-    console.log(`   • ${def.name}${d} ×${a.qty} — ${def.stampsPerUnit} stamp/unit  [${a.itemKey}]`);
+    const n = a.note ? `  #${a.note}` : "";
+    console.log(`   • ${def.name}${d} ×${a.qty} — ${def.stampsPerUnit} stamp/unit  [${a.itemKey}]${n}`);
   }
 }
 

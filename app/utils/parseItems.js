@@ -7,10 +7,13 @@ const {
   NAMED_EQUIPMENT,
 } = require("../items");
 
+// Distinct words from each rune's full name (thorns destroy the slab, forest
+// guardian the slab, storm triangular rune, hot sand circular rune). "slab" and
+// "rune" are shared across two families, so they're intentionally excluded.
 const FAMILIES = [
-  { key: "thorns", words: ["thorns"] },
+  { key: "thorns", words: ["thorns", "thorn", "destroy"] },
   { key: "storm", words: ["storm", "triangular"] },
-  { key: "forest", words: ["forest"] },
+  { key: "forest", words: ["forest", "guardian"] },
   { key: "hot_sand", words: ["hot", "sand", "circular"] },
 ];
 
@@ -197,11 +200,19 @@ function parseStructural(raw) {
 
   const fam = FAMILIES.find((f) => f.words.some((w) => has(w)));
   if (fam) {
-    const lu = has("u") || has("upper") ? "u" : has("l") || has("lower") ? "l" : null;
+    const lu = has("u") || has("upper") || has("unique") ? "u"
+      : has("l") || has("lower") || has("legend") ? "l" : null;
+    if (!lu) return null;
     const jg = has("junk") ? "junk" : has("good") || has("perfect") ? "good" : null;
-    if (!lu || !jg) return null;
-    const key = `${fam.key}_${lu}_${jg}`;
-    return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
+    if (jg) {
+      const key = `${fam.key}_${lu}_${jg}`;
+      return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
+    }
+    // No junk/good given → offer both as a numbered choice.
+    const cands = [`${fam.key}_${lu}_junk`, `${fam.key}_${lu}_good`]
+      .filter((k) => CATALOG[k])
+      .map((k) => ({ key: k, name: CATALOG[k].name }));
+    return cands.length ? { qty, candidates: cands } : null;
   }
 
   return null;
@@ -247,10 +258,19 @@ function parseItemLines(text) {
   const unresolved = [];
   const errors = [];
 
-  for (const raw of text.split(/[\n|]+/).map((s) => s.trim()).filter(Boolean)) {
+  for (const lineRaw of text.split(/[\n|]+/).map((s) => s.trim()).filter(Boolean)) {
+    // Inline note: everything after the first '#' on the line.
+    const hashIdx = lineRaw.indexOf("#");
+    const note = hashIdx >= 0 ? lineRaw.slice(hashIdx + 1).trim() || null : null;
+    const raw = (hashIdx >= 0 ? lineRaw.slice(0, hashIdx) : lineRaw).trim();
+    if (!raw) {
+      errors.push(lineRaw);
+      continue;
+    }
+
     const gold = parseGoldLine(raw);
     if (gold) {
-      golds.push(gold);
+      golds.push(gold); // notes don't apply to gold
       continue;
     }
     const bare = bareArmorClarify(raw);
@@ -260,11 +280,11 @@ function parseItemLines(text) {
     }
     const named = matchNamed(raw);
     if (named && named.itemKey) {
-      added.push({ itemKey: named.itemKey, qty: named.qty, detail: null });
+      added.push({ itemKey: named.itemKey, qty: named.qty, detail: null, note });
       continue;
     }
     if (named && named.candidates) {
-      unresolved.push({ raw, qty: named.qty, candidates: named.candidates });
+      unresolved.push({ raw, qty: named.qty, candidates: named.candidates, note });
       continue;
     }
     if (named && named.error) {
@@ -273,19 +293,23 @@ function parseItemLines(text) {
     }
     // Structural (fragments, accessories, equipment, thorns/etc.)
     const s = parseStructural(raw);
-    if (s) {
-      added.push(s);
+    if (s && s.itemKey) {
+      added.push({ itemKey: s.itemKey, qty: s.qty, detail: s.detail, note });
+      continue;
+    }
+    if (s && s.candidates) {
+      unresolved.push({ raw, qty: s.qty, candidates: s.candidates, note });
       continue;
     }
 
     // Last resort: no-bracket keyword search of named equipment
     const fuzzy = matchNamedFuzzy(raw);
     if (fuzzy && fuzzy.itemKey) {
-      added.push({ itemKey: fuzzy.itemKey, qty: fuzzy.qty, detail: null });
+      added.push({ itemKey: fuzzy.itemKey, qty: fuzzy.qty, detail: null, note });
       continue;
     }
     if (fuzzy && fuzzy.candidates) {
-      unresolved.push({ raw, qty: fuzzy.qty, candidates: fuzzy.candidates });
+      unresolved.push({ raw, qty: fuzzy.qty, candidates: fuzzy.candidates, note });
       continue;
     }
     if (fuzzy && fuzzy.error) {

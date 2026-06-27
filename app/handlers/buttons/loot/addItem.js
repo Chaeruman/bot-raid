@@ -36,10 +36,10 @@ async function handleAddItem(interaction, panel) {
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("items")
-        .setLabel("One per line (items or gold, | separated)")
+        .setLabel("One per line · #note optional")
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder(
-          "gdn (one piece)\ngdn fragment x5\nstorm u junk\ngold 294/7\n258/8",
+          "gdn (one piece) #for budi\nthorns legend junk\ngdn fragment x5\ngold 294/7 @ol\n258/8",
         )
         .setRequired(true),
     ),

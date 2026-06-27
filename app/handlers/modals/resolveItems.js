@@ -3,10 +3,14 @@ const { activeLootPanels, saveState, takePendingResolution } = require("../../st
 const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
-function addToPanel(panel, itemKey, qty) {
+function addToPanel(panel, itemKey, qty, note) {
   const existing = panel.items.find((i) => i.itemKey === itemKey && i.detail === null);
-  if (existing) existing.qty += qty;
-  else panel.items.push({ itemKey, qty, price: null, detail: null });
+  if (existing) {
+    existing.qty += qty;
+    if (note) existing.note = note;
+  } else {
+    panel.items.push({ itemKey, qty, price: null, detail: null, note: note || null });
+  }
 }
 
 async function handleResolveItemsModal(interaction) {
@@ -34,7 +38,7 @@ async function handleResolveItemsModal(interaction) {
       return;
     }
     const picked = u.candidates[choice - 1];
-    addToPanel(panel, picked.key, u.qty);
+    addToPanel(panel, picked.key, u.qty, u.note);
     added.push({ name: CATALOG[picked.key].name, qty: u.qty });
   });
 
