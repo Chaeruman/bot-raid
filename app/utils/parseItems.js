@@ -29,6 +29,9 @@ const RING_SUBS = {
   magic: "Magic", matk: "Magic", mtp: "Magic",
   hybrid: "Hybrid", hyb: "Hybrid",
 };
+// Accessory rarity tier aliases. Legend drops from HC dungeons (hc/hunter); unique = squad.
+const ACC_TIER_L = ["legend", "l", "hunter", "hc"];
+const ACC_TIER_U = ["unique", "u", "squad"];
 
 function levenshtein(a, b) {
   const m = a.length, n = b.length;
@@ -158,12 +161,12 @@ function parseStructural(raw) {
   }
 
   // Accessory: triggered by "accessory"/"acc" OR a type word/alias (ring / neck / ear).
-  // Tier from legend/unique or short l/u. Ring subtype via alias (atk/magic/hyb…);
+  // Tier: legend/l/hunter/hc → L, unique/u/squad → U. Ring subtype via alias (atk/magic/hyb…);
   // Necklace/Earrings via INT VIT / AGI INT / STR AGI words.
-  // e.g. "gdn ring u atk" → gdn_u_accessory Ring@Attack ; "gdn neck u int vit" → Necklace@INT VIT
+  // e.g. "gdn squad ring atk" → gdn_u_accessory Ring@Attack ; "gdn hc neck int vit" → gdn_l Necklace@INT VIT
   const accType = tokens.map((t) => ACC_TYPES[t]).find(Boolean) || null;
   if (has("accessory") || has("acc") || accType) {
-    const tier = has("legend") || has("l") ? "l" : has("unique") || has("u") ? "u" : null;
+    const tier = ACC_TIER_L.some((w) => has(w)) ? "l" : ACC_TIER_U.some((w) => has(w)) ? "u" : null;
     if (!dungeon || !tier) return null;
     const key = `${dungeon}_${tier}_accessory`;
     if (!CATALOG[key]) return null;
