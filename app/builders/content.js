@@ -80,4 +80,4 @@ function buildThreadContent(event) {
   return content;
 }
 
-module.exports = { updateMessage, buildThreadTitle, buildThreadContent };
+module.exports = { updateMessage, buildSignupEmbed, buildThreadTitle, buildThreadContent };

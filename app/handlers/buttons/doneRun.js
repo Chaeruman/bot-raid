@@ -1,6 +1,7 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { activeEvents, activeLootPanels, saveState } = require("../../state");
 const {
+  buildSignupEmbed,
   buildThreadTitle,
   buildThreadContent,
 } = require("../../builders/content");
@@ -69,9 +70,14 @@ async function handleDoneRun(interaction, event) {
     components: buildLootComponents(panel),
   });
 
-  // Point the original signup message at the new loot post + let the host set the seller.
+  // Rebuild the signup embed with the loot thread linked at the bottom, and let
+  // the host set the seller from here.
+  const completedEmbed = buildSignupEmbed(event);
+  completedEmbed.setDescription(`${completedEmbed.data.description}\n\nThread: <#${thread.id}>`);
+
   await interaction.message.edit({
-    content: `✅ **${event.title}** completed! Loot panel → <#${thread.id}>`,
+    content: `✅ **${event.title}** completed!`,
+    embeds: [completedEmbed],
     components: [
       new ActionRowBuilder().addComponents(
         new ButtonBuilder()
