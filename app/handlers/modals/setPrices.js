@@ -2,6 +2,7 @@ const { MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState } = require("../../state");
 const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
+const { evalPrice } = require("../../utils/evalPrice");
 
 async function handleSetPricesModal(interaction) {
   // customId: loot-modal:set_prices:{lootMsgId}
@@ -34,11 +35,11 @@ async function handleSetPricesModal(interaction) {
       if (item.note !== note) { item.note = note; changed = true; }
     }
 
-    // Price = digits after the trailing "—"/"-" (optional g). Blank → unchanged.
-    const pm = body.match(/[—-]\s*([\d,]+)\s*g?\s*$/i);
-    if (pm) {
-      const price = parseInt(pm[1].replace(/,/g, ""), 10);
-      if (!isNaN(price) && price >= 0 && item.price !== price) {
+    // Price = expression after the last "=" (math ok). Blank → unchanged.
+    const eqIdx = body.lastIndexOf("=");
+    if (eqIdx >= 0) {
+      const price = evalPrice(body.slice(eqIdx + 1));
+      if (price != null && item.price !== price) {
         item.price = price;
         changed = true;
       }

@@ -30,7 +30,7 @@ function buildPricePrefill(panel) {
       const detail = item.detail ? ` (${item.detail})` : "";
       const cur = item.price != null ? item.price : "";
       const note = item.note ? ` #${item.note}` : "";
-      return `${i + 1}. ${def.name}${detail} x${item.qty} — ${cur}${note}`;
+      return `${i + 1}. ${def.name}${detail} x${item.qty} = ${cur}${note}`;
     })
     .join("\n")
     .slice(0, 4000);
@@ -53,7 +53,7 @@ async function handleSetPrice(interaction, panel) {
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("prices")
-        .setLabel("Price after — · #note optional")
+        .setLabel("Price after = · math & #note ok")
         .setStyle(TextInputStyle.Paragraph)
         .setValue(buildPricePrefill(panel))
         .setRequired(false),

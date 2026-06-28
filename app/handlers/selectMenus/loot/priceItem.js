@@ -23,7 +23,7 @@ async function handlePriceItem(interaction, panel) {
         .setCustomId("price")
         .setLabel(def.type === "quantity" ? `Total price: ${itemLabel}`.slice(0, 45) : `Price: ${itemLabel}`.slice(0, 45))
         .setStyle(TextInputStyle.Short)
-        .setPlaceholder(item.price != null ? String(item.price) : "e.g. 50000")
+        .setPlaceholder(item.price != null ? String(item.price) : "e.g. 50000 or 50000*2")
         .setValue(item.price != null ? String(item.price) : "")
         .setRequired(true),
     ),

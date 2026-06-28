@@ -2,6 +2,7 @@ const { MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState } = require("../../state");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 const { buildSetPriceRow } = require("../buttons/loot/setPrice");
+const { evalPrice } = require("../../utils/evalPrice");
 
 async function handleItemPriceModal(interaction) {
   // customId: loot-modal:item_price:{lootMsgId}:{idx}
@@ -14,10 +15,9 @@ async function handleItemPriceModal(interaction) {
     return interaction.reply({ content: "❌ Loot panel not found.", flags: MessageFlags.Ephemeral });
   }
 
-  const rawPrice = interaction.fields.getTextInputValue("price").trim().replace(/,/g, "");
-  const price = parseInt(rawPrice, 10);
-  if (isNaN(price) || price < 0) {
-    return interaction.reply({ content: "❌ Invalid price. Enter a non-negative number.", flags: MessageFlags.Ephemeral });
+  const price = evalPrice(interaction.fields.getTextInputValue("price"));
+  if (price == null) {
+    return interaction.reply({ content: "❌ Invalid price. Enter a number or expression (e.g. 50000 or 50000*2).", flags: MessageFlags.Ephemeral });
   }
 
   const item = panel.items[idx];
