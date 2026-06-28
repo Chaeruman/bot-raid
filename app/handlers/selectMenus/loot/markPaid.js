@@ -3,8 +3,9 @@ const { activeLootPanels, saveState } = require("../../../state");
 const { buildMarkPaidRow } = require("../../buttons/loot/markPaid");
 
 async function handleMarkPaidSelect(interaction, panel) {
-  const targetId = interaction.values[0];
-  panel.payments[targetId] = !panel.payments[targetId];
+  for (const uid of interaction.values) {
+    panel.payments[uid] = !panel.payments[uid];
+  }
 
   // Auto-close once everyone has been paid
   const allPaid = panel.members.length > 0 && panel.members.every((uid) => panel.payments[uid]);

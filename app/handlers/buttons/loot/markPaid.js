@@ -22,7 +22,9 @@ async function buildMarkPaidRow(interaction, panel) {
   return new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
       .setCustomId(`loot-sel:mark_paid:${panel.lootMsgId}`)
-      .setPlaceholder("Select member to toggle payment status")
+      .setPlaceholder("Select member(s) to toggle payment")
+      .setMinValues(1)
+      .setMaxValues(Math.min(panel.members.length, 25))
       .addOptions(options),
   );
 }
