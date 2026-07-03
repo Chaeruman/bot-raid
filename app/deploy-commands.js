@@ -111,6 +111,11 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
+    .setName("lz")
+    .setDescription("Lihat Lucky Zone hari ini")
+    .toJSON(),
+
+  new SlashCommandBuilder()
     .setName("digest-now")
     .setDescription("Co-Leader: kirim weekly digest sekarang (manual trigger, misal kalau kelewat jadwal)")
     .toJSON(),

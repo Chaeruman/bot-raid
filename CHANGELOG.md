@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.6.0] — 2026-07-04
+
+### Added
+- **`/lz`** — Lucky Zone hari ini (2 map + reward Cap 60). Pattern rotasi
+  1→2→3 tiap bulan, dihitung dari formula (Juli 2026 = pattern 3), bukan
+  tabel manual — otomatis benar untuk bulan-bulan berikutnya.
+
 ## [1.5.2] — 2026-07-04
 
 ### Added
@@ -133,7 +140,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.5.2...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.6.0...HEAD
+[1.6.0]: https://github.com/Chaeruman/bot-raid/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/Chaeruman/bot-raid/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Chaeruman/bot-raid/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Chaeruman/bot-raid/compare/v1.4.1...v1.5.0
