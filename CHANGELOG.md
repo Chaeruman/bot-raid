@@ -19,6 +19,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
   jadi seller bisa buka panelnya langsung tanpa nyari manual.
 - **`/kirim-gaji`** — panel di-skip dari daftar kalau thread-nya sudah
   archived/locked (atau thread-nya sudah hilang), bukan cuma cek `panel.closed`.
+- **Pajak mail 0.3%** — gaji/orang (termasuk member yang di-exclude HC)
+  dipotong 0.3% lalu dibulatkan ke bawah.
+
+### Fixed
+- **Gold exclude `@tag`** — `@ol` sekarang cocok exact dulu, baru fallback ke
+  substring; sebelumnya `@ol` bisa nyangkut ke `NOLtiga` dan gagal ke-resolve
+  meski nama persis "ol" ada di panel.
 
 ## [1.1.0] — 2026-07-03
 

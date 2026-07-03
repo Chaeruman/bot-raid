@@ -2,9 +2,11 @@ const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("
 const { CATALOG } = require("../items");
 
 const STAMP_RATE_GOLD = 4; // gold per stamp (market fee)
+const MAIL_TAX_RATE = 0.003; // 0.3% mail tax, deducted from the final salary
 
 // Exact salary for one member: ÷8 pool share + ÷7 HC gold, minus any ÷7 entry
-// they're excluded from. Pass uid=null for the headline (non-excluded) figure.
+// they're excluded from, minus 0.3% mail tax. Pass uid=null for the headline
+// (non-excluded) figure.
 function memberSalary(panel, uid) {
   const soldItems = panel.items.filter((i) => i.price != null);
   const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
@@ -18,7 +20,8 @@ function memberSalary(panel, uid) {
   const gold7PerPerson = panel.goldEntries
     .filter((g) => g.splitCount === 7 && g.excludedUserId !== uid)
     .reduce((sum, g) => sum + Math.floor(g.amount / 7), 0);
-  return Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson;
+  const gross = Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson;
+  return Math.floor(gross * (1 - MAIL_TAX_RATE));
 }
 
 // Headline (non-excluded) salary — used for thread title.
@@ -91,14 +94,8 @@ function summaryText(panel) {
   );
   const itemNet = totalItemGold - stampFee;
   const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
-  let gold7PerPerson = 0;
-  const excludedUids = [];
-  for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
-    gold7PerPerson += Math.floor(g.amount / 7);
-    if (g.excludedUserId) excludedUids.push(g.excludedUserId);
-  }
+  const excludedUids = panel.goldEntries.filter((g) => g.splitCount === 7 && g.excludedUserId).map((g) => g.excludedUserId);
   const pool = itemNet + gold8Total;
-  const basePerPerson = Math.floor(pool / 8);
 
   if (panel.items.length > 0) {
     const totalStamps = panel.items.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
@@ -120,10 +117,10 @@ function summaryText(panel) {
     for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
       formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
     }
-    const total = basePerPerson + gold7PerPerson;
-    lines.push(`• **Gaji/orang:** ${formulaParts.join(" + ")} = **${total.toLocaleString()}**`);
+    const total = memberSalary(panel, null);
+    lines.push(`• **Gaji/orang:** (${formulaParts.join(" + ")}) − 0.3% tax = **${total.toLocaleString()}**`);
     for (const uid of excludedUids) {
-      lines.push(`• **Gaji <@${uid}>: ${basePerPerson.toLocaleString()}** (tidak dapat HC)`);
+      lines.push(`• **Gaji <@${uid}>: ${memberSalary(panel, uid).toLocaleString()}** (tidak dapat HC)`);
     }
   }
 

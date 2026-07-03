@@ -45,7 +45,8 @@ async function handleAddItemsModal(interaction) {
         if (!g.excludeName) {
           goldWarnings.push(`\`${g.amount}/7\` — tag the excluded member, e.g. \`${g.amount}/7 @name\``);
         } else {
-          const hits = panel.members.filter((uid) => nameOf[uid].toLowerCase().includes(g.excludeName));
+          const exact = panel.members.filter((uid) => nameOf[uid].toLowerCase() === g.excludeName);
+          const hits = exact.length ? exact : panel.members.filter((uid) => nameOf[uid].toLowerCase().includes(g.excludeName));
           if (hits.length === 1) excludedUserId = hits[0];
           else if (hits.length === 0) goldWarnings.push(`\`${g.amount}/7\` — no member matches \`@${g.excludeName}\``);
           else goldWarnings.push(`\`${g.amount}/7\` — \`@${g.excludeName}\` is ambiguous (${hits.length} members)`);
