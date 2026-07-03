@@ -86,6 +86,20 @@ async function getSalaryTotalsSince(since) {
     .toArray();
 }
 
+// Top-5 highest total salary ever paid out from a single panel — single
+// doc, at most 5 entries, so it never grows. Separate from everything else
+// (weekly digest, /gaji-saya) — doesn't touch or replace their data.
+async function getTop5PanelSalary() {
+  if (!collection) return [];
+  const doc = await collection.findOne({ _id: "top5PanelSalary" });
+  return doc?.top5 || [];
+}
+
+async function saveTop5PanelSalary(top5) {
+  if (!collection) return;
+  await collection.replaceOne({ _id: "top5PanelSalary" }, { _id: "top5PanelSalary", top5 }, { upsert: true });
+}
+
 function setPendingEphemeral(lootMsgId, userId, interaction) {
   pendingEphemerals.set(`${lootMsgId}:${userId}`, interaction);
 }
@@ -120,6 +134,8 @@ module.exports = {
   removeSalaryPaid,
   getSalaryLog,
   getSalaryTotalsSince,
+  getTop5PanelSalary,
+  saveTop5PanelSalary,
   getDigestLastSent,
   setDigestLastSent,
   setPendingEphemeral,

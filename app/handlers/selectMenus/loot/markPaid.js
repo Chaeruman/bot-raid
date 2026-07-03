@@ -1,5 +1,6 @@
 const { refreshLootPanel, memberSalary } = require("../../../builders/lootPanel");
 const { activeLootPanels, saveState, recordSalaryPaid, removeSalaryPaid } = require("../../../state");
+const { checkTop5Records } = require("../../../salaryRecords");
 const { buildMarkPaidRow } = require("../../buttons/loot/markPaid");
 
 async function handleMarkPaidSelect(interaction, panel) {
@@ -28,6 +29,7 @@ async function handleMarkPaidSelect(interaction, panel) {
     await refreshLootPanel(interaction.client, panel);
     delete activeLootPanels[panel.lootMsgId];
     saveState();
+    if (panel.stampRate != null) checkTop5Records(interaction.client, panel).catch((err) => console.error("❌ checkTop5Records failed:", err.message));
     return;
   }
 

@@ -1,6 +1,7 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState, recordSalaryPaid } = require("../../state");
 const { memberSalary, refreshLootPanel } = require("../../builders/lootPanel");
+const { checkTop5Records } = require("../../salaryRecords");
 
 // My open panels = panels I'm the seller of that aren't closed, whose thread
 // is still open too (not archived/locked — e.g. auto-archived after inactivity).
@@ -120,6 +121,7 @@ async function handleCombinedPaySelect(interaction) {
     if (p.closed) {
       closedNames.push(p.eventTitle);
       delete activeLootPanels[p.lootMsgId];
+      if (p.stampRate != null) checkTop5Records(interaction.client, p).catch((err) => console.error("❌ checkTop5Records failed:", err.message));
     }
   }
   saveState();

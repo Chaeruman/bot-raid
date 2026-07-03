@@ -14,6 +14,16 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.5.0] — 2026-07-04
+
+### Added
+- **Top 5 panel salary record** — saat panel ditutup (semua member lunas),
+  bot cek apakah total gaji panel itu masuk top 5 sepanjang masa. Kalau iya,
+  posting ke `DIGEST_CHANNEL_ID`: judul panel (link thread) — nama IGN
+  seller — total gaji. Nyimpen 1 dokumen (`top5PanelSalary`, maks 5 entri),
+  cuma posting kalau ranking/anggota top5 beneran berubah, terpisah dari
+  fitur digest mingguan/`/gaji-saya`.
+
 ## [1.4.1] — 2026-07-04
 
 ### Fixed
@@ -109,7 +119,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.4.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.5.0...HEAD
+[1.5.0]: https://github.com/Chaeruman/bot-raid/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/Chaeruman/bot-raid/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/Chaeruman/bot-raid/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/Chaeruman/bot-raid/compare/v1.3.0...v1.3.1
