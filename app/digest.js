@@ -18,10 +18,12 @@ function isDigestWindow(now = Date.now()) {
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 
+// Returns how many entries were posted (0 = nothing to post, caller can tell
+// that apart from an actual send).
 async function sendWeeklyDigest(client) {
   if (!config.digestChannelId) {
     console.warn("⚠️ DIGEST_CHANNEL_ID not set — skipping weekly digest.");
-    return;
+    return 0;
   }
   const since = new Date(Date.now() - WEEK_MS);
   const totals = await getSalaryTotalsSince(since);
@@ -30,11 +32,12 @@ async function sendWeeklyDigest(client) {
     .sort((a, b) => b.total - a.total)
     .slice(0, TOP_N);
 
-  if (top.length === 0) return;
+  if (top.length === 0) return 0;
 
   const lines = top.map((r, i) => `${MEDAL[i] || `#${i + 1}`} <@${r._id}> — **${r.total.toLocaleString()}g**`);
   const channel = await client.channels.fetch(config.digestChannelId);
   await channel.send(`🏆 **Top ${top.length} Gaji Terbanyak Minggu Ini**\n${lines.join("\n")}`);
+  return top.length;
 }
 
 function startWeeklyDigest(client) {

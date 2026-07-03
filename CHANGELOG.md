@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.4.1] — 2026-07-04
+
+### Fixed
+- **`/digest-now`** — sebelumnya selalu bilang "terkirim" walau leaderboard
+  kosong (belum ada gaji tercatat di `salaryLog`). Sekarang jujur kalau nggak
+  ada yang diposting.
+
 ## [1.4.0] — 2026-07-04
 
 ### Added
@@ -102,7 +109,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/Chaeruman/bot-raid/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/Chaeruman/bot-raid/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/Chaeruman/bot-raid/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/Chaeruman/bot-raid/compare/v1.2.0...v1.3.0

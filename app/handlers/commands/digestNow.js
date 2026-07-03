@@ -14,9 +14,13 @@ async function handleDigestNow(interaction) {
     return interaction.reply({ content: "⚠️ DIGEST_CHANNEL_ID belum di-set.", flags: MessageFlags.Ephemeral });
   }
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
-  await sendWeeklyDigest(interaction.client);
+  const count = await sendWeeklyDigest(interaction.client);
   setDigestLastSent(Date.now());
-  return interaction.editReply(`📬 Weekly digest terkirim ke <#${config.digestChannelId}>.`);
+  return interaction.editReply(
+    count > 0
+      ? `📬 Weekly digest terkirim ke <#${config.digestChannelId}> (${count} entri).`
+      : "🤷 Belum ada gaji tercatat di salaryLog 7 hari terakhir — nggak ada yang diposting.",
+  );
 }
 
 module.exports = { handleDigestNow };
