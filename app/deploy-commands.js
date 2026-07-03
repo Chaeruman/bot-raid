@@ -89,6 +89,11 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
+    .setName("kirim-gaji")
+    .setDescription("Lihat & tandai lunas gaji member di semua loot panel terbuka yang seller-nya kamu")
+    .toJSON(),
+
+  new SlashCommandBuilder()
     .setName("state")
     .setDescription("Co-Leader: view active events & loot panels in state")
     .toJSON(),

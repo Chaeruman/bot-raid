@@ -40,6 +40,12 @@ Dragon Nest raid party signup bot. Players click role buttons to join a party; h
 4. ✅ Loot panel — handlers fully wired under `handlers/buttons/loot/` and `handlers/selectMenus/loot/`; panel state uses a single `items[]` array (no `raidItems`/`mailItems` split, no `source` field); stamp fee counted from sold items only; gold splits ÷8 into shared pool and ÷7 as per-person add with excluded-member lines
 5. ✅ Persistence — `saveState()` writes `activeEvents`+`activeLootPanels` to `state.json` synchronously after every mutation; loaded on startup via `Object.assign` in `index.js`
 
+## Versioning
+- Semantic Versioning; single source = `version` in `package.json`, re-exported by `app/version.js`.
+- Surfaced in the boot log and in `/state`.
+- Bump with `npm run release:patch|minor|major` (creates commit + `vX.Y.Z` tag).
+- Before bumping, move the `[Unreleased]` items in `CHANGELOG.md` into a new dated version section.
+
 ## Conventions
 - Plain CommonJS (`require`/`module.exports`), no TypeScript
 - `interaction.deferUpdate()` then `message.edit()` for button handlers that update the panel

@@ -1,6 +1,7 @@
 const { MessageFlags } = require("discord.js");
 const { activeEvents, activeLootPanels } = require("../../state");
 const { isCoLeader } = require("../../utils/coleader");
+const { version } = require("../../version");
 
 async function handleState(interaction) {
   if (!isCoLeader(interaction)) {
@@ -10,7 +11,7 @@ async function handleState(interaction) {
   const events = Object.values(activeEvents);
   const panels = Object.values(activeLootPanels);
 
-  const lines = [`📊 **State** — ${events.length} event(s), ${panels.length} loot panel(s)`];
+  const lines = [`📊 **State** \`v${version}\` — ${events.length} event(s), ${panels.length} loot panel(s)`];
 
   if (events.length) {
     lines.push("\n**Active Events:**");

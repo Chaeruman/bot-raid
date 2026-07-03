@@ -1,4 +1,8 @@
 {
+  "name": "raid-gdn",
+  "version": "1.0.0",
+  "description": "Dragon Nest raid party signup + loot/salary tracking Discord bot",
+  "main": "app/index.js",
   "dependencies": {
     "@discordjs/rest": "^2.6.1",
     "axios": "^1.14.0",
@@ -8,6 +12,10 @@
     "mongodb": "^6.12.0"
   },
   "scripts": {
-    "start": "node ./app/index.js"
+    "start": "node ./app/index.js",
+    "deploy": "node ./app/deploy-commands.js",
+    "release:patch": "npm version patch -m \"chore(release): v%s\"",
+    "release:minor": "npm version minor -m \"chore(release): v%s\"",
+    "release:major": "npm version major -m \"chore(release): v%s\""
   }
 }

@@ -3,8 +3,9 @@ const { CATALOG } = require("../items");
 
 const STAMP_RATE_GOLD = 4; // gold per stamp (market fee)
 
-// Headline salary per person (base ÷8 pool share + per-person ÷7 HC gold).
-function salaryPerPerson(panel) {
+// Exact salary for one member: ÷8 pool share + ÷7 HC gold, minus any ÷7 entry
+// they're excluded from. Pass uid=null for the headline (non-excluded) figure.
+function memberSalary(panel, uid) {
   const soldItems = panel.items.filter((i) => i.price != null);
   const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
   const stampFee = soldStamps * STAMP_RATE_GOLD;
@@ -15,10 +16,13 @@ function salaryPerPerson(panel) {
   const itemNet = totalItemGold - stampFee;
   const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
   const gold7PerPerson = panel.goldEntries
-    .filter((g) => g.splitCount === 7)
+    .filter((g) => g.splitCount === 7 && g.excludedUserId !== uid)
     .reduce((sum, g) => sum + Math.floor(g.amount / 7), 0);
   return Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson;
 }
+
+// Headline (non-excluded) salary — used for thread title.
+const salaryPerPerson = (panel) => memberSalary(panel, null);
 
 function allItemsSold(panel) {
   return panel.items.length > 0 && panel.items.every((i) => i.price != null);
@@ -261,4 +265,4 @@ async function refreshLootPanel(client, panel) {
   await updateThreadTitle(channel, panel);
 }
 
-module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel };
+module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel, salaryPerPerson, memberSalary };

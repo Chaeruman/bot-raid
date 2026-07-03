@@ -5,6 +5,7 @@ const { handleButton } = require("./handlers/buttons");
 const { handleSelectMenu } = require("./handlers/selectMenus");
 const { handleModal } = require("./handlers/modals");
 const { activeEvents, activeLootPanels, loadState, saveState } = require("./state");
+const { version } = require("./version");
 const keepAlive = require("./utils/keepAlive");
 
 const client = new Client({
@@ -16,7 +17,7 @@ const client = new Client({
 });
 
 client.on("clientReady", () => {
-  console.log(`✅ Logged in as ${client.user.tag}`);
+  console.log(`✅ Logged in as ${client.user.tag} — raid-gdn v${version}`);
   console.log(
     `📌 Thread channel: ${config.threadChannelId || "NOT SET — will use current channel"}`,
   );

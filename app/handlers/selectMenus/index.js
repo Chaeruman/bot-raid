@@ -1,8 +1,12 @@
 const { handleRemoveMemberSelect } = require("./removeMember");
 const { handleSubRoleSelect } = require("./subRoleSelect");
 const { handleLootSelect } = require("./loot");
+const { handleCombinedPaySelect } = require("../commands/combinedPay");
 
 async function handleSelectMenu(interaction) {
+  if (interaction.customId.startsWith("gab:")) {
+    return handleCombinedPaySelect(interaction);
+  }
   if (interaction.customId.startsWith("loot-sel:")) {
     return handleLootSelect(interaction);
   }

@@ -1,39 +1,51 @@
-# Balance Bot — Update Terbaru
+# Changelog
 
-- **Command terpisah untuk raid dan marathon** — sekarang ada `/raid` dan `/marathon` selain `/start`
+Semua perubahan penting untuk **raid-gdn** dicatat di sini.
+Format mengikuti [Keep a Changelog](https://keepachangelog.com/) dan proyek ini
+memakai [Semantic Versioning](https://semver.org/) (`MAJOR.MINOR.PATCH`).
 
-- **Event baru** — DDN HC, SDN HC, dan SDN Core sudah masuk sebagai pilihan di `/raid`
+- **MAJOR** — perubahan yang memecah alur/data lama (breaking).
+- **MINOR** — fitur baru yang kompatibel ke belakang.
+- **PATCH** — bugfix / perbaikan kecil.
 
-- **Urutan run marathon langsung keliatan** — panel party untuk marathon menampilkan urutan run-nya, misalnya GDN HC > GDN Classic > SDN HC
+Cara bump: `npm run release:patch` (atau `:minor` / `:major`). Perintah ini
+mengubah `version` di `package.json` lalu membuat commit + tag `vX.Y.Z`.
+Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
-- **Loot tracking otomatis** — setelah run selesai, bot langsung bikin panel loot di thread. Seller mencatat item drop dan gold boss, set harga jual, lalu bot hitung otomatis berapa gaji yang diterima tiap member setelah dipotong biaya stamp
+## [Unreleased]
 
-- **Pencatatan item detail** — item seperti armor, weapon, dan accessory bisa dicatat lengkap dengan bagian, tipe, dan job class
+### Added
+- **`/kirim-gaji`** — seller melihat daftar gaji belum-dibayar tiap member
+  (gabungan lintas semua loot panel terbuka miliknya, presisi termasuk potongan
+  HC untuk member yang di-exclude), lalu multi-select untuk menandai lunas di
+  semua panel sekaligus. Loot panel ikut ter-refresh; panel yang jadi lunas
+  auto-close. Tanpa cek thread satu-satu.
 
-- **Perhitungan gaji otomatis** — hasil jual item dibagi rata ke semua member. Gold boss juga dibagi otomatis, HC dibagi 7 dan yang lain dibagi 8
+## [1.0.0] — 2026-07-03
 
-- **Status penerimaan gaji** — host bisa tandai siapa yang sudah menerima gajinya dari seller
+Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 
-- **Panel loot manual** — kalau butuh catat loot di luar alur run biasa, tinggal pakai `/loot`
+### Added
+- **Panel signup party** — `/start`, `/raid`, `/marathon`, `/nest`; tombol role
+  (dengan sub-role class untuk MT/MC), Cancel My Role, Lock, Remove Member,
+  Cancel Run, Done Run.
+- **Loot panel otomatis** — Done Run bikin forum thread + loot panel; embed
+  signup menampilkan `Thread: #…` + tombol Set Seller.
+- **Type Items parser** — satu baris per item: rune (alias family + tier
+  `l/u` + junk/good), accessory (`legend/l/hunter/hc`, `unique/u/squad`),
+  named gear (keyword ± kurung), equipment biasa, fragment, quantity `x5`,
+  note inline `#…`, dan gold (`294/7 @tag`, `258/8`).
+- **Resolve flow** — baris ambigu ditawarkan bernomor → tombol Resolve.
+- **Pricing** — Price All (modal, `= <expr>`) & Price One; ekspresi matematika
+  `+ - * / ()` via `evalPrice`.
+- **Member & pembayaran** — Add/Remove Member dan Mark Paid multi-select;
+  panel auto-close saat semua dibayar; Close Panel manual.
+- **Judul thread otomatis** — prefix `💵` (semua diberi harga) / `✅` (lunas).
+- **Panel role-scoped** — `/loot [tim:Tim 1|Tim 2]` isi member dari role tim.
+- **Command operasional** — `/loot-action`, `/state`, `/clear` (Co-Leader gate).
+- **Persistence** — state disimpan ke MongoDB Atlas (`saveState`/`loadState`).
+- **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
+  tampil di log boot & `/state`.
 
----
-
-# Tombol di Panel Party
-
-- **Role (SM, FU, Healer, dst)** — klik untuk daftar ke slot tersebut. Tombol berubah warna kalau sudah penuh
-- **Cancel My Role** — batalkan slot kamu sendiri
-- **Lock Party** — host mengunci party, tidak ada yang bisa daftar atau keluar sampai dibuka lagi
-- **Remove Member** — host memilih member tertentu untuk dikeluarkan dari party
-- **Cancel Run** — host membatalkan run dan menghapus panel
-- **Done** — host menandai run selesai. Bot otomatis membuat thread dan panel loot di dalamnya
-
----
-
-# Tombol di Panel Loot
-
-- **Seller** — host memilih siapa yang jadi seller untuk run ini
-- **Add Item** — seller menambahkan item yang drop. Bot akan meminta pilihan kategori, lalu item spesifiknya, lalu detail seperti bagian armor atau tipe accessory
-- **Add Gold** — seller mencatat gold drop dari boss. Untuk HC, bot akan tanya dulu siapa yang tidak dapat bagian gold, baru minta jumlahnya
-- **Raid / Mail** — seller berpindah antara sumber Raid Drops dan Mail sebelum menambahkan item
-- **Set Price** — seller mengisi harga jual per item. Bot langsung update perhitungan total per orang
-- **Sudah Terima** — host menandai member yang sudah menerima gajinya dari seller
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Chaeruman/bot-raid/releases/tag/v1.0.0

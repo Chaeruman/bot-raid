@@ -5,6 +5,7 @@ const { handleLoot }    = require("./loot");
 const { handleState }   = require("./state");
 const { handleClear }   = require("./clear");
 const { handleLootAction } = require("./lootAction");
+const { handleCombinedPay } = require("./combinedPay");
 
 const commandHandlers = {
   start:    handleStart,
@@ -14,6 +15,7 @@ const commandHandlers = {
   state:    handleState,
   clear:    handleClear,
   "loot-action": handleLootAction,
+  "kirim-gaji": handleCombinedPay,
 };
 
 async function handleCommand(interaction) {
