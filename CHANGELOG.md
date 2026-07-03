@@ -14,6 +14,12 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.7.1] — 2026-07-04
+
+### Added
+- **`/lz-now`** (Co-Leader) — trigger manual buat post Lucky Zone ke
+  `LZ_CHANNEL_ID`, mitigasi kalau jadwal 08:00 WIB kelewat.
+
 ## [1.7.0] — 2026-07-04
 
 ### Added
@@ -155,7 +161,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.7.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.7.1...HEAD
+[1.7.1]: https://github.com/Chaeruman/bot-raid/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/Chaeruman/bot-raid/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/Chaeruman/bot-raid/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/Chaeruman/bot-raid/compare/v1.5.1...v1.5.2
