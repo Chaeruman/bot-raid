@@ -17,6 +17,8 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 ### Added
 - **`/kirim-gaji`** — link ke tiap panel (thread) ditampilkan di daftar,
   jadi seller bisa buka panelnya langsung tanpa nyari manual.
+- **`/kirim-gaji`** — panel di-skip dari daftar kalau thread-nya sudah
+  archived/locked (atau thread-nya sudah hilang), bukan cuma cek `panel.closed`.
 
 ## [1.1.0] — 2026-07-03
 

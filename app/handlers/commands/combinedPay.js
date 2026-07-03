@@ -2,9 +2,22 @@ const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("dis
 const { activeLootPanels, saveState } = require("../../state");
 const { memberSalary, refreshLootPanel } = require("../../builders/lootPanel");
 
-// My open panels = panels I'm the seller of that aren't closed yet.
-const myPanels = (sellerId) =>
-  Object.values(activeLootPanels).filter((p) => p.sellerId === sellerId && !p.closed);
+// My open panels = panels I'm the seller of that aren't closed, whose thread
+// is still open too (not archived/locked — e.g. auto-archived after inactivity).
+async function myPanels(client, sellerId) {
+  const candidates = Object.values(activeLootPanels).filter((p) => p.sellerId === sellerId && !p.closed);
+  const checks = await Promise.all(
+    candidates.map(async (p) => {
+      try {
+        const thread = await client.channels.fetch(p.threadId);
+        return thread.archived || thread.locked ? null : p;
+      } catch {
+        return null; // thread gone — skip it
+      }
+    }),
+  );
+  return checks.filter(Boolean);
+}
 
 // uid -> { total, count } of exact unpaid salary across my open panels (HC-exclusion aware).
 function aggregate(panels) {
@@ -22,12 +35,13 @@ function aggregate(panels) {
 
 async function handleCombinedPay(interaction) {
   const sellerId = interaction.user.id;
-  const agg = aggregate(myPanels(sellerId));
+  const panels = await myPanels(interaction.client, sellerId);
+  const agg = aggregate(panels);
   const uids = Object.keys(agg);
 
   if (uids.length === 0) {
     return interaction.reply({
-      content: "🤷 Tidak ada panel terbuka dengan seller kamu yang masih punya member belum dibayar.",
+      content: "🤷 Tidak ada panel terbuka (thread aktif, belum lock) dengan seller kamu yang masih punya member belum dibayar.",
       flags: MessageFlags.Ephemeral,
     });
   }
@@ -59,7 +73,6 @@ async function handleCombinedPay(interaction) {
     .map((o) => `• **${o.label}** — ${agg[o.value].total.toLocaleString()}g (${agg[o.value].count} panel)`)
     .join("\n");
 
-  const panels = myPanels(sellerId);
   const panelLinks = panels
     .map((p) => `• [${p.eventTitle}](https://discord.com/channels/${interaction.guildId}/${p.threadId}/${p.lootMsgId})`)
     .join("\n");
@@ -79,7 +92,7 @@ async function handleCombinedPaySelect(interaction) {
   }
 
   const picked = new Set(interaction.values);
-  const panels = myPanels(sellerId);
+  const panels = await myPanels(interaction.client, sellerId);
   const touched = new Set();
 
   for (const p of panels) {
@@ -111,4 +124,4 @@ async function handleCombinedPaySelect(interaction) {
   });
 }
 
-module.exports = { handleCombinedPay, handleCombinedPaySelect, aggregate };
+module.exports = { handleCombinedPay, handleCombinedPaySelect, aggregate, myPanels };
