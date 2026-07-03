@@ -47,7 +47,7 @@ Dragon Nest raid party signup bot. Players click role buttons to join a party; h
 - Before bumping, move the `[Unreleased]` items in `CHANGELOG.md` into a new dated version section.
 
 ## Weekly digest
-- `app/digest.js` posts a top-10 salary leaderboard to `DIGEST_CHANNEL_ID` every Monday 09:00 WIB.
+- `app/digest.js` posts a top-10 salary leaderboard to `DIGEST_CHANNEL_ID` every Saturday 08:00 WIB.
 - Off by default — gated behind `DIGEST_ENABLED=true` env var (kill-switch, no redeploy needed to disable).
 - Runs in-process via `setInterval` (no new Render service, no cron dependency); `digestLastSent` persisted in state to survive restarts.
 
