@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.4.0] — 2026-07-04
+
+### Added
+- **`/digest-now`** (Co-Leader) — trigger manual buat weekly digest, mitigasi
+  kalau jadwal otomatis kelewat (misal Render restart pas maintenance
+  bertepatan sama jam digest).
+
 ## [1.3.1] — 2026-07-04
 
 ### Changed
@@ -95,7 +102,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.3.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Chaeruman/bot-raid/compare/v1.3.1...v1.4.0
 [1.3.1]: https://github.com/Chaeruman/bot-raid/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/Chaeruman/bot-raid/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Chaeruman/bot-raid/compare/v1.1.1...v1.2.0

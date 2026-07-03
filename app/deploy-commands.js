@@ -111,6 +111,11 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
+    .setName("digest-now")
+    .setDescription("Co-Leader: kirim weekly digest sekarang (manual trigger, misal kalau kelewat jadwal)")
+    .toJSON(),
+
+  new SlashCommandBuilder()
     .setName("state")
     .setDescription("Co-Leader: view active events & loot panels in state")
     .addStringOption((o) =>

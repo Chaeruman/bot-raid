@@ -7,6 +7,7 @@ const { handleClear }   = require("./clear");
 const { handleLootAction } = require("./lootAction");
 const { handleCombinedPay } = require("./combinedPay");
 const { handleMySalary } = require("./mySalary");
+const { handleDigestNow } = require("./digestNow");
 
 const commandHandlers = {
   start:    handleStart,
@@ -18,6 +19,7 @@ const commandHandlers = {
   "loot-action": handleLootAction,
   "kirim-gaji": handleCombinedPay,
   "gaji-saya": handleMySalary,
+  "digest-now": handleDigestNow,
 };
 
 async function handleCommand(interaction) {
