@@ -15,6 +15,12 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 ## [Unreleased]
 
 ### Added
+- **`/kirim-gaji`** — link ke tiap panel (thread) ditampilkan di daftar,
+  jadi seller bisa buka panelnya langsung tanpa nyari manual.
+
+## [1.1.0] — 2026-07-03
+
+### Added
 - **`/kirim-gaji`** — seller melihat daftar gaji belum-dibayar tiap member
   (gabungan lintas semua loot panel terbuka miliknya, presisi termasuk potongan
   HC untuk member yang di-exclude), lalu multi-select untuk menandai lunas di
@@ -47,5 +53,6 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/Chaeruman/bot-raid/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Chaeruman/bot-raid/releases/tag/v1.0.0

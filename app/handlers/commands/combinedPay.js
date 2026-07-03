@@ -59,8 +59,13 @@ async function handleCombinedPay(interaction) {
     .map((o) => `• **${o.label}** — ${agg[o.value].total.toLocaleString()}g (${agg[o.value].count} panel)`)
     .join("\n");
 
+  const panels = myPanels(sellerId);
+  const panelLinks = panels
+    .map((p) => `• [${p.eventTitle}](https://discord.com/channels/${interaction.guildId}/${p.threadId}/${p.lootMsgId})`)
+    .join("\n");
+
   return interaction.reply({
-    content: `💸 **Kirim Gaji** — daftar gaji belum dibayar di ${myPanels(sellerId).length} panel milik kamu:\n${list}\n\nPilih member yang sudah kamu kirim gajinya → ditandai lunas di semua panel sekaligus.`,
+    content: `💸 **Kirim Gaji** — daftar gaji belum dibayar di ${panels.length} panel milik kamu:\n${list}\n\n**Panel:**\n${panelLinks}\n\nPilih member yang sudah kamu kirim gajinya → ditandai lunas di semua panel sekaligus.`,
     components: [row],
     flags: MessageFlags.Ephemeral,
   });
