@@ -113,6 +113,16 @@ const commands = [
   new SlashCommandBuilder()
     .setName("state")
     .setDescription("Co-Leader: view active events & loot panels in state")
+    .addStringOption((o) =>
+      o
+        .setName("filter")
+        .setDescription("Filter panel (default: semua)")
+        .setRequired(false)
+        .addChoices(
+          { name: "Semua", value: "all" },
+          { name: "Stale/gone saja (thread archived, locked, atau hilang)", value: "stale" },
+        ),
+    )
     .toJSON(),
 
   new SlashCommandBuilder()

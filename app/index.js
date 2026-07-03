@@ -7,6 +7,7 @@ const { handleModal } = require("./handlers/modals");
 const { activeEvents, activeLootPanels, loadState, saveState } = require("./state");
 const { version } = require("./version");
 const keepAlive = require("./utils/keepAlive");
+const { startWeeklyDigest } = require("./digest");
 
 const client = new Client({
   intents: [
@@ -106,4 +107,5 @@ process.on("unhandledRejection", console.error);
 
   keepAlive.start();
   await client.login(config.token);
+  startWeeklyDigest(client);
 })();

@@ -14,6 +14,18 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.3.0] — 2026-07-04
+
+### Added
+- **Weekly digest** — top 10 gaji terbanyak minggu ini diposting ke channel
+  (`DIGEST_CHANNEL_ID`) tiap Senin 09:00 WIB. Mati secara default, nyalakan
+  lewat `DIGEST_ENABLED=true` — kill-switch via env var, nggak perlu redeploy
+  buat matiin kalau bermasalah. Jalan di proses yang sama (bukan Render
+  service/cron baru), jadi nggak nambah usage free tier.
+- **`/state filter:`** — tiap loot panel di `/state` sekarang nampilin status
+  thread-nya (🟢 aktif / 🔒 stale / ❌ gone), plus opsi filter buat cuma
+  nampilin yang stale/gone.
+
 ## [1.2.0] — 2026-07-04
 
 ### Added
@@ -78,7 +90,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Chaeruman/bot-raid/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Chaeruman/bot-raid/compare/v1.1.1...v1.2.0
 [1.1.0]: https://github.com/Chaeruman/bot-raid/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Chaeruman/bot-raid/releases/tag/v1.0.0

@@ -9,6 +9,7 @@ const pendingResolutions = new Map(); // `${lootMsgId}:${userId}` → [{ raw, qt
 
 let collection = null;
 let salaryLogCollection = null;
+let digestLastSent = 0; // ms epoch, persisted so a Render restart doesn't cause a duplicate/missed weekly digest
 
 // Connect to MongoDB and hydrate in-memory state. Call once before login.
 async function loadState() {
@@ -27,6 +28,7 @@ async function loadState() {
   if (doc) {
     Object.assign(activeEvents, doc.activeEvents || {});
     Object.assign(activeLootPanels, doc.activeLootPanels || {});
+    digestLastSent = doc.digestLastSent || 0;
   }
   console.log(
     `📂 Loaded state from MongoDB: ${Object.keys(activeEvents).length} events, ${Object.keys(activeLootPanels).length} loot panels`,
@@ -37,8 +39,17 @@ async function loadState() {
 function saveState() {
   if (!collection) return;
   collection
-    .replaceOne({ _id: "state" }, { _id: "state", activeEvents, activeLootPanels }, { upsert: true })
+    .replaceOne({ _id: "state" }, { _id: "state", activeEvents, activeLootPanels, digestLastSent }, { upsert: true })
     .catch((err) => console.error("❌ saveState failed:", err.message));
+}
+
+function getDigestLastSent() {
+  return digestLastSent;
+}
+
+function setDigestLastSent(ts) {
+  digestLastSent = ts;
+  saveState();
 }
 
 // One doc per (panel, member) payout. Upsert on mark-paid, delete on un-mark —
@@ -65,6 +76,14 @@ function removeSalaryPaid(panelId, uid) {
 async function getSalaryLog(uid, since) {
   if (!salaryLogCollection) return [];
   return salaryLogCollection.find({ uid, paidAt: { $gte: since } }).sort({ paidAt: -1 }).toArray();
+}
+
+// Every member's total payout since `since`, grouped by uid — feeds the weekly digest.
+async function getSalaryTotalsSince(since) {
+  if (!salaryLogCollection) return [];
+  return salaryLogCollection
+    .aggregate([{ $match: { paidAt: { $gte: since } } }, { $group: { _id: "$uid", total: { $sum: "$amount" } } }])
+    .toArray();
 }
 
 function setPendingEphemeral(lootMsgId, userId, interaction) {
@@ -100,6 +119,9 @@ module.exports = {
   recordSalaryPaid,
   removeSalaryPaid,
   getSalaryLog,
+  getSalaryTotalsSince,
+  getDigestLastSent,
+  setDigestLastSent,
   setPendingEphemeral,
   clearPendingEphemeral,
   setPendingResolution,

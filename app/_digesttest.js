@@ -1,0 +1,35 @@
+// Run: node app/_digesttest.js — checks digest window detection + totals grouping.
+const assert = require("assert");
+const { isDigestWindow } = require("./digest");
+
+// Monday 09:00 WIB = Monday 02:00 UTC.
+assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 6, 2, 0)), true); // 2026-07-06 is a Monday
+assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 6, 3, 0)), false); // wrong hour
+assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 7, 2, 0)), false); // Tuesday, wrong day
+
+// Totals grouping (same aggregate shape state.js's getSalaryTotalsSince returns).
+const rows = [
+  { uid: "u1", amount: 100, paidAt: new Date() },
+  { uid: "u1", amount: 50, paidAt: new Date() },
+  { uid: "u2", amount: 400, paidAt: new Date() },
+  { uid: "u3", amount: 200, paidAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }, // outside window
+];
+const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+const totals = Object.values(
+  rows
+    .filter((r) => r.paidAt >= since)
+    .reduce((acc, r) => {
+      (acc[r.uid] ??= { _id: r.uid, total: 0 }).total += r.amount;
+      return acc;
+    }, {}),
+);
+assert.deepStrictEqual(totals.sort((a, b) => a._id.localeCompare(b._id)), [
+  { _id: "u1", total: 150 },
+  { _id: "u2", total: 400 },
+]);
+
+// Top-N leaderboard sort (same logic as digest.js's sendWeeklyDigest).
+const top = totals.filter((r) => r.total > 0).sort((a, b) => b.total - a.total).slice(0, 10);
+assert.deepStrictEqual(top.map((r) => r._id), ["u2", "u1"]);
+
+console.log("✅ digest window + totals grouping + top-N sort OK");

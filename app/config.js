@@ -17,6 +17,7 @@ module.exports = {
   port: process.env.PORT || 3000,
   mongoUri: process.env.MONGODB_URI,
   coLeaderRoleId: process.env.COLEADER_ROLE_ID,
+  digestChannelId: process.env.DIGEST_CHANNEL_ID,
   tim1RoleId: process.env.TIM1_ROLE_ID,
   tim2RoleId: process.env.TIM2_ROLE_ID,
 };

@@ -46,6 +46,11 @@ Dragon Nest raid party signup bot. Players click role buttons to join a party; h
 - Bump with `npm run release:patch|minor|major` (creates commit + `vX.Y.Z` tag).
 - Before bumping, move the `[Unreleased]` items in `CHANGELOG.md` into a new dated version section.
 
+## Weekly digest
+- `app/digest.js` posts a top-10 salary leaderboard to `DIGEST_CHANNEL_ID` every Monday 09:00 WIB.
+- Off by default — gated behind `DIGEST_ENABLED=true` env var (kill-switch, no redeploy needed to disable).
+- Runs in-process via `setInterval` (no new Render service, no cron dependency); `digestLastSent` persisted in state to survive restarts.
+
 ## Conventions
 - Plain CommonJS (`require`/`module.exports`), no TypeScript
 - `interaction.deferUpdate()` then `message.edit()` for button handlers that update the panel
