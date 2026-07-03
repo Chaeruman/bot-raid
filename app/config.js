@@ -16,6 +16,7 @@ module.exports = {
   renderUrl: process.env.RENDER_URL,
   port: process.env.PORT || 3000,
   mongoUri: process.env.MONGODB_URI,
+  mongoDbName: process.env.MONGODB_DB_NAME || "bot-raid",
   coLeaderRoleId: process.env.COLEADER_ROLE_ID,
   digestChannelId: process.env.DIGEST_CHANNEL_ID,
   top5ChannelId: process.env.TOP5_CHANNEL_ID,

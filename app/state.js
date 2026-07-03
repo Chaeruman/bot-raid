@@ -20,7 +20,7 @@ async function loadState() {
 
   const client = new MongoClient(config.mongoUri);
   await client.connect();
-  const db = client.db("bot-raid");
+  const db = client.db(config.mongoDbName);
   collection = db.collection("balance");
   salaryLogCollection = db.collection("salaryLog");
 

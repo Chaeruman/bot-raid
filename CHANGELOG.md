@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.5.2] — 2026-07-04
+
+### Added
+- **Local/staging setup** — `MONGODB_DB_NAME` env var (defaults to `bot-raid`,
+  unchanged for production) lets a local run point at a separate Mongo
+  database + Discord test server without touching production data.
+  `.env.example` documents which vars should stay the same vs. differ.
+
 ## [1.5.1] — 2026-07-04
 
 ### Changed
@@ -125,7 +133,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.5.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.5.2...HEAD
+[1.5.2]: https://github.com/Chaeruman/bot-raid/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Chaeruman/bot-raid/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Chaeruman/bot-raid/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/Chaeruman/bot-raid/compare/v1.4.0...v1.4.1
