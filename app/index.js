@@ -8,6 +8,7 @@ const { activeEvents, activeLootPanels, loadState, saveState } = require("./stat
 const { version } = require("./version");
 const keepAlive = require("./utils/keepAlive");
 const { startWeeklyDigest } = require("./digest");
+const { startLzDigest } = require("./lzDigest");
 
 const client = new Client({
   intents: [
@@ -108,4 +109,5 @@ process.on("unhandledRejection", console.error);
   keepAlive.start();
   await client.login(config.token);
   startWeeklyDigest(client);
+  startLzDigest(client);
 })();

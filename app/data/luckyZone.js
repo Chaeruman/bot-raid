@@ -2,9 +2,6 @@
 // 1-31), the game applies one pattern per calendar month. Reward table stays
 // fixed regardless of pattern (Cap 60): Lv1 = Card Fragment x4 (16%) + Monster
 // Card Box x2, Lv2 = Card Fragment x5 (20%) + Monster Card Box "2 + 50%".
-//
-// MONTH_PATTERN maps month (1-12) -> pattern (1-3). Only confirmed months are
-// filled in; fill the rest in as they're confirmed in-game.
 const PATTERNS = {
   1: [
     ["Meteor Crash Site Core", "Miracle Altar Conservation Area"],
@@ -129,4 +126,16 @@ function getLuckyZoneToday(date = new Date()) {
   return { pattern, day, map1, map2 };
 }
 
-module.exports = { PATTERNS, patternForMonth, REWARDS, getLuckyZoneToday };
+// Shared by /lz command and the daily digest — one format, one place to change it.
+function formatLzMessage(zone = getLuckyZoneToday()) {
+  return [
+    `🍀 **Lucky Zone hari ini** (pattern ${zone.pattern}, hari ke-${zone.day})`,
+    `• ${zone.map1}`,
+    `• ${zone.map2}`,
+    ``,
+    `Reward (Cap 60): Lv1 = Card Fragment x${REWARDS[1].cardFragment} (${REWARDS[1].chance * 100}%) + Monster Card Box x${REWARDS[1].monsterCardBox}`,
+    `Lv2 = Card Fragment x${REWARDS[2].cardFragment} (${REWARDS[2].chance * 100}%) + Monster Card Box ${REWARDS[2].monsterCardBox}`,
+  ].join("\n");
+}
+
+module.exports = { PATTERNS, patternForMonth, REWARDS, getLuckyZoneToday, formatLzMessage };

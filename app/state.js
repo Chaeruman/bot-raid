@@ -10,6 +10,7 @@ const pendingResolutions = new Map(); // `${lootMsgId}:${userId}` → [{ raw, qt
 let collection = null;
 let salaryLogCollection = null;
 let digestLastSent = 0; // ms epoch, persisted so a Render restart doesn't cause a duplicate/missed weekly digest
+let lzDigestLastSent = 0; // same idea, daily instead of weekly
 
 // Connect to MongoDB and hydrate in-memory state. Call once before login.
 async function loadState() {
@@ -29,6 +30,7 @@ async function loadState() {
     Object.assign(activeEvents, doc.activeEvents || {});
     Object.assign(activeLootPanels, doc.activeLootPanels || {});
     digestLastSent = doc.digestLastSent || 0;
+    lzDigestLastSent = doc.lzDigestLastSent || 0;
   }
   console.log(
     `📂 Loaded state from MongoDB: ${Object.keys(activeEvents).length} events, ${Object.keys(activeLootPanels).length} loot panels`,
@@ -39,7 +41,7 @@ async function loadState() {
 function saveState() {
   if (!collection) return;
   collection
-    .replaceOne({ _id: "state" }, { _id: "state", activeEvents, activeLootPanels, digestLastSent }, { upsert: true })
+    .replaceOne({ _id: "state" }, { _id: "state", activeEvents, activeLootPanels, digestLastSent, lzDigestLastSent }, { upsert: true })
     .catch((err) => console.error("❌ saveState failed:", err.message));
 }
 
@@ -49,6 +51,15 @@ function getDigestLastSent() {
 
 function setDigestLastSent(ts) {
   digestLastSent = ts;
+  saveState();
+}
+
+function getLzDigestLastSent() {
+  return lzDigestLastSent;
+}
+
+function setLzDigestLastSent(ts) {
+  lzDigestLastSent = ts;
   saveState();
 }
 
@@ -138,6 +149,8 @@ module.exports = {
   saveTop5PanelSalary,
   getDigestLastSent,
   setDigestLastSent,
+  getLzDigestLastSent,
+  setLzDigestLastSent,
   setPendingEphemeral,
   clearPendingEphemeral,
   setPendingResolution,

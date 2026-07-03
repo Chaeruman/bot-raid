@@ -14,6 +14,21 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.7.0] — 2026-07-04
+
+### Added
+- **Daily Lucky Zone digest** — post otomatis ke `LZ_CHANNEL_ID` tiap hari
+  08:00 WIB (kill-switch `LZ_DIGEST_ENABLED`, sama pola dengan weekly digest,
+  jalan di proses yang sama tanpa nambah Render service). Kalau kelewat
+  (misal restart pas jam segitu), dibiarkan — info ini bukan data kritis,
+  `/lz` tetap ada sebagai fallback manual.
+- `docs/daily-feature-plan.md` — rencana fitur rekomendasi kegiatan harian
+  per karakter (belum dibangun, dicatat biar konteksnya nggak hilang).
+
+### Changed
+- `/lz` dan digest sekarang share format pesan yang sama
+  (`formatLzMessage()` di `app/data/luckyZone.js`), nggak ada duplikasi teks.
+
 ## [1.6.0] — 2026-07-04
 
 ### Added
@@ -140,7 +155,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.6.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.7.0...HEAD
+[1.7.0]: https://github.com/Chaeruman/bot-raid/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/Chaeruman/bot-raid/compare/v1.5.2...v1.6.0
 [1.5.2]: https://github.com/Chaeruman/bot-raid/compare/v1.5.1...v1.5.2
 [1.5.1]: https://github.com/Chaeruman/bot-raid/compare/v1.5.0...v1.5.1
