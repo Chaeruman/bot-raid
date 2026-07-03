@@ -14,6 +14,12 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.5.1] — 2026-07-04
+
+### Changed
+- **Top 5 panel salary record** — sekarang posting ke channel sendiri
+  (`TOP5_CHANNEL_ID`), terpisah dari weekly digest (`DIGEST_CHANNEL_ID`).
+
 ## [1.5.0] — 2026-07-04
 
 ### Added
@@ -119,7 +125,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.5.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.5.1...HEAD
+[1.5.1]: https://github.com/Chaeruman/bot-raid/compare/v1.5.0...v1.5.1
 [1.5.0]: https://github.com/Chaeruman/bot-raid/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/Chaeruman/bot-raid/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/Chaeruman/bot-raid/compare/v1.3.1...v1.4.0

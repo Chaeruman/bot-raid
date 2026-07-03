@@ -1,8 +1,8 @@
 // Top-5 highest total salary paid out from a single loot panel (one entry
 // per panel, not per member) — e.g. "Marathon GDN blabla - seller - amount".
 // Checked only when a panel fully closes, using the amounts already computed
-// for that panel (no extra Mongo aggregate). Posts to the digest channel
-// only when the ranking/membership actually changes.
+// for that panel (no extra Mongo aggregate). Posts to its own channel
+// (separate from the weekly digest) only when the ranking actually changes.
 const config = require("./config");
 const { memberSalary } = require("./builders/lootPanel");
 const { getTop5PanelSalary, saveTop5PanelSalary } = require("./state");
@@ -10,7 +10,7 @@ const { getTop5PanelSalary, saveTop5PanelSalary } = require("./state");
 const MEDAL = ["🥇", "🥈", "🥉", "4.", "5."];
 
 async function checkTop5Records(client, panel) {
-  if (!config.digestChannelId) return;
+  if (!config.top5ChannelId) return;
   const total = panel.members.reduce((sum, uid) => sum + memberSalary(panel, uid), 0);
   if (!total) return;
 
@@ -34,7 +34,7 @@ async function checkTop5Records(client, panel) {
   const lines = top5.map(
     (e, i) => `${MEDAL[i]} [${e.panelTitle}](https://discord.com/channels/${config.guildId}/${e.threadId}/${e.panelId}) — ${e.sellerName} — **${e.amount.toLocaleString()}g**`,
   );
-  const channel = await client.channels.fetch(config.digestChannelId);
+  const channel = await client.channels.fetch(config.top5ChannelId);
   await channel.send(`🎉 **New Record! Top 5 Panel dengan Total Gaji Terbesar**\n${lines.join("\n")}`);
 }
 
