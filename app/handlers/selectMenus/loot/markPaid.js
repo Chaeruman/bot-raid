@@ -1,10 +1,21 @@
-const { refreshLootPanel } = require("../../../builders/lootPanel");
-const { activeLootPanels, saveState } = require("../../../state");
+const { refreshLootPanel, memberSalary } = require("../../../builders/lootPanel");
+const { activeLootPanels, saveState, recordSalaryPaid, removeSalaryPaid } = require("../../../state");
 const { buildMarkPaidRow } = require("../../buttons/loot/markPaid");
 
 async function handleMarkPaidSelect(interaction, panel) {
   for (const uid of interaction.values) {
     panel.payments[uid] = !panel.payments[uid];
+    // Only track earnings for panels created after the stampRate rollout (today's cutover).
+    if (panel.stampRate != null) {
+      if (panel.payments[uid]) {
+        recordSalaryPaid(panel.lootMsgId, uid, memberSalary(panel, uid), {
+          sellerId: panel.sellerId,
+          panelTitle: panel.eventTitle,
+          threadId: panel.threadId,
+        });
+      }
+      else removeSalaryPaid(panel.lootMsgId, uid);
+    }
   }
 
   // Auto-close once everyone has been paid

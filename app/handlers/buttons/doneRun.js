@@ -8,6 +8,7 @@ const {
 const {
   buildLootEmbed,
   buildLootComponents,
+  STAMP_RATE_GOLD,
 } = require("../../builders/lootPanel");
 const config = require("../../config");
 
@@ -58,6 +59,7 @@ async function handleDoneRun(interaction, event) {
     goldEntries: [],
     payments: Object.fromEntries(members.map((uid) => [uid, false])),
     closed: false,
+    stampRate: STAMP_RATE_GOLD,
   };
 
   const lootMsg = await thread.send({ embeds: [buildLootEmbed(panel)] });

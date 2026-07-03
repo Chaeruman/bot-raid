@@ -1,7 +1,7 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require("discord.js");
 const { CATALOG } = require("../items");
 
-const STAMP_RATE_GOLD = 4; // gold per stamp (market fee)
+const STAMP_RATE_GOLD = 5; // gold per stamp (market fee) — panels store their own rate at creation, see panel.stampRate
 const MAIL_TAX_RATE = 0.003; // 0.3% mail tax, deducted from the final salary
 
 // Exact salary for one member: ÷8 pool share + ÷7 HC gold, minus any ÷7 entry
@@ -10,7 +10,7 @@ const MAIL_TAX_RATE = 0.003; // 0.3% mail tax, deducted from the final salary
 function memberSalary(panel, uid) {
   const soldItems = panel.items.filter((i) => i.price != null);
   const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
-  const stampFee = soldStamps * STAMP_RATE_GOLD;
+  const stampFee = soldStamps * (panel.stampRate ?? 4); // ponytail: panels made before the rate bump lack this field, default to the old 4g/stamp so they don't retroactively change
   const totalItemGold = soldItems.reduce(
     (sum, i) => sum + (CATALOG[i.itemKey].type === "quantity" ? i.price : i.price * i.qty),
     0,
@@ -87,7 +87,7 @@ function summaryText(panel) {
   const lines = [];
   const soldItems = panel.items.filter((i) => i.price != null);
   const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
-  const stampFee = soldStamps * STAMP_RATE_GOLD;
+  const stampFee = soldStamps * (panel.stampRate ?? 4); // ponytail: panels made before the rate bump lack this field, default to the old 4g/stamp so they don't retroactively change
   const totalItemGold = soldItems.reduce(
     (sum, i) => sum + (CATALOG[i.itemKey].type === "quantity" ? i.price : i.price * i.qty),
     0,
@@ -262,4 +262,4 @@ async function refreshLootPanel(client, panel) {
   await updateThreadTitle(channel, panel);
 }
 
-module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel, salaryPerPerson, memberSalary };
+module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel, salaryPerPerson, memberSalary, STAMP_RATE_GOLD };

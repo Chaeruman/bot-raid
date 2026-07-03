@@ -126,6 +126,19 @@ for (const [bucket, list] of Object.entries(namedEquipmentBuckets)) {
   }
 }
 
+// --- Named fragments (modal-only, like NAMED_EQUIPMENT, but zero stamp fee —
+// these aren't sealed so there's no market-fee stamp count per unit). ---
+const NAMED_FRAGMENT_NAMES = [
+  "Spitflower Ignis", "Storm Master Zuu", "Canyon Guardian Abubbah",
+  "Sandworm Hazal", "Loyal Follower Kajif",
+];
+for (const name of NAMED_FRAGMENT_NAMES) {
+  let key = "eq_" + name.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "");
+  while (CATALOG[key]) key += "_x";
+  CATALOG[key] = { name, type: "quantity", stampsPerUnit: 0 };
+  NAMED_EQUIPMENT.push({ key, name, class: null, part: null, dungeon: null, kind: null });
+}
+
 module.exports = {
   CATALOG,
   CATEGORIES,

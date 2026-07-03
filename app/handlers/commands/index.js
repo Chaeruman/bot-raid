@@ -6,6 +6,7 @@ const { handleState }   = require("./state");
 const { handleClear }   = require("./clear");
 const { handleLootAction } = require("./lootAction");
 const { handleCombinedPay } = require("./combinedPay");
+const { handleMySalary } = require("./mySalary");
 
 const commandHandlers = {
   start:    handleStart,
@@ -16,6 +17,7 @@ const commandHandlers = {
   clear:    handleClear,
   "loot-action": handleLootAction,
   "kirim-gaji": handleCombinedPay,
+  "gaji-saya": handleMySalary,
 };
 
 async function handleCommand(interaction) {

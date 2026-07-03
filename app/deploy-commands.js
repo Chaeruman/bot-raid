@@ -94,6 +94,23 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
+    .setName("gaji-saya")
+    .setDescription("Lihat total gaji yang sudah kamu terima")
+    .addStringOption((o) =>
+      o
+        .setName("range")
+        .setDescription("Rentang waktu (default: 7 hari)")
+        .setRequired(false)
+        .addChoices(
+          { name: "7 hari", value: "7d" },
+          { name: "14 hari", value: "14d" },
+          { name: "30 hari", value: "30d" },
+          { name: "90 hari", value: "90d" },
+        ),
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
     .setName("state")
     .setDescription("Co-Leader: view active events & loot panels in state")
     .toJSON(),

@@ -16,6 +16,21 @@ assert.strictEqual(memberSalary(panel, null), 299);
 assert.strictEqual(memberSalary(panel, "a"), 199);
 console.log("✅ 0.3% mail tax applied + floored, both normal and HC-excluded");
 
+// stampRate: old panels (no field) still use 4g/stamp; new panels use their snapshotted rate.
+const { CATALOG } = require("./items");
+const someKey = Object.keys(CATALOG).find((k) => CATALOG[k].stampsPerUnit > 0);
+const stamps = CATALOG[someKey].stampsPerUnit;
+const itemPanel = (stampRate) => ({
+  items: [{ itemKey: someKey, qty: 1, price: 10000, detail: null }],
+  goldEntries: [],
+  stampRate,
+});
+const oldPanelNet = 10000 - stamps * 4;
+const newPanelNet = 10000 - stamps * 5;
+assert.strictEqual(memberSalary(itemPanel(undefined), null), Math.floor(Math.floor(oldPanelNet / 8) * 0.997));
+assert.strictEqual(memberSalary(itemPanel(5), null), Math.floor(Math.floor(newPanelNet / 8) * 0.997));
+console.log("✅ stampRate: undefined (old panels) = 4g/stamp, explicit rate honored for new panels");
+
 // exact-before-includes tag match: "@ol" must hit "ol", not "NOLtiga".
 const nameOf = { u1: "ol", u2: "NOLtiga" };
 const excludeName = "ol";

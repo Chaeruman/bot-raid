@@ -1,6 +1,6 @@
 const { MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState } = require("../../state");
-const { buildLootEmbed, buildLootComponents } = require("../../builders/lootPanel");
+const { buildLootEmbed, buildLootComponents, STAMP_RATE_GOLD } = require("../../builders/lootPanel");
 const config = require("../../config");
 
 async function handleLoot(interaction) {
@@ -51,6 +51,7 @@ async function handleLoot(interaction) {
     goldEntries: [],
     payments: Object.fromEntries(members.map((uid) => [uid, false])),
     closed: false,
+    stampRate: STAMP_RATE_GOLD,
   };
 
   const msg = await interaction.channel.send({ embeds: [buildLootEmbed(panel)] });

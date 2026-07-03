@@ -14,6 +14,8 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.2.0] — 2026-07-04
+
 ### Added
 - **`/kirim-gaji`** — link ke tiap panel (thread) ditampilkan di daftar,
   jadi seller bisa buka panelnya langsung tanpa nyari manual.
@@ -21,6 +23,20 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
   archived/locked (atau thread-nya sudah hilang), bukan cuma cek `panel.closed`.
 - **Pajak mail 0.3%** — gaji/orang (termasuk member yang di-exclude HC)
   dipotong 0.3% lalu dibulatkan ke bawah.
+- **`/gaji-saya [range]`** — tiap member bisa cek total gaji yang sudah
+  diterima (7/14/30/90 hari), dengan rincian per panel (judul + link thread +
+  nama seller). Disimpan di collection Mongo terpisah `salaryLog`, satu
+  dokumen per (panel, member) yang di-upsert saat mark-paid dan dihapus kalau
+  di-unmark — storage tidak bengkak, hanya sebesar jumlah pembayaran yang
+  benar-benar terjadi. Cuma berlaku untuk panel yang dibuat sejak hari ini
+  (bareng dengan rollout stamp rate 5g).
+- **Stamp rate 5g/stamp** — new loot panels snapshot the current rate at
+  creation (`panel.stampRate`); panels already open keep their original rate
+  (defaults to the old 4g/stamp when the field is missing), so the bump
+  doesn't retroactively change salaries already in progress.
+- **Named fragments** — Spitflower Ignis, Storm Master Zuu, Canyon Guardian
+  Abubbah, Sandworm Hazal, Loyal Follower Kajif addable via Type Items (exact
+  name or a keyword like "zuu"); no stamp fee, priced like existing fragments.
 
 ### Fixed
 - **Gold exclude `@tag`** — `@ol` sekarang cocok exact dulu, baru fallback ke
@@ -62,6 +78,7 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.1.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Chaeruman/bot-raid/compare/v1.1.1...v1.2.0
 [1.1.0]: https://github.com/Chaeruman/bot-raid/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/Chaeruman/bot-raid/releases/tag/v1.0.0

@@ -8,6 +8,7 @@ const pendingEphemerals = new Map(); // `${lootMsgId}:${userId}` → original bu
 const pendingResolutions = new Map(); // `${lootMsgId}:${userId}` → [{ raw, qty, candidates }]
 
 let collection = null;
+let salaryLogCollection = null;
 
 // Connect to MongoDB and hydrate in-memory state. Call once before login.
 async function loadState() {
@@ -18,7 +19,9 @@ async function loadState() {
 
   const client = new MongoClient(config.mongoUri);
   await client.connect();
-  collection = client.db("bot-raid").collection("balance");
+  const db = client.db("bot-raid");
+  collection = db.collection("balance");
+  salaryLogCollection = db.collection("salaryLog");
 
   const doc = await collection.findOne({ _id: "state" });
   if (doc) {
@@ -36,6 +39,32 @@ function saveState() {
   collection
     .replaceOne({ _id: "state" }, { _id: "state", activeEvents, activeLootPanels }, { upsert: true })
     .catch((err) => console.error("❌ saveState failed:", err.message));
+}
+
+// One doc per (panel, member) payout. Upsert on mark-paid, delete on un-mark —
+// storage stays bounded to "who got paid on which panel", never grows unbounded.
+// details: { sellerId, panelTitle, threadId } — carried along so /gaji-saya can
+// show a breakdown without re-fetching panels (panels get deleted once closed).
+function recordSalaryPaid(panelId, uid, amount, details) {
+  if (!salaryLogCollection) return;
+  salaryLogCollection
+    .replaceOne(
+      { _id: `${panelId}:${uid}` },
+      { _id: `${panelId}:${uid}`, uid, amount, paidAt: new Date(), panelId, ...details },
+      { upsert: true },
+    )
+    .catch((err) => console.error("❌ recordSalaryPaid failed:", err.message));
+}
+
+function removeSalaryPaid(panelId, uid) {
+  if (!salaryLogCollection) return;
+  salaryLogCollection.deleteOne({ _id: `${panelId}:${uid}` }).catch((err) => console.error("❌ removeSalaryPaid failed:", err.message));
+}
+
+// Payout rows for a member since `since` (inclusive), newest first.
+async function getSalaryLog(uid, since) {
+  if (!salaryLogCollection) return [];
+  return salaryLogCollection.find({ uid, paidAt: { $gte: since } }).sort({ paidAt: -1 }).toArray();
 }
 
 function setPendingEphemeral(lootMsgId, userId, interaction) {
@@ -68,6 +97,9 @@ module.exports = {
   activeLootPanels,
   loadState,
   saveState,
+  recordSalaryPaid,
+  removeSalaryPaid,
+  getSalaryLog,
   setPendingEphemeral,
   clearPendingEphemeral,
   setPendingResolution,

@@ -1,5 +1,5 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
-const { activeLootPanels, saveState } = require("../../state");
+const { activeLootPanels, saveState, recordSalaryPaid } = require("../../state");
 const { memberSalary, refreshLootPanel } = require("../../builders/lootPanel");
 
 // My open panels = panels I'm the seller of that aren't closed, whose thread
@@ -100,6 +100,13 @@ async function handleCombinedPaySelect(interaction) {
       if (picked.has(uid) && !p.payments[uid]) {
         p.payments[uid] = true;
         touched.add(p);
+        if (p.stampRate != null) {
+          recordSalaryPaid(p.lootMsgId, uid, memberSalary(p, uid), {
+            sellerId: p.sellerId,
+            panelTitle: p.eventTitle,
+            threadId: p.threadId,
+          });
+        }
       }
     }
   }
