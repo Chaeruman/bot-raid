@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.8.1] — 2026-07-04
+
+### Fixed
+- **Crash on existing panels** — removing junk/good rune keys in 1.8.0 broke
+  loot panels created before the change (`CATALOG[item.itemKey]` was
+  `undefined` for items still using the old `_junk`/`_good` keys). Restored
+  as aliases pointing at the merged entry — no data loss, no re-entry needed.
+
 ## [1.8.0] — 2026-07-04
 
 ### Changed
@@ -171,7 +179,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.1...HEAD
+[1.8.1]: https://github.com/Chaeruman/bot-raid/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Chaeruman/bot-raid/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/Chaeruman/bot-raid/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/Chaeruman/bot-raid/compare/v1.6.0...v1.7.0

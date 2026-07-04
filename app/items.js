@@ -21,6 +21,16 @@ const CATALOG = {
   gdn_fragment:     { name: "GDN Fragment", type: "quantity", stampsPerUnit: 1 },
 };
 
+// Aliases for the old junk/good rune keys (removed — junk/good was cosmetic
+// only, same stamp fee) so loot panels created before this change still
+// resolve their existing items instead of crashing on a missing CATALOG entry.
+for (const fam of ["thorns", "storm", "forest", "hot_sand"]) {
+  for (const lu of ["l", "u"]) {
+    CATALOG[`${fam}_${lu}_junk`] = CATALOG[`${fam}_${lu}`];
+    CATALOG[`${fam}_${lu}_good`] = CATALOG[`${fam}_${lu}`];
+  }
+}
+
 const CATEGORIES = [
   {
     key: "thorns",
