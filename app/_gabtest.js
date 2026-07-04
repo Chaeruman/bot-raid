@@ -23,10 +23,11 @@ console.log("✅ combined-pay aggregate + HC-exclusion OK");
 
 // myPanels() must skip archived/locked threads and dead threads.
 (async () => {
-  state.activeLootPanels.p1 = { lootMsgId: "p1", sellerId: "seller", closed: false, threadId: "t-open" };
-  state.activeLootPanels.p2 = { lootMsgId: "p2", sellerId: "seller", closed: false, threadId: "t-archived" };
-  state.activeLootPanels.p3 = { lootMsgId: "p3", sellerId: "seller", closed: false, threadId: "t-locked" };
-  state.activeLootPanels.p4 = { lootMsgId: "p4", sellerId: "seller", closed: false, threadId: "t-deleted" };
+  state.activeLootPanels.p1 = { lootMsgId: "p1", sellerId: "seller", closed: false, threadId: "t-open", items: [{ price: 100 }] };
+  state.activeLootPanels.p2 = { lootMsgId: "p2", sellerId: "seller", closed: false, threadId: "t-archived", items: [{ price: 100 }] };
+  state.activeLootPanels.p3 = { lootMsgId: "p3", sellerId: "seller", closed: false, threadId: "t-locked", items: [{ price: 100 }] };
+  state.activeLootPanels.p4 = { lootMsgId: "p4", sellerId: "seller", closed: false, threadId: "t-deleted", items: [{ price: 100 }] };
+  state.activeLootPanels.p5 = { lootMsgId: "p5", sellerId: "seller", closed: false, threadId: "t-open", items: [{ price: null }] }; // still being priced
 
   const threads = {
     "t-open": { archived: false, locked: false },
@@ -44,5 +45,5 @@ console.log("✅ combined-pay aggregate + HC-exclusion OK");
 
   const open = await myPanels(fakeClient, "seller");
   assert.deepStrictEqual(open.map((p) => p.lootMsgId), ["p1"]);
-  console.log("✅ myPanels skips archived/locked/deleted threads");
+  console.log("✅ myPanels skips archived/locked/deleted threads, and panels still being priced (p5)");
 })();

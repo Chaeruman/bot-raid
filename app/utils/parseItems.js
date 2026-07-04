@@ -206,16 +206,8 @@ function parseStructural(raw) {
     const lu = has("u") || has("upper") || has("unique") ? "u"
       : has("l") || has("lower") || has("legend") ? "l" : null;
     if (!lu) return null;
-    const jg = has("junk") ? "junk" : has("good") || has("perfect") ? "good" : null;
-    if (jg) {
-      const key = `${fam.key}_${lu}_${jg}`;
-      return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
-    }
-    // No junk/good given → offer both as a numbered choice.
-    const cands = [`${fam.key}_${lu}_junk`, `${fam.key}_${lu}_good`]
-      .filter((k) => CATALOG[k])
-      .map((k) => ({ key: k, name: CATALOG[k].name }));
-    return cands.length ? { qty, candidates: cands } : null;
+    const key = `${fam.key}_${lu}`;
+    return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
   }
 
   return null;

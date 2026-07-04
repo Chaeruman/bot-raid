@@ -39,7 +39,7 @@ async function handleAddItem(interaction, panel) {
         .setLabel("One per line · #note optional")
         .setStyle(TextInputStyle.Paragraph)
         .setPlaceholder(
-          "gdn (one piece) #for budi\nthorns legend junk\ngdn fragment x5\ngold 294/7 @ol\n258/8",
+          "gdn (one piece) #for budi\nthorns legend #str 120 agi 80\ngdn fragment x5\ngold 294/7 @ol\n258/8",
         )
         .setRequired(true),
     ),

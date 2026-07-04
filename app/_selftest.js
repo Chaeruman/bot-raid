@@ -24,18 +24,17 @@ for (const e of NAMED_EQUIPMENT) {
 
 // 2) Structural categories.
 const structural = [
-  ["thorns l junk", "thorns_l_junk"],
-  ["thorns u good", "thorns_u_good"],
-  ["thorns legend junk", "thorns_l_junk"],
-  ["thorn destroy legend good", "thorns_l_good"],
-  ["thorns unique junk", "thorns_u_junk"],
-  ["storm u junk", "storm_u_junk"],
-  ["storm triangular l good", "storm_l_good"],
-  ["forest l junk", "forest_l_junk"],
-  ["forest guardian u good", "forest_u_good"],
-  ["forest u good", "forest_u_good"],
-  ["hot sand l junk", "hot_sand_l_junk"],
-  ["hot sand circular u good", "hot_sand_u_good"],
+  ["thorns l", "thorns_l"],
+  ["thorns u", "thorns_u"],
+  ["thorns legend", "thorns_l"],
+  ["thorn destroy legend", "thorns_l"],
+  ["thorns unique", "thorns_u"],
+  ["storm u", "storm_u"],
+  ["storm triangular l", "storm_l"],
+  ["forest l", "forest_l"],
+  ["forest guardian u", "forest_u"],
+  ["hot sand l", "hot_sand_l"],
+  ["hot sand circular u", "hot_sand_u"],
   ["gdn fragment x5", "gdn_fragment", 5],
   ["ddn fragment", "ddn_fragment"],
   ["ddn unique accessory ring hybrid", "ddn_u_accessory", 1, "Ring@Hybrid"],
@@ -89,12 +88,12 @@ for (const e of NAMED_EQUIPMENT) {
   check(`no-bracket: ${line}`, ok);
 }
 
-// 4c) Rune without junk/good → numbered choice (not added directly).
+// 4c) Rune resolves directly now that junk/good is gone (no numbered choice).
 {
   const { added, unresolved } = parseItemLines("thorn destroy legend");
   check(
-    "rune ambiguous: thorn destroy legend",
-    added.length === 0 && unresolved.length === 1 && unresolved[0].candidates.length === 2,
+    "rune direct: thorn destroy legend",
+    added.length === 1 && added[0].itemKey === "thorns_l" && unresolved.length === 0,
     JSON.stringify({ added, unresolved }),
   );
 }

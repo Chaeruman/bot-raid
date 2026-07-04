@@ -14,6 +14,16 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.8.0] — 2026-07-04
+
+### Changed
+- **Rune junk/good dihapus** — Thorns/Storm/Forest/Hot Sand nggak lagi minta
+  pilih junk vs good/perfect (dulu cuma label, stamp fee-nya sama persis).
+  Sellernya tinggal ketik stat pakai `#note` kalau perlu dicatat.
+- **`/kirim-gaji`** — sekarang cuma nampilin panel yang semua item-nya udah
+  ada harga (payment-ready). Panel yang masih di-track harganya di-skip,
+  biar nggak ada mark-paid nabrak sama harga yang masih berubah.
+
 ## [1.7.1] — 2026-07-04
 
 ### Added
@@ -161,7 +171,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.7.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.0...HEAD
+[1.8.0]: https://github.com/Chaeruman/bot-raid/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/Chaeruman/bot-raid/compare/v1.7.0...v1.7.1
 [1.7.0]: https://github.com/Chaeruman/bot-raid/compare/v1.6.0...v1.7.0
 [1.6.0]: https://github.com/Chaeruman/bot-raid/compare/v1.5.2...v1.6.0

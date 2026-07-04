@@ -1,7 +1,7 @@
 // Quick single-item (or multi-line) parser check.
 // Run:
 //   node app/_parsetest.js "gdn (chakram)"
-//   node app/_parsetest.js "thorns l junk | gdn fragment x5"
+//   node app/_parsetest.js "thorns l | gdn fragment x5"
 //   node app/_parsetest.js "gdn (armor)"   "ddn unique accessory ring hybrid"
 
 const { parseItemLines } = require("./utils/parseItems");
