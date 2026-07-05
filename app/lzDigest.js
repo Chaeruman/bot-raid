@@ -8,7 +8,7 @@ const { getLzDigestLastSent, setLzDigestLastSent } = require("./state");
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
-const TARGET_HOUR = 8; // 08:00 WIB
+const TARGET_HOUR = 3; // 03:00 WIB
 
 function isLzWindow(now = Date.now()) {
   const wib = new Date(now + 7 * HOUR_MS);
