@@ -1,11 +1,12 @@
 const { MessageFlags } = require("discord.js");
 const config = require("../../config");
 const { isCoLeader } = require("../../utils/coleader");
-const { setLzDigestLastSent } = require("../../state");
 const { sendLzDigest } = require("../../lzDigest");
 
-// Manual trigger — mitigation for the daily 08:00 WIB post getting skipped
-// (e.g. Render restart landing on the window).
+// Manual trigger — just an on-demand post, doesn't touch the scheduler's
+// last-sent guard. Touching it here would suppress the next automatic post
+// for ~23h every time someone manually checks, masking a real scheduling bug
+// behind an apparent "it's working, I just triggered it" false positive.
 async function handleLzNow(interaction) {
   if (!isCoLeader(interaction)) {
     return interaction.reply({ content: "⛔ Only Co-Leaders can use this.", flags: MessageFlags.Ephemeral });
@@ -15,7 +16,6 @@ async function handleLzNow(interaction) {
   }
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
   await sendLzDigest(interaction.client);
-  setLzDigestLastSent(Date.now());
   return interaction.editReply(`📬 Lucky Zone terkirim ke <#${config.lzChannelId}>.`);
 }
 

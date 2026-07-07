@@ -19,6 +19,7 @@ async function sendLzDigest(client) {
   if (!config.lzChannelId) return;
   const channel = await client.channels.fetch(config.lzChannelId);
   await channel.send(formatLzMessage());
+  console.log("📨 LZ digest terkirim");
 }
 
 function startLzDigest(client) {
@@ -32,7 +33,7 @@ function startLzDigest(client) {
     setLzDigestLastSent(Date.now());
     sendLzDigest(client).catch((err) => console.error("❌ sendLzDigest failed:", err.message));
   }, HOUR_MS);
-  console.log("📬 LZ digest aktif — tiap hari 08:00 WIB");
+  console.log(`📬 LZ digest aktif — tiap hari ${String(TARGET_HOUR).padStart(2, "0")}:00 WIB`);
 }
 
 module.exports = { startLzDigest, sendLzDigest, isLzWindow };

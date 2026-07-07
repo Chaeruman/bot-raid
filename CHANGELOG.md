@@ -14,6 +14,16 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.8.2] — 2026-07-07
+
+### Fixed
+- **LZ digest nggak pernah auto-post** — `/lz-now` ikut nge-update timestamp
+  guard yang sama dipakai scheduler otomatis, jadi tiap kali dipakai buat
+  cek manual, itu nge-block kiriman otomatis berikutnya selama ~23 jam.
+  `/lz-now` sekarang cuma kirim tanpa menyentuh guard. Juga menambah log
+  `📨 LZ digest terkirim` biar ketauan dari log kalau ini jalan, dan benerin
+  log boot yang masih hardcode "08:00" padahal jamnya udah diubah ke 03:00.
+
 ## [1.8.1] — 2026-07-04
 
 ### Fixed
@@ -179,7 +189,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.2...HEAD
+[1.8.2]: https://github.com/Chaeruman/bot-raid/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/Chaeruman/bot-raid/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Chaeruman/bot-raid/compare/v1.7.1...v1.8.0
 [1.7.1]: https://github.com/Chaeruman/bot-raid/compare/v1.7.0...v1.7.1
