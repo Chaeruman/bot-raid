@@ -132,9 +132,6 @@ function formatLzMessage(zone = getLuckyZoneToday()) {
     `🍀 **Lucky Zone hari ini** (pattern ${zone.pattern}, hari ke-${zone.day})`,
     `• ${zone.map1}`,
     `• ${zone.map2}`,
-    ``,
-    `Reward (Cap 60): Lv1 = Card Fragment x${REWARDS[1].cardFragment} (${REWARDS[1].chance * 100}%) + Monster Card Box x${REWARDS[1].monsterCardBox}`,
-    `Lv2 = Card Fragment x${REWARDS[2].cardFragment} (${REWARDS[2].chance * 100}%) + Monster Card Box ${REWARDS[2].monsterCardBox}`,
   ].join("\n");
 }
 
