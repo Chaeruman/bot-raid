@@ -32,10 +32,10 @@ async function checkTop5Records(client, panel) {
   if (top5.map((e) => e.panelId).join(",") === before) return; // no change → not a record moment
 
   const lines = top5.map(
-    (e, i) => `${MEDAL[i]} [${e.panelTitle}](https://discord.com/channels/${config.guildId}/${e.threadId}/${e.panelId}) — ${e.sellerName} — **${e.amount.toLocaleString()}g**`,
+    (e, i) => `${MEDAL[i]} [${e.panelTitle}](https://discord.com/channels/${config.guildId}/${e.threadId}/${e.panelId}) — ${e.sellerName} — **${e.amount.toLocaleString()}g** (${Math.floor(e.amount / 8)}g/person)`,
   );
   const channel = await client.channels.fetch(config.top5ChannelId);
-  await channel.send(`🎉 **New Record! Top 5 Panel dengan Total Gaji Terbesar**\n${lines.join("\n")}`);
+  await channel.send(`🎉 **New Record! Top 5 Raid dengan Total Gaji Terbesar**\n${lines.join("\n")}`);
 }
 
 module.exports = { checkTop5Records };
