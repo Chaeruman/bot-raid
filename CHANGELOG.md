@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.8.5] — 2026-07-10
+
+### Changed
+- **Weekly digest** — jadwal digeser dari Sabtu 08:00 ke **Jumat 23:00 WIB**.
+- **Price All** — format baris dibalik: `#note` sekarang di depan `=`, harga
+  di belakang (`N. Item x_qty #note = 139`) — `=` tetap nempel persis di
+  depan harga biar jelas di situ yang harus diisi.
+
 ## [1.8.4] — 2026-07-07
 
 ### Fixed
@@ -205,7 +213,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.4...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.5...HEAD
+[1.8.5]: https://github.com/Chaeruman/bot-raid/compare/v1.8.4...v1.8.5
 [1.8.4]: https://github.com/Chaeruman/bot-raid/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/Chaeruman/bot-raid/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/Chaeruman/bot-raid/compare/v1.8.1...v1.8.2

@@ -25,24 +25,26 @@ async function handleSetPricesModal(interaction) {
     const item = panel.items[parseInt(idxM[1], 10) - 1];
     if (!item) continue;
 
+    // #note comes before "=", price comes after it (rightmost).
+    const eqIdx = line.lastIndexOf("=");
+    if (eqIdx < 0) continue;
+    const left = line.slice(0, eqIdx);
+    const right = line.slice(eqIdx + 1);
+
     let changed = false;
 
     // Inline note after '#' (present but empty → clears the note).
-    const hashIdx = line.indexOf("#");
-    const body = hashIdx >= 0 ? line.slice(0, hashIdx) : line;
+    const hashIdx = left.indexOf("#");
     if (hashIdx >= 0) {
-      const note = line.slice(hashIdx + 1).trim() || null;
+      const note = left.slice(hashIdx + 1).trim() || null;
       if (item.note !== note) { item.note = note; changed = true; }
     }
 
-    // Price = expression after the last "=" (math ok). Blank → unchanged.
-    const eqIdx = body.lastIndexOf("=");
-    if (eqIdx >= 0) {
-      const price = evalPrice(body.slice(eqIdx + 1));
-      if (price != null && item.price !== price) {
-        item.price = price;
-        changed = true;
-      }
+    // Price = expression after "=" (math ok). Blank → unchanged.
+    const price = evalPrice(right);
+    if (price != null && item.price !== price) {
+      item.price = price;
+      changed = true;
     }
 
     if (changed) updated.push({ name: CATALOG[item.itemKey].name, detail: item.detail, price: item.price });

@@ -2,10 +2,10 @@
 const assert = require("assert");
 const { isDigestWindow } = require("./digest");
 
-// Saturday 08:00 WIB = Saturday 01:00 UTC.
-assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 4, 1, 0)), true); // 2026-07-04 is a Saturday
-assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 4, 2, 0)), false); // wrong hour
-assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 5, 1, 0)), false); // Sunday, wrong day
+// Friday 23:00 WIB = Friday 16:00 UTC.
+assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 3, 16, 0)), true); // 2026-07-03 is a Friday
+assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 3, 17, 0)), false); // wrong hour
+assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 4, 16, 0)), false); // Saturday, wrong day
 
 // Totals grouping (same aggregate shape state.js's getSalaryTotalsSince returns).
 const rows = [

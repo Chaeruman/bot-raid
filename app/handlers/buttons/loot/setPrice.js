@@ -22,15 +22,16 @@ function buildSetPriceRow(panel) {
   );
 }
 
-// One numbered line per item; type the price after the "—" (and optional #note).
+// One numbered line per item; #note before "=", price after it (rightmost —
+// "=" stays right next to the price so it's still clear what to type there).
 function buildPricePrefill(panel) {
   return panel.items
     .map((item, i) => {
       const def = CATALOG[item.itemKey];
       const detail = item.detail ? ` (${item.detail})` : "";
-      const cur = item.price != null ? item.price : "";
       const note = item.note ? ` #${item.note}` : "";
-      return `${i + 1}. ${def.name}${detail} x${item.qty} = ${cur}${note}`;
+      const cur = item.price != null ? item.price : "";
+      return `${i + 1}. ${def.name}${detail} x${item.qty}${note} = ${cur}`;
     })
     .join("\n")
     .slice(0, 4000);
@@ -53,7 +54,7 @@ async function handleSetPrice(interaction, panel) {
     new ActionRowBuilder().addComponents(
       new TextInputBuilder()
         .setCustomId("prices")
-        .setLabel("Price after = · math & #note ok")
+        .setLabel("#note before = · price after · math ok")
         .setStyle(TextInputStyle.Paragraph)
         .setValue(buildPricePrefill(panel))
         .setRequired(false),

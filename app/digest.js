@@ -7,8 +7,8 @@ const config = require("./config");
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const WEEK_MS = 7 * DAY_MS;
-const TARGET_DAY = 6; // Saturday
-const TARGET_HOUR = 8; // 08:00 WIB — ponytail: hardcoded, move to config if other slots are ever needed
+const TARGET_DAY = 5; // Friday
+const TARGET_HOUR = 23; // 23:00 WIB — ponytail: hardcoded, move to config if other slots are ever needed
 const TOP_N = 10;
 
 function isDigestWindow(now = Date.now()) {
@@ -51,7 +51,7 @@ function startWeeklyDigest(client) {
     setDigestLastSent(Date.now());
     sendWeeklyDigest(client).catch((err) => console.error("❌ sendWeeklyDigest failed:", err.message));
   }, HOUR_MS);
-  console.log("📬 Weekly digest aktif — tiap Sabtu 08:00 WIB");
+  console.log("📬 Weekly digest aktif — tiap Jumat 23:00 WIB");
 }
 
 module.exports = { startWeeklyDigest, sendWeeklyDigest, isDigestWindow };
