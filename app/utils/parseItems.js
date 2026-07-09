@@ -160,6 +160,13 @@ function parseStructural(raw) {
     return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
   }
 
+  if (has("smelted") || has("rune")) {
+    // ponytail: only a DDN variant exists right now, so no dungeon typed = DDN.
+    // Add a dungeon-required check here once a GDN/SDN smelted rune shows up.
+    const key = `${dungeon || "ddn"}_smelted_rune`;
+    return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
+  }
+
   // Accessory: triggered by "accessory"/"acc" OR a type word/alias (ring / neck / ear).
   // Tier: legend/l/hunter/hc → L, unique/u/squad → U. Ring subtype via alias (atk/magic/hyb…);
   // Necklace/Earrings via INT VIT / AGI INT / STR AGI words.

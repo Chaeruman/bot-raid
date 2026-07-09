@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.8.3] — 2026-07-07
+
+### Added
+- **Type Items: DDN Smelted Rune** — sekarang bisa diketik langsung
+  (`ddn smelted rune`, `rune x2`, dst) di Type Items, resolve ke
+  `ddn_smelted_rune`. Nggak perlu sebut "ddn" karena cuma varian itu yang
+  ada — default ke DDN kalau dungeon nggak disebut.
+
 ## [1.8.2] — 2026-07-07
 
 ### Fixed
@@ -189,7 +197,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.2...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.3...HEAD
+[1.8.3]: https://github.com/Chaeruman/bot-raid/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/Chaeruman/bot-raid/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/Chaeruman/bot-raid/compare/v1.8.0...v1.8.1
 [1.8.0]: https://github.com/Chaeruman/bot-raid/compare/v1.7.1...v1.8.0
