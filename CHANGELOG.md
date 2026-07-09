@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.8.4] — 2026-07-07
+
+### Fixed
+- **Item notes ketimpa saat digabung** — nambah item yang sama dua kali
+  dengan note beda (misal item sama buat 2 buyer berbeda) dulu digabung
+  jadi satu baris dan note pertama hilang. Sekarang cuma digabung kalau
+  note-nya sama; note beda tetap jadi baris terpisah.
+
 ## [1.8.3] — 2026-07-07
 
 ### Added
@@ -197,7 +205,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.3...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.4...HEAD
+[1.8.4]: https://github.com/Chaeruman/bot-raid/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/Chaeruman/bot-raid/compare/v1.8.2...v1.8.3
 [1.8.2]: https://github.com/Chaeruman/bot-raid/compare/v1.8.1...v1.8.2
 [1.8.1]: https://github.com/Chaeruman/bot-raid/compare/v1.8.0...v1.8.1

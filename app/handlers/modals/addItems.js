@@ -5,10 +5,14 @@ const { refreshLootPanel } = require("../../builders/lootPanel");
 const { parseItemLines } = require("../../utils/parseItems");
 
 function addToPanel(panel, it) {
-  const existing = panel.items.find((i) => i.itemKey === it.itemKey && i.detail === (it.detail || null));
+  // Only merge into an existing line if the note matches too — different
+  // notes mean the seller wants them tracked (and displayed) separately,
+  // e.g. same item for two different buyers.
+  const existing = panel.items.find(
+    (i) => i.itemKey === it.itemKey && i.detail === (it.detail || null) && i.note === (it.note || null),
+  );
   if (existing) {
     existing.qty += it.qty;
-    if (it.note) existing.note = it.note;
   } else {
     panel.items.push({ itemKey: it.itemKey, qty: it.qty, price: null, detail: it.detail || null, note: it.note || null });
   }
@@ -117,4 +121,4 @@ async function handleAddItemsModal(interaction) {
   if (added.length || golds.length) await refreshLootPanel(interaction.client, panel);
 }
 
-module.exports = { handleAddItemsModal };
+module.exports = { handleAddItemsModal, addToPanel };
