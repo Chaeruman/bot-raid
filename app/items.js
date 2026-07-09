@@ -19,6 +19,7 @@ const CATALOG = {
   sdn_u_accessory:  { name: "SDN Unique Accessory", type: "unique", stampsPerUnit: 19 },
   ddn_fragment:     { name: "DDN Fragment", type: "quantity", stampsPerUnit: 1 },
   gdn_fragment:     { name: "GDN Fragment", type: "quantity", stampsPerUnit: 1 },
+  ddn_smelted_rune:          { name: "DDN Smelted Rune", type: "unique", stampsPerUnit: 4 },
 };
 
 // Aliases for the old junk/good rune keys (removed — junk/good was cosmetic
@@ -69,6 +70,11 @@ const CATEGORIES = [
     key: "fragment",
     label: "🔮 Fragment",
     items: ["ddn_fragment", "gdn_fragment"],
+  },
+  {
+    key: "rune",
+    label: "🔥 Rune",
+    items: ["ddn_smelted_rune"],
   },
 ];
 
