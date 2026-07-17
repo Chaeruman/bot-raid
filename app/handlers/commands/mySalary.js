@@ -32,10 +32,8 @@ async function handleMySalary(interaction) {
   );
   const more = rows.length > 25 ? `\n…dan ${rows.length - 25} lainnya` : "";
 
-  return interaction.reply({
-    content: `💰 Total gaji kamu (${days} hari terakhir): **${total.toLocaleString()}g**\n\n${list.join("\n")}${more}`,
-    flags: MessageFlags.Ephemeral,
-  });
+  const content = `💰 Total gaji kamu (${days} hari terakhir): **${total.toLocaleString()}g**\n\n${list.join("\n")}${more}`;
+  return interaction.reply({ content: content.slice(0, 2000), flags: MessageFlags.Ephemeral });
 }
 
 module.exports = { handleMySalary };

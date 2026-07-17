@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.8.6] — 2026-07-10
+
+### Fixed
+- **`/gaji-saya`** — reply nggak di-truncate ke 2000 karakter (beda dari
+  command lain), bisa gagal kirim kalau riwayat gaji panjang. Ditambahkan
+  `.slice(0, 2000)` biar konsisten sama command lain.
+
 ## [1.8.5] — 2026-07-10
 
 ### Changed
@@ -213,7 +220,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.5...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.6...HEAD
+[1.8.6]: https://github.com/Chaeruman/bot-raid/compare/v1.8.5...v1.8.6
 [1.8.5]: https://github.com/Chaeruman/bot-raid/compare/v1.8.4...v1.8.5
 [1.8.4]: https://github.com/Chaeruman/bot-raid/compare/v1.8.3...v1.8.4
 [1.8.3]: https://github.com/Chaeruman/bot-raid/compare/v1.8.2...v1.8.3
