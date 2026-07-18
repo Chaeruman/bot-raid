@@ -226,19 +226,22 @@ async function markPaidForUids(client, sellerId, picked) {
 }
 
 async function handleCombinedPay(interaction) {
+  // Fetching every candidate panel's thread + every unpaid member's guild
+  // profile can take longer than Discord's 3s ack window — defer first so
+  // the interaction doesn't die with "Interaction failed" while this runs.
+  await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
   const budget = interaction.options.getInteger("budget");
   const view = await buildUnpaidView(interaction.client, interaction.guild, interaction.user.id, budget);
   if (!view) {
-    return interaction.reply({
+    return interaction.editReply({
       content: "🤷 Tidak ada panel terbuka (thread aktif, belum lock) dengan seller kamu yang masih punya member belum dibayar.",
-      flags: MessageFlags.Ephemeral,
     });
   }
 
-  return interaction.reply({
+  return interaction.editReply({
     content: view.content.slice(0, 2000),
     components: view.components,
-    flags: MessageFlags.Ephemeral,
   });
 }
 
@@ -248,6 +251,9 @@ async function handleCombinedPaySelect(interaction) {
   if (interaction.user.id !== sellerId) {
     return interaction.reply({ content: "⛔ Bukan panel kamu.", flags: MessageFlags.Ephemeral });
   }
+  // Same 3s-ack risk as the command — marking paid touches every affected
+  // panel's thread, and rebuilding the view fetches member profiles again.
+  await interaction.deferUpdate();
 
   const { touchedCount, closedNames } = await markPaidForUids(interaction.client, sellerId, new Set(interaction.values));
   const closedNote = closedNames.length ? `\n🔒 Panel lunas & ditutup: ${closedNames.join(", ")}` : "";
@@ -257,9 +263,9 @@ async function handleCombinedPaySelect(interaction) {
   // Refresh the same message with who's left instead of closing it out.
   const view = await buildUnpaidView(interaction.client, interaction.guild, sellerId);
   if (!view) {
-    return interaction.update({ content: `${doneMsg}\n\n🎉 Semua member sudah lunas.`.slice(0, 2000), components: [] });
+    return interaction.editReply({ content: `${doneMsg}\n\n🎉 Semua member sudah lunas.`.slice(0, 2000), components: [] });
   }
-  return interaction.update({
+  return interaction.editReply({
     content: `${doneMsg}\n\n${view.content}`.slice(0, 2000),
     components: view.components,
   });
@@ -274,6 +280,7 @@ async function handleGabMarkPaidRec(interaction) {
   if (interaction.user.id !== sellerId) {
     return interaction.reply({ content: "⛔ Bukan panel kamu.", flags: MessageFlags.Ephemeral });
   }
+  await interaction.deferUpdate();
 
   const budget = parseInt(budgetStr, 10);
   const panels = await myPanels(interaction.client, sellerId);
@@ -283,7 +290,7 @@ async function handleGabMarkPaidRec(interaction) {
   const recommended = bestComboUnderBudget(agg, uids, effectiveBudget, 3);
 
   if (!recommended) {
-    return interaction.reply({
+    return interaction.followUp({
       content: "⚠️ Nggak ada kombinasi yang muat lagi di budget ini (kemungkinan sudah berubah) — coba Budget Lain.",
       flags: MessageFlags.Ephemeral,
     });
@@ -295,9 +302,9 @@ async function handleGabMarkPaidRec(interaction) {
 
   const view = await buildUnpaidView(interaction.client, interaction.guild, sellerId);
   if (!view) {
-    return interaction.update({ content: `${doneMsg}\n\n🎉 Semua member sudah lunas.`.slice(0, 2000), components: [] });
+    return interaction.editReply({ content: `${doneMsg}\n\n🎉 Semua member sudah lunas.`.slice(0, 2000), components: [] });
   }
-  return interaction.update({
+  return interaction.editReply({
     content: `${doneMsg}\n\n${view.content}`.slice(0, 2000),
     components: view.components,
   });

@@ -14,11 +14,15 @@ async function handleGabBudgetModal(interaction) {
     return interaction.reply({ content: "❌ Budget nggak valid — masukin angka gold.", flags: MessageFlags.Ephemeral });
   }
 
+  // Rebuilding the view fetches every unpaid member's guild profile —
+  // can exceed Discord's 3s ack window, so defer before that work starts.
+  await interaction.deferUpdate();
+
   const view = await buildUnpaidView(interaction.client, interaction.guild, sellerId, budget);
   if (!view) {
-    return interaction.update({ content: "🎉 Semua member sudah lunas.", components: [] });
+    return interaction.editReply({ content: "🎉 Semua member sudah lunas.", components: [] });
   }
-  return interaction.update({
+  return interaction.editReply({
     content: view.content.slice(0, 2000),
     components: view.components,
   });
