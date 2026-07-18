@@ -32,7 +32,8 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu())
       return await handleSelectMenu(interaction);
     if (interaction.isButton()) {
-      if (!interaction.customId.startsWith("loot-btn:") && !activeEvents[interaction.message.id]) {
+      const isEventScoped = !interaction.customId.startsWith("loot-btn:") && !interaction.customId.startsWith("gab-budget:");
+      if (isEventScoped && !activeEvents[interaction.message.id]) {
         return interaction.reply({
           content: "❌ This panel is no longer active.",
           flags: MessageFlags.Ephemeral,

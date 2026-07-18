@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.9.4] — 2026-07-10
+
+### Fixed
+- **Tombol "Cek Budget"/"Budget Lain" kena "This panel is no longer active"**
+  — pre-check di `index.js` cuma whitelist prefix `loot-btn:`, jadi tombol
+  `gab-budget:` yang baru ditambah kena tolak sebelum sempet nyampe
+  handler-nya. Sekarang dikecualikan juga.
+
 ## [1.9.3] — 2026-07-10
 
 ### Added
@@ -269,7 +277,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.3...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.4...HEAD
+[1.9.4]: https://github.com/Chaeruman/bot-raid/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/Chaeruman/bot-raid/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/Chaeruman/bot-raid/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/Chaeruman/bot-raid/compare/v1.9.0...v1.9.1

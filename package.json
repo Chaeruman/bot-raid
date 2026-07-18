@@ -1,6 +1,6 @@
 {
   "name": "raid-gdn",
-  "version": "1.9.3",
+  "version": "1.9.4",
   "description": "Dragon Nest raid party signup + loot/salary tracking Discord bot",
   "main": "app/index.js",
   "dependencies": {
