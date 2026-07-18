@@ -172,83 +172,44 @@ function buildLootEmbed(panel) {
 function buildLootComponents(panel) {
   if (panel.closed) return [];
 
+  const hasSeller = !!panel.sellerId;
   const hasItems = panel.items.length > 0;
+  const hasGold = panel.goldEntries.length > 0;
+  const hasMembers = panel.members.length > 0;
 
-  // Row 1 — item workflow
-  const row1 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:select_seller:${panel.lootMsgId}`)
-      .setLabel("👤 Seller")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(panel.members.length === 0),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:add_item:${panel.lootMsgId}`)
-      .setLabel("✍️ Type Items")
-      .setStyle(ButtonStyle.Primary)
-      .setDisabled(!panel.sellerId),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:browse_item:${panel.lootMsgId}`)
-      .setLabel("📋 Browse Item")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!panel.sellerId),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:remove_item:${panel.lootMsgId}`)
-      .setLabel("🗑️ Remove Item")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!panel.sellerId || !hasItems),
-  );
+  const btn = (id, label, style) =>
+    new ButtonBuilder().setCustomId(`loot-btn:${id}:${panel.lootMsgId}`).setLabel(label).setStyle(style);
 
-  // Row 2 — pricing + gold
-  const row2 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:set_price:${panel.lootMsgId}`)
-      .setLabel("🏷️ Price All")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!panel.sellerId || !hasItems),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:price_one:${panel.lootMsgId}`)
-      .setLabel("🏷️ Price One")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!panel.sellerId || !hasItems),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:add_gold:${panel.lootMsgId}`)
-      .setLabel("💰 Add Gold")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!panel.sellerId),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:remove_gold:${panel.lootMsgId}`)
-      .setLabel("🗑️ Remove Gold")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(!panel.sellerId || panel.goldEntries.length === 0),
-  );
+  // Before a seller is set, only Set Seller + Add Member show — everything
+  // else needs a seller first. Remove-* buttons additionally need something
+  // to remove, so they don't show until there's data.
+  const row1 = [btn("select_seller", "👤 Seller", ButtonStyle.Secondary).setDisabled(!hasMembers)];
+  if (hasSeller) {
+    row1.push(btn("add_item", "✍️ Type Items", ButtonStyle.Primary));
+    row1.push(btn("browse_item", "📋 Browse Item", ButtonStyle.Secondary));
+    if (hasItems) row1.push(btn("remove_item", "🗑️ Remove Item", ButtonStyle.Secondary));
+  }
 
-  // Row 3 — members
-  const row3 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:add_member:${panel.lootMsgId}`)
-      .setLabel("👥 Add Member")
-      .setStyle(ButtonStyle.Secondary),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:remove_member:${panel.lootMsgId}`)
-      .setLabel("➖ Remove Member")
-      .setStyle(ButtonStyle.Secondary)
-      .setDisabled(panel.members.length === 0),
-  );
+  const row2 = [];
+  if (hasSeller) {
+    row2.push(btn("set_price", "🏷️ Price All", ButtonStyle.Secondary).setDisabled(!hasItems));
+    row2.push(btn("price_one", "🏷️ Price One", ButtonStyle.Secondary).setDisabled(!hasItems));
+    row2.push(btn("add_gold", "💰 Add Gold", ButtonStyle.Secondary));
+    if (hasGold) row2.push(btn("remove_gold", "🗑️ Remove Gold", ButtonStyle.Secondary));
+  }
 
-  // Row 4 — finalize
-  const row4 = new ActionRowBuilder().addComponents(
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:mark_paid:${panel.lootMsgId}`)
-      .setLabel("✅ Mark Paid")
-      .setStyle(ButtonStyle.Success)
-      .setDisabled(panel.members.length === 0),
-    new ButtonBuilder()
-      .setCustomId(`loot-btn:close:${panel.lootMsgId}`)
-      .setLabel("🔒 Close Panel")
-      .setStyle(ButtonStyle.Danger),
-  );
+  const row3 = [btn("add_member", "👥 Add Member", ButtonStyle.Secondary)];
+  if (hasSeller && hasMembers) row3.push(btn("remove_member", "➖ Remove Member", ButtonStyle.Secondary));
 
-  return [row1, row2, row3, row4];
+  const row4 = [];
+  if (hasSeller) {
+    row4.push(btn("mark_paid", "✅ Mark Paid", ButtonStyle.Success).setDisabled(!hasMembers));
+    row4.push(btn("close", "🔒 Close Panel", ButtonStyle.Danger));
+  }
+
+  return [row1, row2, row3, row4]
+    .filter((row) => row.length > 0)
+    .map((row) => new ActionRowBuilder().addComponents(row));
 }
 
 async function refreshLootPanel(client, panel) {

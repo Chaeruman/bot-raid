@@ -14,6 +14,15 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.8.7] — 2026-07-10
+
+### Changed
+- **Loot panel tombol** — sebelum seller di-set, cuma **Set Seller** dan
+  **Add Member** yang muncul; tombol lain (Type Items, Browse, Price,
+  Add/Remove Gold, Remove Member, Mark Paid, Close Panel) hilang dulu,
+  bukan cuma disabled. Semua tombol **Remove** (item/gold/member) juga
+  cuma muncul kalau ada datanya buat dihapus.
+
 ## [1.8.6] — 2026-07-10
 
 ### Fixed
@@ -220,7 +229,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.6...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.7...HEAD
+[1.8.7]: https://github.com/Chaeruman/bot-raid/compare/v1.8.6...v1.8.7
 [1.8.6]: https://github.com/Chaeruman/bot-raid/compare/v1.8.5...v1.8.6
 [1.8.5]: https://github.com/Chaeruman/bot-raid/compare/v1.8.4...v1.8.5
 [1.8.4]: https://github.com/Chaeruman/bot-raid/compare/v1.8.3...v1.8.4
