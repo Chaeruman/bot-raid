@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.9.1] — 2026-07-10
+
+### Fixed
+- **`/kirim-gaji budget:`** — sekarang motong 0.3% pajak mail dari budget
+  dulu sebelum nyari kombinasi, biar rekomendasinya beneran muat pas dikirim
+  (bukan cuma pas di atas kertas sebelum kena pajak).
+
 ## [1.9.0] — 2026-07-10
 
 ### Added
@@ -245,7 +252,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.1...HEAD
+[1.9.1]: https://github.com/Chaeruman/bot-raid/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/Chaeruman/bot-raid/compare/v1.8.7...v1.9.0
 [1.8.7]: https://github.com/Chaeruman/bot-raid/compare/v1.8.6...v1.8.7
 [1.8.6]: https://github.com/Chaeruman/bot-raid/compare/v1.8.5...v1.8.6

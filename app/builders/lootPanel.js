@@ -223,4 +223,4 @@ async function refreshLootPanel(client, panel) {
   await updateThreadTitle(channel, panel);
 }
 
-module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel, salaryPerPerson, memberSalary, STAMP_RATE_GOLD };
+module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel, salaryPerPerson, memberSalary, STAMP_RATE_GOLD, MAIL_TAX_RATE };

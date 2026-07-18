@@ -30,4 +30,13 @@ best = bestComboUnderBudget(agg, uids, 900); // b+c+d=950 too much
 assert.ok(best.total <= 900);
 assert.ok(best.total > 0);
 
+// Mail tax (0.3%) is applied to the raw budget before searching — same math
+// combinedPay.js's buildUnpaidView does (Math.floor(budget * (1 - 0.003))).
+const MAIL_TAX_RATE = 0.003;
+const rawBudget = 100000;
+const effectiveBudget = Math.floor(rawBudget * (1 - MAIL_TAX_RATE));
+assert.strictEqual(effectiveBudget, 99700);
+best = bestComboUnderBudget(agg, uids, effectiveBudget, 3);
+assert.ok(best.total <= effectiveBudget); // never recommends more than what's actually sendable
+
 console.log("✅ bestComboUnderBudget OK");

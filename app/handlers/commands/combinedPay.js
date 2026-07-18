@@ -1,6 +1,6 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState, recordSalaryPaid } = require("../../state");
-const { memberSalary, refreshLootPanel } = require("../../builders/lootPanel");
+const { memberSalary, refreshLootPanel, MAIL_TAX_RATE } = require("../../builders/lootPanel");
 const { checkTop5Records } = require("../../salaryRecords");
 
 // My open panels = panels I'm the seller of that aren't closed, whose thread
@@ -71,7 +71,10 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
   const uids = Object.keys(agg);
   if (uids.length === 0) return null;
 
-  const recommended = budget != null ? bestComboUnderBudget(agg, uids, budget, 3) : null;
+  // Sending mail costs a 0.3% tax on top, so the usable budget for the combo
+  // search is a bit less than the raw gold on hand.
+  const effectiveBudget = budget != null ? Math.floor(budget * (1 - MAIL_TAX_RATE)) : null;
+  const recommended = effectiveBudget != null ? bestComboUnderBudget(agg, uids, effectiveBudget, 3) : null;
   const recommendedSet = new Set(recommended ? recommended.uids : []);
 
   const options = await Promise.all(
@@ -109,8 +112,8 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
   let budgetNote = "";
   if (budget != null) {
     budgetNote = recommended
-      ? `\n\n💡 **Rekomendasi buat budget ${budget.toLocaleString()}g** (maks 3 orang, limit mail): ${recommended.uids.map((uid) => `<@${uid}>`).join(", ")} = **${recommended.total.toLocaleString()}g** (sisa ${(budget - recommended.total).toLocaleString()}g). Sudah kepilih otomatis di menu di bawah — tinggal submit atau ubah manual.`
-      : `\n\n⚠️ Nggak ada member yang gajinya muat di budget ${budget.toLocaleString()}g.`;
+      ? `\n\n💡 **Rekomendasi buat budget ${budget.toLocaleString()}g** (setelah pajak mail 0.3%: ${effectiveBudget.toLocaleString()}g, maks 3 orang limit mail): ${recommended.uids.map((uid) => `<@${uid}>`).join(", ")} = **${recommended.total.toLocaleString()}g** (sisa ${(effectiveBudget - recommended.total).toLocaleString()}g). Sudah kepilih otomatis di menu di bawah — tinggal submit atau ubah manual.`
+      : `\n\n⚠️ Nggak ada member yang gajinya muat di budget ${budget.toLocaleString()}g (efektif ${effectiveBudget.toLocaleString()}g setelah pajak mail).`;
   }
 
   const content = `💸 **Kirim Gaji** — daftar gaji belum dibayar di ${panels.length} panel milik kamu:\n${list}\n\n**Panel:**\n${panelLinks}${budgetNote}\n\nPilih member yang sudah kamu kirim gajinya → ditandai lunas di semua panel sekaligus.`;
