@@ -101,20 +101,27 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
   const recommended = effectiveBudget != null ? bestComboUnderBudget(agg, uids, effectiveBudget, 3) : null;
   const recommendedSet = new Set(recommended ? recommended.uids : []);
 
-  const options = await Promise.all(
+  // Kept separate from `options` below — hasAlias isn't a valid Discord
+  // select-option field, only used to annotate the printed list.
+  const memberInfo = await Promise.all(
     uids.slice(0, 25).map(async (uid) => {
       let label = uid;
+      let hasAlias = true; // fallback-to-uid case: not a real IGN either, but no need to nag about it
       try {
-        label = ignOnly((await guild.members.fetch(uid)).displayName);
+        const rawName = (await guild.members.fetch(uid)).displayName;
+        label = ignOnly(rawName);
+        hasAlias = label !== rawName;
       } catch { /* fallback to id */ }
-      return {
-        label: label.slice(0, 100),
-        value: uid,
-        description: `${agg[uid].total.toLocaleString()}g dari ${agg[uid].count} panel`,
-        default: recommendedSet.has(uid),
-      };
+      return { uid, label: label.slice(0, 100), hasAlias };
     }),
   );
+
+  const options = memberInfo.map((m) => ({
+    label: m.label,
+    value: m.uid,
+    description: `${agg[m.uid].total.toLocaleString()}g dari ${agg[m.uid].count} panel`,
+    default: recommendedSet.has(m.uid),
+  }));
 
   const row = new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
@@ -125,8 +132,11 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
       .addOptions(options),
   );
 
-  const list = options
-    .map((o) => `${o.default ? "⭐" : "•"} **${o.label}** — ${agg[o.value].total.toLocaleString()}g (${agg[o.value].count} panel)`)
+  const list = memberInfo
+    .map(
+      (m) =>
+        `${recommendedSet.has(m.uid) ? "⭐" : "•"} **${m.label}**${m.hasAlias ? "" : " _(bukan IGN, tolong konfirmasi ulang IGN-nya)_"} — ${agg[m.uid].total.toLocaleString()}g (${agg[m.uid].count} panel)`,
+    )
     .join("\n");
 
   const panelLinks = panels

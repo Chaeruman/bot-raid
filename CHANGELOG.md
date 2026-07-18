@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.10.1] — 2026-07-10
+
+### Added
+- **`/kirim-gaji`** — member yang nickname-nya nggak punya `" - "` (nggak
+  ada IGN alias) ditandai `_(bukan IGN, tolong konfirmasi ulang IGN-nya)_`
+  di list, biar seller nggak salah kirim mail ke nama Discord biasa.
+
 ## [1.10.0] — 2026-07-10
 
 ### Added
@@ -295,7 +302,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.10.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.10.1...HEAD
+[1.10.1]: https://github.com/Chaeruman/bot-raid/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/Chaeruman/bot-raid/compare/v1.9.4...v1.10.0
 [1.9.4]: https://github.com/Chaeruman/bot-raid/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/Chaeruman/bot-raid/compare/v1.9.2...v1.9.3
