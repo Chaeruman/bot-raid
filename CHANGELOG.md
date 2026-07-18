@@ -14,6 +14,22 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.9.0] — 2026-07-10
+
+### Added
+- **`/kirim-gaji budget:`** — kasih tahu jumlah gold yang kamu punya di satu
+  karakter, bot saranin maks 3 orang (limit mail/hari) yang totalnya paling
+  mendekati budget tanpa lebih — otomatis ke-pre-select di menu, tinggal
+  submit atau ubah manual.
+
+### Changed
+- **`/kirim-gaji`** — setelah assign sebagian (nggak sekaligus semua), pesan
+  yang sama sekarang ter-update nunjukin sisa yang belum lunas + menu baru,
+  bukan langsung ditutup. Reply juga di-truncate ke 2000 karakter (bisa
+  gagal kirim sebelumnya kalau daftar member panjang).
+- **Raid signup** — tombol role hilang total (bukan cuma disabled) selama
+  party locked, sama seperti loot panel; muncul lagi begitu di-unlock.
+
 ## [1.8.7] — 2026-07-10
 
 ### Changed
@@ -229,7 +245,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.8.7...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.0...HEAD
+[1.9.0]: https://github.com/Chaeruman/bot-raid/compare/v1.8.7...v1.9.0
 [1.8.7]: https://github.com/Chaeruman/bot-raid/compare/v1.8.6...v1.8.7
 [1.8.6]: https://github.com/Chaeruman/bot-raid/compare/v1.8.5...v1.8.6
 [1.8.5]: https://github.com/Chaeruman/bot-raid/compare/v1.8.4...v1.8.5

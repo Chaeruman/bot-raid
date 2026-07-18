@@ -10,38 +10,42 @@ function createButtons(event, viewerId = null) {
   const isHost = viewerId === event.hostId;
   const destroyerActive = isMTDestroyer(event);
 
+  // Role buttons disappear entirely while locked (not just disabled) — they
+  // come back once the host unlocks the party.
   const roleRows = [];
-  let row = new ActionRowBuilder();
-  let count = 0;
+  if (!event.locked) {
+    let row = new ActionRowBuilder();
+    let count = 0;
 
-  for (const [slotKey, role] of Object.entries(event.roles)) {
-    const isFull = role.users.length >= role.max;
+    for (const [slotKey, role] of Object.entries(event.roles)) {
+      const isFull = role.users.length >= role.max;
 
-    let label;
-    if (slotKey === "MC") {
-      label = destroyerActive ? "Barba" : "MC";
-    } else if (role.max > 1) {
-      label = `${role.label || slotKey} (${role.users.length}/${role.max})`;
-    } else {
-      label = role.label || slotKey;
+      let label;
+      if (slotKey === "MC") {
+        label = destroyerActive ? "Barba" : "MC";
+      } else if (role.max > 1) {
+        label = `${role.label || slotKey} (${role.users.length}/${role.max})`;
+      } else {
+        label = role.label || slotKey;
+      }
+
+      row.addComponents(
+        new ButtonBuilder()
+          .setCustomId(`role_${slotKey}`)
+          .setLabel(label)
+          .setStyle(isFull ? ButtonStyle.Success : ButtonStyle.Primary)
+          .setDisabled(isFull),
+      );
+
+      count++;
+      if (count % 5 === 0) {
+        roleRows.push(row);
+        row = new ActionRowBuilder();
+      }
     }
 
-    row.addComponents(
-      new ButtonBuilder()
-        .setCustomId(`role_${slotKey}`)
-        .setLabel(label)
-        .setStyle(isFull ? ButtonStyle.Success : ButtonStyle.Primary)
-        .setDisabled(event.locked || isFull),
-    );
-
-    count++;
-    if (count % 5 === 0) {
-      roleRows.push(row);
-      row = new ActionRowBuilder();
-    }
+    if (row.components.length > 0) roleRows.push(row);
   }
-
-  if (row.components.length > 0) roleRows.push(row);
 
   // Control rows
   const controlRow1 = new ActionRowBuilder().addComponents(

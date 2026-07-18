@@ -38,29 +38,53 @@ function aggregate(panels) {
   return agg;
 }
 
-async function handleCombinedPay(interaction) {
-  const sellerId = interaction.user.id;
-  const panels = await myPanels(interaction.client, sellerId);
+function combinations(arr, k) {
+  if (k === 0) return [[]];
+  if (arr.length < k) return [];
+  const [first, ...rest] = arr;
+  return [...combinations(rest, k - 1).map((c) => [first, ...c]), ...combinations(rest, k)];
+}
+
+// Best subset of at most maxCount uids whose total salary is the highest
+// value not exceeding budget (mail limit = at most maxCount sends/day from
+// one character). Returns null if even the cheapest single member is over budget.
+function bestComboUnderBudget(agg, uids, budget, maxCount = 3) {
+  let best = null;
+  for (let k = 1; k <= Math.min(maxCount, uids.length); k++) {
+    for (const combo of combinations(uids, k)) {
+      const total = combo.reduce((sum, uid) => sum + agg[uid].total, 0);
+      if (total <= budget && (!best || total > best.total)) best = { uids: combo, total };
+    }
+  }
+  return best;
+}
+
+// Builds the "who's still unpaid" reply — used both for the initial /kirim-gaji
+// reply and to refresh the same message after a partial mark-paid (sellers
+// often assign a few at a time, not everyone at once).
+// budget: optional gold-on-hand for one character — pre-selects the best
+// ≤3-member combo that fits it (mail limit is 3 sends/day/character).
+// Returns null when nobody's left unpaid.
+async function buildUnpaidView(client, guild, sellerId, budget = null) {
+  const panels = await myPanels(client, sellerId);
   const agg = aggregate(panels);
   const uids = Object.keys(agg);
+  if (uids.length === 0) return null;
 
-  if (uids.length === 0) {
-    return interaction.reply({
-      content: "🤷 Tidak ada panel terbuka (thread aktif, belum lock) dengan seller kamu yang masih punya member belum dibayar.",
-      flags: MessageFlags.Ephemeral,
-    });
-  }
+  const recommended = budget != null ? bestComboUnderBudget(agg, uids, budget, 3) : null;
+  const recommendedSet = new Set(recommended ? recommended.uids : []);
 
   const options = await Promise.all(
     uids.slice(0, 25).map(async (uid) => {
       let label = uid;
       try {
-        label = (await interaction.guild.members.fetch(uid)).displayName;
+        label = (await guild.members.fetch(uid)).displayName;
       } catch { /* fallback to id */ }
       return {
         label: label.slice(0, 100),
         value: uid,
         description: `${agg[uid].total.toLocaleString()}g dari ${agg[uid].count} panel`,
+        default: recommendedSet.has(uid),
       };
     }),
   );
@@ -75,16 +99,37 @@ async function handleCombinedPay(interaction) {
   );
 
   const list = options
-    .map((o) => `• **${o.label}** — ${agg[o.value].total.toLocaleString()}g (${agg[o.value].count} panel)`)
+    .map((o) => `${o.default ? "⭐" : "•"} **${o.label}** — ${agg[o.value].total.toLocaleString()}g (${agg[o.value].count} panel)`)
     .join("\n");
 
   const panelLinks = panels
-    .map((p) => `• [${p.eventTitle}](https://discord.com/channels/${interaction.guildId}/${p.threadId}/${p.lootMsgId})`)
+    .map((p) => `• [${p.eventTitle}](https://discord.com/channels/${guild.id}/${p.threadId}/${p.lootMsgId})`)
     .join("\n");
 
+  let budgetNote = "";
+  if (budget != null) {
+    budgetNote = recommended
+      ? `\n\n💡 **Rekomendasi buat budget ${budget.toLocaleString()}g** (maks 3 orang, limit mail): ${recommended.uids.map((uid) => `<@${uid}>`).join(", ")} = **${recommended.total.toLocaleString()}g** (sisa ${(budget - recommended.total).toLocaleString()}g). Sudah kepilih otomatis di menu di bawah — tinggal submit atau ubah manual.`
+      : `\n\n⚠️ Nggak ada member yang gajinya muat di budget ${budget.toLocaleString()}g.`;
+  }
+
+  const content = `💸 **Kirim Gaji** — daftar gaji belum dibayar di ${panels.length} panel milik kamu:\n${list}\n\n**Panel:**\n${panelLinks}${budgetNote}\n\nPilih member yang sudah kamu kirim gajinya → ditandai lunas di semua panel sekaligus.`;
+  return { content, components: [row] };
+}
+
+async function handleCombinedPay(interaction) {
+  const budget = interaction.options.getInteger("budget");
+  const view = await buildUnpaidView(interaction.client, interaction.guild, interaction.user.id, budget);
+  if (!view) {
+    return interaction.reply({
+      content: "🤷 Tidak ada panel terbuka (thread aktif, belum lock) dengan seller kamu yang masih punya member belum dibayar.",
+      flags: MessageFlags.Ephemeral,
+    });
+  }
+
   return interaction.reply({
-    content: `💸 **Kirim Gaji** — daftar gaji belum dibayar di ${panels.length} panel milik kamu:\n${list}\n\n**Panel:**\n${panelLinks}\n\nPilih member yang sudah kamu kirim gajinya → ditandai lunas di semua panel sekaligus.`,
-    components: [row],
+    content: view.content.slice(0, 2000),
+    components: view.components,
     flags: MessageFlags.Ephemeral,
   });
 }
@@ -131,10 +176,18 @@ async function handleCombinedPaySelect(interaction) {
   saveState();
 
   const closedNote = closedNames.length ? `\n🔒 Panel lunas & ditutup: ${closedNames.join(", ")}` : "";
+  const doneMsg = `✅ Ditandai lunas di ${touched.size} panel.${closedNote}`;
+
+  // Still more unpaid members left (sellers often assign a few at a time)?
+  // Refresh the same message with who's left instead of closing it out.
+  const view = await buildUnpaidView(interaction.client, interaction.guild, sellerId);
+  if (!view) {
+    return interaction.update({ content: `${doneMsg}\n\n🎉 Semua member sudah lunas.`.slice(0, 2000), components: [] });
+  }
   return interaction.update({
-    content: `✅ Ditandai lunas di ${touched.size} panel.${closedNote}`,
-    components: [],
+    content: `${doneMsg}\n\n${view.content}`.slice(0, 2000),
+    components: view.components,
   });
 }
 
-module.exports = { handleCombinedPay, handleCombinedPaySelect, aggregate, myPanels };
+module.exports = { handleCombinedPay, handleCombinedPaySelect, aggregate, myPanels, buildUnpaidView, bestComboUnderBudget };

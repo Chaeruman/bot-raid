@@ -91,6 +91,13 @@ const commands = [
   new SlashCommandBuilder()
     .setName("kirim-gaji")
     .setDescription("Lihat & tandai lunas gaji member di semua loot panel terbuka yang seller-nya kamu")
+    .addIntegerOption((o) =>
+      o
+        .setName("budget")
+        .setDescription("Gold di char ini — bot saranin maks 3 orang yang paling pas dibayar dari budget ini")
+        .setRequired(false)
+        .setMinValue(1),
+    )
     .toJSON(),
 
   new SlashCommandBuilder()
