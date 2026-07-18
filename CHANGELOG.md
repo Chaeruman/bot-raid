@@ -14,6 +14,24 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.10.0] — 2026-07-10
+
+### Added
+- **`/kirim-gaji` — tombol "✅ Mark Paid Rekomendasi"** muncul kalau ada
+  kombinasi yang cocok sama budget — klik langsung eksekusi mark-paid tanpa
+  perlu buka select menu (yang cuma submit kalau ada perubahan, jadi
+  buka-tutup tanpa ngutak-atik nggak ngapa-ngapain). Rekomendasi dihitung
+  ulang fresh saat diklik, bukan trust state lama.
+- **`/kirim-gaji budget:`** — kalau budget cuma cukup buat <3 orang padahal
+  ada 3+ yang belum dibayar, muncul saran "naikin budget ke minimal Xg biar
+  bisa bayar ke 3 orang sekaligus" (X udah termasuk pajak mail).
+
+### Changed
+- **`/kirim-gaji`** — nama yang ditampilkan sekarang motong bagian setelah
+  `" - "` di nickname (misal "xFerb - Frzzy" → "xFerb"), biar double-click
+  buat copy IGN ke game nggak ikut kebawa spasi/teks lain. Nickname tanpa
+  alias (nggak ada `" - "`) nggak disentuh.
+
 ## [1.9.4] — 2026-07-10
 
 ### Fixed
@@ -277,7 +295,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.4...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.10.0...HEAD
+[1.10.0]: https://github.com/Chaeruman/bot-raid/compare/v1.9.4...v1.10.0
 [1.9.4]: https://github.com/Chaeruman/bot-raid/compare/v1.9.3...v1.9.4
 [1.9.3]: https://github.com/Chaeruman/bot-raid/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/Chaeruman/bot-raid/compare/v1.9.1...v1.9.2

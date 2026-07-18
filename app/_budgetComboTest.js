@@ -1,7 +1,7 @@
 // Run: node app/_budgetComboTest.js — checks the "best ≤3-member combo under
 // budget" recommendation used by /kirim-gaji's budget option.
 const assert = require("assert");
-const { bestComboUnderBudget } = require("./handlers/commands/combinedPay");
+const { bestComboUnderBudget, cheapestComboTotal } = require("./handlers/commands/combinedPay");
 
 const agg = {
   a: { total: 100 },
@@ -47,5 +47,12 @@ const uids2 = Object.keys(agg2);
 best = bestComboUnderBudget(agg2, uids2, 400, 3);
 assert.strictEqual(best.uids.length, 3); // a+b+c=390, not d alone (also 390)
 assert.strictEqual(best.total, 390);
+
+// cheapestComboTotal: minimum budget (before tax) needed to unlock a combo
+// of exactly `count` people — the number shown in the "naikin budget ke
+// minimal X" suggestion.
+assert.strictEqual(cheapestComboTotal(agg, uids, 3), 100 + 250 + 300); // a+b+c, the cheapest 3
+assert.strictEqual(cheapestComboTotal(agg, uids, 1), 100); // cheapest single
+assert.strictEqual(cheapestComboTotal(agg2, uids2, 3), 100 + 140 + 150); // a+b+c
 
 console.log("✅ bestComboUnderBudget OK");

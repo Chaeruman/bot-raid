@@ -13,6 +13,7 @@ const { handleDoneRun } = require("./doneRun");
 const { handleRemoveMember } = require("./removeMember");
 const { handleLootButton } = require("./loot");
 const { handleGabBudgetButton } = require("./gabBudget");
+const { handleGabMarkPaidRec } = require("../commands/combinedPay");
 
 async function handleButton(interaction) {
   // Loot panel buttons are independent of activeEvents — handle them first
@@ -21,6 +22,9 @@ async function handleButton(interaction) {
   }
   if (interaction.customId.startsWith("gab-budget:")) {
     return handleGabBudgetButton(interaction);
+  }
+  if (interaction.customId.startsWith("gab-paid-rec:")) {
+    return handleGabMarkPaidRec(interaction);
   }
 
   const userId = interaction.user.id;

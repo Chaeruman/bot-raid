@@ -32,6 +32,13 @@ const fakeClient = { channels: { fetch: async () => ({ archived: false, locked: 
   assert.strictEqual(view.components[0].components[0].data.custom_id, "gab:seller");
   assert.strictEqual(view.components[1].components[0].data.custom_id, "gab-budget:seller");
 
+  // With a budget that fits -> a third button ("Mark Paid Rekomendasi") shows
+  // up first in the second row, ahead of the budget button.
+  const viewWithBudget = await buildUnpaidView(fakeClient, fakeGuild, "seller", 100000);
+  assert.strictEqual(viewWithBudget.components[1].components.length, 2);
+  assert.strictEqual(viewWithBudget.components[1].components[0].data.custom_id, "gab-paid-rec:seller:100000");
+  assert.strictEqual(viewWithBudget.components[1].components[1].data.custom_id, "gab-budget:seller");
+
   // All paid -> back to null (matches the "everyone's done" branch).
   state.activeLootPanels.pv1.payments.u1 = true;
   assert.strictEqual(await buildUnpaidView(fakeClient, fakeGuild, "seller"), null);
