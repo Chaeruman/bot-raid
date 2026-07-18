@@ -28,8 +28,9 @@ const fakeClient = { channels: { fetch: async () => ({ archived: false, locked: 
   };
   const view = await buildUnpaidView(fakeClient, fakeGuild, "seller");
   assert.ok(view.content.length <= 2000);
-  assert.strictEqual(view.components.length, 1);
+  assert.strictEqual(view.components.length, 2); // select row + "cek budget" button row
   assert.strictEqual(view.components[0].components[0].data.custom_id, "gab:seller");
+  assert.strictEqual(view.components[1].components[0].data.custom_id, "gab-budget:seller");
 
   // All paid -> back to null (matches the "everyone's done" branch).
   state.activeLootPanels.pv1.payments.u1 = true;

@@ -5,8 +5,12 @@ const { handleSellerIgnModal } = require("./sellerIgn");
 const { handleAddItemsModal } = require("./addItems");
 const { handleResolveItemsModal } = require("./resolveItems");
 const { handleSetPricesModal } = require("./setPrices");
+const { handleGabBudgetModal } = require("./gabBudget");
 
 async function handleModal(interaction) {
+  if (interaction.customId.startsWith("gab-budget-modal:")) {
+    return handleGabBudgetModal(interaction);
+  }
   if (interaction.customId.startsWith("loot-modal:add_items:")) {
     return handleAddItemsModal(interaction);
   }

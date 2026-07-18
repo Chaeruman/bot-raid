@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.9.3] — 2026-07-10
+
+### Added
+- **`/kirim-gaji` — tombol "Cek Budget"/"Budget Lain"** di message yang sama:
+  klik → modal minta angka gold → message ephemeral yang sama ter-update
+  dengan rekomendasi budget baru. Nggak perlu ketik ulang command buat coba
+  budget lain (misal buka karakter berikutnya).
+
 ## [1.9.2] — 2026-07-10
 
 ### Changed
@@ -261,7 +269,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.2...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.3...HEAD
+[1.9.3]: https://github.com/Chaeruman/bot-raid/compare/v1.9.2...v1.9.3
 [1.9.2]: https://github.com/Chaeruman/bot-raid/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/Chaeruman/bot-raid/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/Chaeruman/bot-raid/compare/v1.8.7...v1.9.0

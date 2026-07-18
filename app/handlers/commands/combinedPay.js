@@ -1,4 +1,4 @@
-const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
+const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState, recordSalaryPaid } = require("../../state");
 const { memberSalary, refreshLootPanel, MAIL_TAX_RATE } = require("../../builders/lootPanel");
 const { checkTop5Records } = require("../../salaryRecords");
@@ -119,8 +119,15 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
       : `\n\n⚠️ Nggak ada member yang gajinya muat di budget ${budget.toLocaleString()}g (efektif ${effectiveBudget.toLocaleString()}g setelah pajak mail).`;
   }
 
+  const budgetButtonRow = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`gab-budget:${sellerId}`)
+      .setLabel(budget != null ? "🔄 Budget Lain" : "🧮 Cek Budget")
+      .setStyle(ButtonStyle.Secondary),
+  );
+
   const content = `💸 **Kirim Gaji** — daftar gaji belum dibayar di ${panels.length} panel milik kamu:\n${list}\n\n**Panel:**\n${panelLinks}${budgetNote}\n\nPilih member yang sudah kamu kirim gajinya → ditandai lunas di semua panel sekaligus.`;
-  return { content, components: [row] };
+  return { content, components: [row, budgetButtonRow] };
 }
 
 async function handleCombinedPay(interaction) {

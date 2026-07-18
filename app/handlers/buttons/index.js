@@ -12,11 +12,15 @@ const { handleCancelRun } = require("./cancelRun");
 const { handleDoneRun } = require("./doneRun");
 const { handleRemoveMember } = require("./removeMember");
 const { handleLootButton } = require("./loot");
+const { handleGabBudgetButton } = require("./gabBudget");
 
 async function handleButton(interaction) {
   // Loot panel buttons are independent of activeEvents — handle them first
   if (interaction.customId.startsWith("loot-btn:")) {
     return handleLootButton(interaction);
+  }
+  if (interaction.customId.startsWith("gab-budget:")) {
+    return handleGabBudgetButton(interaction);
   }
 
   const userId = interaction.user.id;
