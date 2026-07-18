@@ -39,4 +39,13 @@ assert.strictEqual(effectiveBudget, 99700);
 best = bestComboUnderBudget(agg, uids, effectiveBudget, 3);
 assert.ok(best.total <= effectiveBudget); // never recommends more than what's actually sendable
 
+// Headcount is maximized first: a 3-person combo that fits is preferred over
+// a 2-person (or 1-person) combo even if the smaller combo's total is just
+// as close to budget — an unused mail slot is wasted capacity.
+const agg2 = { a: { total: 100 }, b: { total: 140 }, c: { total: 150 }, d: { total: 390 } };
+const uids2 = Object.keys(agg2);
+best = bestComboUnderBudget(agg2, uids2, 400, 3);
+assert.strictEqual(best.uids.length, 3); // a+b+c=390, not d alone (also 390)
+assert.strictEqual(best.total, 390);
+
 console.log("✅ bestComboUnderBudget OK");

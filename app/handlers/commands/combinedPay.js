@@ -45,18 +45,21 @@ function combinations(arr, k) {
   return [...combinations(rest, k - 1).map((c) => [first, ...c]), ...combinations(rest, k)];
 }
 
-// Best subset of at most maxCount uids whose total salary is the highest
-// value not exceeding budget (mail limit = at most maxCount sends/day from
-// one character). Returns null if even the cheapest single member is over budget.
+// Best subset of exactly maxCount uids (or fewer only if no maxCount-sized
+// combo fits) whose total salary is the highest value not exceeding budget.
+// Maximizing headcount comes first — with a hard daily mail limit, leaving a
+// slot unused is wasted capacity even if a smaller combo lands closer to the
+// budget total. Only falls back to fewer people when nothing at that size fits.
 function bestComboUnderBudget(agg, uids, budget, maxCount = 3) {
-  let best = null;
-  for (let k = 1; k <= Math.min(maxCount, uids.length); k++) {
+  for (let k = Math.min(maxCount, uids.length); k >= 1; k--) {
+    let best = null;
     for (const combo of combinations(uids, k)) {
       const total = combo.reduce((sum, uid) => sum + agg[uid].total, 0);
       if (total <= budget && (!best || total > best.total)) best = { uids: combo, total };
     }
+    if (best) return best;
   }
-  return best;
+  return null;
 }
 
 // Builds the "who's still unpaid" reply — used both for the initial /kirim-gaji

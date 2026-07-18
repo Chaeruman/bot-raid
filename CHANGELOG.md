@@ -14,6 +14,15 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.9.2] — 2026-07-10
+
+### Changed
+- **`/kirim-gaji budget:`** — prioritas sekarang maksimalin jumlah orang
+  (sampai 3, limit mail/hari) dulu, baru optimalin kedekatan ke budget di
+  antara kombinasi seukuran itu. Sebelumnya bisa milih 2 orang yang lebih
+  pas nominalnya walau masih ada 1 slot mail nganggur — sekarang cuma turun
+  ke 2/1 orang kalau memang nggak ada kombinasi 3 orang yang muat.
+
 ## [1.9.1] — 2026-07-10
 
 ### Fixed
@@ -252,7 +261,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.9.2...HEAD
+[1.9.2]: https://github.com/Chaeruman/bot-raid/compare/v1.9.1...v1.9.2
 [1.9.1]: https://github.com/Chaeruman/bot-raid/compare/v1.9.0...v1.9.1
 [1.9.0]: https://github.com/Chaeruman/bot-raid/compare/v1.8.7...v1.9.0
 [1.8.7]: https://github.com/Chaeruman/bot-raid/compare/v1.8.6...v1.8.7
