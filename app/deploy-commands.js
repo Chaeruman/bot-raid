@@ -133,6 +133,11 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
+    .setName("soundboard-list")
+    .setDescription("Co-Leader: lihat nama + ID soundboard custom server ini (buat setup fitur voice)")
+    .toJSON(),
+
+  new SlashCommandBuilder()
     .setName("state")
     .setDescription("Co-Leader: view active events & loot panels in state")
     .addStringOption((o) =>

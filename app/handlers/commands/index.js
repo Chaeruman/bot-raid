@@ -10,6 +10,7 @@ const { handleMySalary } = require("./mySalary");
 const { handleDigestNow } = require("./digestNow");
 const { handleLz } = require("./lz");
 const { handleLzNow } = require("./lzNow");
+const { handleSoundboardList } = require("./soundboardList");
 
 const commandHandlers = {
   start:    handleStart,
@@ -24,6 +25,7 @@ const commandHandlers = {
   "digest-now": handleDigestNow,
   lz: handleLz,
   "lz-now": handleLzNow,
+  "soundboard-list": handleSoundboardList,
 };
 
 async function handleCommand(interaction) {

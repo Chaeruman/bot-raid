@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.12.0] — 2026-07-10
+
+### Added
+- **`/soundboard-list`** (Co-Leader) — setup helper buat fitur voice/Party Up
+  yang akan datang: nampilin nama + ID soundboard custom server ini (Discord
+  client nggak nampilin ID lewat UI biasa, cuma bisa lewat API).
+
 ## [1.11.1] — 2026-07-10
 
 ### Fixed
@@ -344,7 +351,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.11.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.12.0...HEAD
+[1.12.0]: https://github.com/Chaeruman/bot-raid/compare/v1.11.1...v1.12.0
 [1.11.1]: https://github.com/Chaeruman/bot-raid/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/Chaeruman/bot-raid/compare/v1.10.4...v1.11.0
 [1.10.4]: https://github.com/Chaeruman/bot-raid/compare/v1.10.3...v1.10.4
