@@ -6,10 +6,14 @@ const { handleAddItemsModal } = require("./addItems");
 const { handleResolveItemsModal } = require("./resolveItems");
 const { handleSetPricesModal } = require("./setPrices");
 const { handleGabBudgetModal } = require("./gabBudget");
+const { handlePartyPingModal } = require("./partyPing");
 
 async function handleModal(interaction) {
   if (interaction.customId.startsWith("gab-budget-modal:")) {
     return handleGabBudgetModal(interaction);
+  }
+  if (interaction.customId.startsWith("party_ping_modal:")) {
+    return handlePartyPingModal(interaction);
   }
   if (interaction.customId.startsWith("loot-modal:add_items:")) {
     return handleAddItemsModal(interaction);

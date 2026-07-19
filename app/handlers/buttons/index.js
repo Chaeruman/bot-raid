@@ -11,6 +11,7 @@ const { handleToggleLock } = require("./toggleLock");
 const { handleCancelRun } = require("./cancelRun");
 const { handleDoneRun } = require("./doneRun");
 const { handleRemoveMember } = require("./removeMember");
+const { handlePartyPingButton, handlePartyUp } = require("./partyPing");
 const { handleLootButton } = require("./loot");
 const { handleGabBudgetButton } = require("./gabBudget");
 const { handleGabMarkPaidRec } = require("../commands/combinedPay");
@@ -71,6 +72,11 @@ async function handleButton(interaction) {
     return handleRemoveMember(interaction, event);
   }
 
+  // party_ping shows a modal — must be the first response, no defer first
+  if (interaction.customId === "party_ping") {
+    return handlePartyPingButton(interaction, event);
+  }
+
   // All other buttons: acknowledge first, then mutate state
   await ack(interaction, () => interaction.deferUpdate());
 
@@ -79,6 +85,7 @@ async function handleButton(interaction) {
     case "toggle_lock":    return handleToggleLock(interaction, event);
     case "cancel_run":     return handleCancelRun(interaction, event);
     case "done_run":       return handleDoneRun(interaction, event);
+    case "party_up":       return handlePartyUp(interaction, event);
     default:
       if (interaction.customId.startsWith("role_")) return handleRoleSelect(interaction, event);
   }

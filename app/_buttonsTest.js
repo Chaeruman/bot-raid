@@ -33,15 +33,25 @@ event.locked = false;
 l = labels(createButtons(event, "host1"));
 assert.ok(l.includes("MT"));
 
-// Party full (8/8) even though unlocked: role buttons hide too.
+// Party full (8/8) even though unlocked: role buttons hide too, ping
+// buttons appear (host-enabled), and both fit within Discord's 5-row cap.
 event.users = Object.fromEntries(Array.from({ length: 8 }, (_, i) => [`u${i}`, {}]));
-l = labels(createButtons(event, "host1"));
+let rows = createButtons(event, "host1");
+l = labels(rows);
 assert.ok(!l.includes("MT") && !l.some((x) => x.startsWith("DPS")));
 assert.ok(l.some((x) => x.includes("Lock Party"))); // control rows unaffected
+assert.ok(l.some((x) => x.includes("Ping Party")) && l.some((x) => x.includes("Party Up")));
+assert.ok(rows.length <= 5);
 
-// Drops below full again: role buttons come back.
+// Non-host viewer: ping buttons present but disabled.
+rows = createButtons(event, "someone-else");
+const pingRow = rows.find((r) => r.components.some((c) => c.data.custom_id === "party_ping"));
+assert.ok(pingRow.components.every((c) => c.data.disabled === true));
+
+// Drops below full again: role buttons come back, ping buttons gone.
 delete event.users.u0;
 l = labels(createButtons(event, "host1"));
 assert.ok(l.includes("MT"));
+assert.ok(!l.some((x) => x.includes("Ping Party")));
 
-console.log("✅ raid role buttons hide-while-locked-or-full OK");
+console.log("✅ raid role buttons hide-while-locked-or-full + party ping buttons OK");

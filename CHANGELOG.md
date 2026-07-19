@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.11.0] — 2026-07-10
+
+### Added
+- **Raid signup — Ping Party** — begitu party full, dua tombol baru muncul
+  gantiin slot role button (host-only): **📢 Ping Party (custom)** (modal
+  minta teks, bot tag semua member + teks itu) dan **🎉 Party Up** (langsung
+  tag semua member + teks "PT UP bala WOY jembod").
+
 ## [1.10.4] — 2026-07-10
 
 ### Changed
@@ -328,7 +336,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.10.4...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.11.0...HEAD
+[1.11.0]: https://github.com/Chaeruman/bot-raid/compare/v1.10.4...v1.11.0
 [1.10.4]: https://github.com/Chaeruman/bot-raid/compare/v1.10.3...v1.10.4
 [1.10.3]: https://github.com/Chaeruman/bot-raid/compare/v1.10.2...v1.10.3
 [1.10.2]: https://github.com/Chaeruman/bot-raid/compare/v1.10.1...v1.10.2

@@ -79,7 +79,28 @@ function createButtons(event, viewerId = null) {
       .setDisabled(!isHost),
   );
 
-  return [...roleRows, controlRow1, controlRow2];
+  const rows = [...roleRows, controlRow1, controlRow2];
+
+  // Once full, role buttons are gone — replace that space with ping buttons
+  // so the host can rally everyone.
+  if (partyFull) {
+    rows.push(
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("party_ping")
+          .setLabel("📢 Ping Party (custom)")
+          .setStyle(ButtonStyle.Primary)
+          .setDisabled(!isHost),
+        new ButtonBuilder()
+          .setCustomId("party_up")
+          .setLabel("🎉 Party Up")
+          .setStyle(ButtonStyle.Success)
+          .setDisabled(!isHost),
+      ),
+    );
+  }
+
+  return rows;
 }
 
 module.exports = { createButtons, isMTDestroyer };
