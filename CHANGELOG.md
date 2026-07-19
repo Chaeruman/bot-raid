@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.11.1] — 2026-07-10
+
+### Fixed
+- **`/kirim-gaji`** — ⚠️ (bukan IGN) sebelumnya nge-override ⭐ (rekomendasi)
+  di bullet, jadi member yang direkomendasikan tapi nggak punya alias IGN
+  keliatan cuma ⚠️. Sekarang keduanya muncul bareng (⭐⚠️) kalau dua-duanya
+  berlaku.
+
 ## [1.11.0] — 2026-07-10
 
 ### Added
@@ -336,7 +344,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.11.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.11.1...HEAD
+[1.11.1]: https://github.com/Chaeruman/bot-raid/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/Chaeruman/bot-raid/compare/v1.10.4...v1.11.0
 [1.10.4]: https://github.com/Chaeruman/bot-raid/compare/v1.10.3...v1.10.4
 [1.10.3]: https://github.com/Chaeruman/bot-raid/compare/v1.10.2...v1.10.3

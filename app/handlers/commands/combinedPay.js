@@ -134,11 +134,11 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
 
   // Parens (not bold **) around the name — punctuation gives double-click a
   // clean word boundary so copying the IGN doesn't drag the trailing space in.
-  // ⚠️ takes over the bullet slot for names without a " - " alias (quick to
-  // scan), with a short inline note instead of a full sentence.
+  // ⭐ (recommended) and ⚠️ (no IGN alias) are independent — both show
+  // together when they both apply, neither hides the other.
   const list = memberInfo
     .map((m) => {
-      const bullet = !m.hasAlias ? "⚠️" : recommendedSet.has(m.uid) ? "⭐" : "•";
+      const bullet = (recommendedSet.has(m.uid) ? "⭐" : "•") + (m.hasAlias ? "" : "⚠️");
       const note = m.hasAlias ? "" : " _(bukan IGN mereka)_";
       return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g (${agg[m.uid].count} panel)`;
     })
