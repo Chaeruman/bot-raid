@@ -132,11 +132,16 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
       .addOptions(options),
   );
 
+  // Parens (not bold **) around the name — punctuation gives double-click a
+  // clean word boundary so copying the IGN doesn't drag the trailing space in.
+  // ⚠️ takes over the bullet slot for names without a " - " alias (quick to
+  // scan), with a short inline note instead of a full sentence.
   const list = memberInfo
-    .map(
-      (m) =>
-        `${recommendedSet.has(m.uid) ? "⭐" : "•"} **${m.label}**${m.hasAlias ? "" : " _(bukan IGN, tolong konfirmasi ulang IGN-nya)_"} — ${agg[m.uid].total.toLocaleString()}g (${agg[m.uid].count} panel)`,
-    )
+    .map((m) => {
+      const bullet = !m.hasAlias ? "⚠️" : recommendedSet.has(m.uid) ? "⭐" : "•";
+      const note = m.hasAlias ? "" : " _(bukan IGN mereka)_";
+      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g (${agg[m.uid].count} panel)`;
+    })
     .join("\n");
 
   const panelLinks = panels

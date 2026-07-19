@@ -14,6 +14,15 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.10.4] — 2026-07-10
+
+### Changed
+- **`/kirim-gaji`** — nama member sekarang dibungkus kurung `(Nama)` bukan
+  bold `**Nama**`, biar double-click buat copy IGN nggak ikut kebawa spasi
+  di belakangnya. Member tanpa alias IGN (nggak ada `" - "` di nickname)
+  ditandai `⚠️` (ganti bullet-nya) + catatan singkat `_(bukan IGN mereka)_`,
+  gampang di-scan sekilas daripada kalimat panjang tiap baris.
+
 ## [1.10.3] — 2026-07-10
 
 ### Changed
@@ -319,7 +328,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.10.3...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.10.4...HEAD
+[1.10.4]: https://github.com/Chaeruman/bot-raid/compare/v1.10.3...v1.10.4
 [1.10.3]: https://github.com/Chaeruman/bot-raid/compare/v1.10.2...v1.10.3
 [1.10.2]: https://github.com/Chaeruman/bot-raid/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/Chaeruman/bot-raid/compare/v1.10.0...v1.10.1
