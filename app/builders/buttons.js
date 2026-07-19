@@ -10,10 +10,11 @@ function createButtons(event, viewerId = null) {
   const isHost = viewerId === event.hostId;
   const destroyerActive = isMTDestroyer(event);
 
-  // Role buttons disappear entirely while locked (not just disabled) — they
-  // come back once the host unlocks the party.
+  // Role buttons disappear entirely while locked, or once the party is full
+  // (not just disabled) — same treatment either way.
+  const partyFull = Object.keys(event.users).length >= event.maxSlot;
   const roleRows = [];
-  if (!event.locked) {
+  if (!event.locked && !partyFull) {
     let row = new ActionRowBuilder();
     let count = 0;
 

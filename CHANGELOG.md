@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.10.3] — 2026-07-10
+
+### Changed
+- **Raid signup** — tombol role hilang total (bukan cuma disabled) begitu
+  party penuh (misal 8/8), sama seperti pas locked. Muncul lagi kalau ada
+  slot kosong lagi (member keluar/di-remove).
+
 ## [1.10.2] — 2026-07-10
 
 ### Fixed
@@ -312,7 +319,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.10.2...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.10.3...HEAD
+[1.10.3]: https://github.com/Chaeruman/bot-raid/compare/v1.10.2...v1.10.3
 [1.10.2]: https://github.com/Chaeruman/bot-raid/compare/v1.10.1...v1.10.2
 [1.10.1]: https://github.com/Chaeruman/bot-raid/compare/v1.10.0...v1.10.1
 [1.10.0]: https://github.com/Chaeruman/bot-raid/compare/v1.9.4...v1.10.0
