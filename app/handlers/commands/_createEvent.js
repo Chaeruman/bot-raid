@@ -3,7 +3,7 @@ const templates = require("../../templates");
 const { activeEvents, saveState } = require("../../state");
 const { updateMessage } = require("../../builders/content");
 
-async function createEvent(interaction, templateKey) {
+async function createEvent(interaction, templateKey, labelOverride = null) {
   console.log(`[createEvent] called with templateKey=${templateKey}`);
   try {
     await interaction.deferReply({ flags: MessageFlags.Ephemeral });
@@ -35,17 +35,20 @@ async function createEvent(interaction, templateKey) {
     timeZone: "Asia/Jakarta",
   });
 
+  const label = labelOverride || template.label;
+
   const event = {
     messageId: null,
     createdAt: Date.now(),
     hostId: interaction.user.id,
-    label: template.label,
-    title: `${template.label} — ${dateStr} ${timeStr} WIB`,
+    label,
+    title: `${label} — ${dateStr} ${timeStr} WIB`,
     maxSlot: template.maxSlot,
     noThread: template.noThread || false,
     forumTagKey: template.forumTagKey || null,
     hcGoldSplit: template.hcGoldSplit !== undefined ? template.hcGoldSplit : false,
     subruns: template.subruns || null,
+    jobs: template.jobs || null,
     roles,
     users: {},
     locked: false,

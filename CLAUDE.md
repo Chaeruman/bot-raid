@@ -5,7 +5,7 @@ Dragon Nest raid party signup bot. Players click role buttons to join a party; h
 
 ## Stack
 - Node.js, discord.js v14
-- State persisted to `state.json` (project root) via `saveState()` in `app/state.js`; loaded on startup in `app/index.js`
+- State persisted to MongoDB (`MONGODB_URI`/`MONGODB_DB_NAME`, `balance` collection, `_id: "state"` doc) via `saveState()` in `app/state.js`; loaded on startup in `app/index.js`
 - Deployed on Render (keepAlive ping via `app/utils/keepAlive.js`)
 
 ## Key files
@@ -38,7 +38,7 @@ Dragon Nest raid party signup bot. Players click role buttons to join a party; h
 2. ✅ Stale-event guard — if `activeEvents[messageId]` is undefined, reply with clear ephemeral message
 3. ✅ MT sub-role flow — fully wired; fixed double-deferUpdate in roleSelect.js that broke all non-MT role buttons
 4. ✅ Loot panel — handlers fully wired under `handlers/buttons/loot/` and `handlers/selectMenus/loot/`; panel state uses a single `items[]` array (no `raidItems`/`mailItems` split, no `source` field); stamp fee counted from sold items only; gold splits ÷8 into shared pool and ÷7 as per-person add with excluded-member lines
-5. ✅ Persistence — `saveState()` writes `activeEvents`+`activeLootPanels` to `state.json` synchronously after every mutation; loaded on startup via `Object.assign` in `index.js`
+5. ✅ Persistence — `saveState()` writes `activeEvents`+`activeLootPanels` to MongoDB (fire-and-forget) after every mutation; loaded on startup via `Object.assign` in `index.js`
 
 ## Versioning
 - Semantic Versioning; single source = `version` in `package.json`, re-exported by `app/version.js`.
@@ -57,4 +57,4 @@ Dragon Nest raid party signup bot. Players click role buttons to join a party; h
 - `MessageFlags.Ephemeral` for host-only feedback replies
 - Locale: Indonesian (`id-ID`), timezone: Asia/Jakarta (WIB)
 - Call `saveState()` after every mutation to `activeEvents` or `activeLootPanels`
-- `closeLoot` deletes the panel from `activeLootPanels` before calling `saveState()` — closed panels are never kept in `state.json`
+- `closeLoot` deletes the panel from `activeLootPanels` before calling `saveState()` — closed panels are never kept in MongoDB

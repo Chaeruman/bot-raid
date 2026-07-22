@@ -10,6 +10,8 @@ const GDN_ROLES = {
   DPS: { max: 3, label: "DPS" },
 };
 
+const MEMO_JOBS = ["SM/DA", "FU", "Healer", "MC", "MT", "Ice Stacker", "Acro", "Support", "DPS"];
+
 module.exports = {
   // ── Raid events ───────────────────────────────────────────────
   ddn_cl: {
@@ -52,6 +54,22 @@ module.exports = {
       DPS: { max: 1, label: "DPS" },
       SUPPORT: { max: 1, label: "Support" },
       SUP_DPS: { max: 1, label: "Sup-DPS" },
+    },
+  },
+
+  // ── Memo party (DDN Memoria) ──────────────────────────────────
+  // Fixed 4-slot party (P1-P4); job buttons just label whoever takes the
+  // next open slot, unlike raid roles which cap per-role.
+  memo: {
+    label: "DDN Memo",
+    maxSlot: 4,
+    noThread: true,
+    jobs: MEMO_JOBS,
+    roles: {
+      P1: { max: 1, label: "P1" },
+      P2: { max: 1, label: "P2" },
+      P3: { max: 1, label: "P3" },
+      P4: { max: 1, label: "P4" },
     },
   },
 

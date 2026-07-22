@@ -18,30 +18,48 @@ function createButtons(event, viewerId = null) {
     let row = new ActionRowBuilder();
     let count = 0;
 
-    for (const [slotKey, role] of Object.entries(event.roles)) {
-      const isFull = role.users.length >= role.max;
+    if (event.jobs) {
+      // Memo party: buttons pick a job label, position (P1-P4) is auto-assigned.
+      event.jobs.forEach((job, idx) => {
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`memojob_${idx}`)
+            .setLabel(job)
+            .setStyle(ButtonStyle.Primary),
+        );
 
-      let label;
-      if (slotKey === "MC") {
-        label = destroyerActive ? "Barba" : "MC";
-      } else if (role.max > 1) {
-        label = `${role.label || slotKey} (${role.users.length}/${role.max})`;
-      } else {
-        label = role.label || slotKey;
-      }
+        count++;
+        if (count % 5 === 0) {
+          roleRows.push(row);
+          row = new ActionRowBuilder();
+        }
+      });
+    } else {
+      for (const [slotKey, role] of Object.entries(event.roles)) {
+        const isFull = role.users.length >= role.max;
 
-      row.addComponents(
-        new ButtonBuilder()
-          .setCustomId(`role_${slotKey}`)
-          .setLabel(label)
-          .setStyle(isFull ? ButtonStyle.Success : ButtonStyle.Primary)
-          .setDisabled(isFull),
-      );
+        let label;
+        if (slotKey === "MC") {
+          label = destroyerActive ? "Barba" : "MC";
+        } else if (role.max > 1) {
+          label = `${role.label || slotKey} (${role.users.length}/${role.max})`;
+        } else {
+          label = role.label || slotKey;
+        }
 
-      count++;
-      if (count % 5 === 0) {
-        roleRows.push(row);
-        row = new ActionRowBuilder();
+        row.addComponents(
+          new ButtonBuilder()
+            .setCustomId(`role_${slotKey}`)
+            .setLabel(label)
+            .setStyle(isFull ? ButtonStyle.Success : ButtonStyle.Primary)
+            .setDisabled(isFull),
+        );
+
+        count++;
+        if (count % 5 === 0) {
+          roleRows.push(row);
+          row = new ActionRowBuilder();
+        }
       }
     }
 

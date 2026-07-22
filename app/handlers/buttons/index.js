@@ -6,6 +6,7 @@ const { HOST_ONLY_BUTTONS } = require("../../constants");
 
 const { handleSubRoleMenu } = require("./subRoleMenu");
 const { handleRoleSelect } = require("./roleSelect");
+const { handleMemoJobSelect } = require("./memoJobSelect");
 const { handleCancelMyRole } = require("./cancelMyRole");
 const { handleToggleLock } = require("./toggleLock");
 const { handleCancelRun } = require("./cancelRun");
@@ -67,6 +68,16 @@ async function handleButton(interaction) {
     }
   }
 
+  // Memo job button logic (position auto-assigned, job is just a label)
+  if (interaction.customId.startsWith("memojob_")) {
+    if (event.locked) {
+      return interaction.reply({ content: "🔒 The party is currently locked.", flags: MessageFlags.Ephemeral });
+    }
+    if (!event.users[userId] && Object.keys(event.users).length >= event.maxSlot) {
+      return interaction.reply({ content: "❌ Party is full!", flags: MessageFlags.Ephemeral });
+    }
+  }
+
   // remove_member sends its own ephemeral reply — must NOT deferUpdate first
   if (interaction.customId === "remove_member") {
     return handleRemoveMember(interaction, event);
@@ -88,6 +99,7 @@ async function handleButton(interaction) {
     case "party_up":       return handlePartyUp(interaction, event);
     default:
       if (interaction.customId.startsWith("role_")) return handleRoleSelect(interaction, event);
+      if (interaction.customId.startsWith("memojob_")) return handleMemoJobSelect(interaction, event);
   }
 }
 

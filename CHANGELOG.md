@@ -14,6 +14,17 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.13.0] — 2026-07-22
+
+### Added
+- **`/memo`** — DDN Memo (Memoria) party signup: pick which of memo1-4 to
+  run (booleans, combinable e.g. 2 & 4), builds one 4-slot party (`P1-P4`).
+  Job buttons (same labels as raid roles) don't claim a fixed slot like raid
+  — clicking one just assigns you to the next open position and labels it
+  with that job; switching jobs keeps your position. Reuses the existing
+  signup panel (lock/cancel/remove member/done run) untouched — `noThread`,
+  so Done Run just closes the panel, no loot thread.
+
 ## [1.12.0] — 2026-07-10
 
 ### Added
@@ -351,7 +362,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.12.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.13.0...HEAD
+[1.13.0]: https://github.com/Chaeruman/bot-raid/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/Chaeruman/bot-raid/compare/v1.11.1...v1.12.0
 [1.11.1]: https://github.com/Chaeruman/bot-raid/compare/v1.11.0...v1.11.1
 [1.11.0]: https://github.com/Chaeruman/bot-raid/compare/v1.10.4...v1.11.0

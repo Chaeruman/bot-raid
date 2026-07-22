@@ -56,6 +56,15 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
+    .setName("memo")
+    .setDescription("Start a DDN Memo party signup (pick which memo types to run)")
+    .addBooleanOption((o) => o.setName("memo1").setDescription("Run Memo 1").setRequired(false))
+    .addBooleanOption((o) => o.setName("memo2").setDescription("Run Memo 2").setRequired(false))
+    .addBooleanOption((o) => o.setName("memo3").setDescription("Run Memo 3").setRequired(false))
+    .addBooleanOption((o) => o.setName("memo4").setDescription("Run Memo 4").setRequired(false))
+    .toJSON(),
+
+  new SlashCommandBuilder()
     .setName("loot")
     .setDescription("Create a standalone loot tracking panel")
     .addStringOption((o) =>

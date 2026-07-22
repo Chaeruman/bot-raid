@@ -1,6 +1,7 @@
 const { handleStart }   = require("./start");
 const { handleRaid }    = require("./raid");
 const { handleMarathon } = require("./marathon");
+const { handleMemo }    = require("./memo");
 const { handleLoot }    = require("./loot");
 const { handleState }   = require("./state");
 const { handleClear }   = require("./clear");
@@ -16,6 +17,7 @@ const commandHandlers = {
   start:    handleStart,
   raid:     handleRaid,
   marathon: handleMarathon,
+  memo:     handleMemo,
   loot:     handleLoot,
   state:    handleState,
   clear:    handleClear,
