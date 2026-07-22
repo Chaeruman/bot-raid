@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.13.1] — 2026-07-22
+
+### Changed
+- **`/memo`** — 4 separate boolean options diganti 1 opsi `tipe` dengan
+  preset dropdown (Memo 1-4, "2 & 4", "3 & 4", "Semua"), biar host tinggal
+  pilih satu dari list bukan toggle field satu-satu.
+
 ## [1.13.0] — 2026-07-22
 
 ### Added
@@ -362,7 +369,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.13.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.13.1...HEAD
+[1.13.1]: https://github.com/Chaeruman/bot-raid/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/Chaeruman/bot-raid/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/Chaeruman/bot-raid/compare/v1.11.1...v1.12.0
 [1.11.1]: https://github.com/Chaeruman/bot-raid/compare/v1.11.0...v1.11.1

@@ -57,11 +57,22 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("memo")
-    .setDescription("Start a DDN Memo party signup (pick which memo types to run)")
-    .addBooleanOption((o) => o.setName("memo1").setDescription("Run Memo 1").setRequired(false))
-    .addBooleanOption((o) => o.setName("memo2").setDescription("Run Memo 2").setRequired(false))
-    .addBooleanOption((o) => o.setName("memo3").setDescription("Run Memo 3").setRequired(false))
-    .addBooleanOption((o) => o.setName("memo4").setDescription("Run Memo 4").setRequired(false))
+    .setDescription("Start a DDN Memo party signup")
+    .addStringOption((o) =>
+      o
+        .setName("tipe")
+        .setDescription("Kombinasi memo yang mau dijalankan")
+        .setRequired(true)
+        .addChoices(
+          { name: "Memo 1", value: "1" },
+          { name: "Memo 2", value: "2" },
+          { name: "Memo 3", value: "3" },
+          { name: "Memo 4", value: "4" },
+          { name: "Memo 2 & 4", value: "2,4" },
+          { name: "Memo 3 & 4", value: "3,4" },
+          { name: "Semua (1-4)", value: "1,2,3,4" },
+        ),
+    )
     .toJSON(),
 
   new SlashCommandBuilder()
