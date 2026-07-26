@@ -14,6 +14,19 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.1] — 2026-07-26
+
+### Changed
+- **`/kirim-gaji` — nomor panel diganti IGN seller** — link `panel 1 | 2 | 3`
+  per member (1.15.0) dicabut, tiap link makan ~60 karakter dan bikin batas
+  2000 cepat kepotong. Gantinya tiap baris member nutup dengan
+  `[ Frzzy | Rubiq ]` — IGN karakter kamu yang masih ngutang ke member itu,
+  di-dedupe. Limit mail itu per karakter, jadi IGN yang nentuin kamu harus
+  login ke karakter mana, bukan panelnya.
+- **`/kirim-gaji` — daftar Panel nampilin IGN seller** — tiap baris panel
+  dikasih `— <IGN>` di belakang (atau _IGN belum diset_), biar panel yang
+  judulnya mirip (raid sama, jam beda) bisa dibedain dari karakter jualannya.
+
 ## [1.15.0] — 2026-07-26
 
 ### Added
@@ -21,7 +34,7 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
   nutup dengan `panel 1 | 2 | 3`, tiap angka link langsung ke loot message
   panel yang bersangkutan. Daftar **Panel:** di bawah ikut dinomori supaya
   cocok. Seller nggak perlu cocokin judul panel satu-satu buat tahu member
-  ini nunggak di panel mana.
+  ini nunggak di panel mana. _(Dicabut lagi di 1.15.1 — boros karakter.)_
 
 ### Changed
 - `aggregate()` — field `count` diganti `panelNums` (array 1-based); jumlah
@@ -436,7 +449,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.1...HEAD
+[1.15.1]: https://github.com/Chaeruman/bot-raid/compare/v1.15.0...v1.15.1
 [1.15.0]: https://github.com/Chaeruman/bot-raid/compare/v1.14.3...v1.15.0
 [1.14.3]: https://github.com/Chaeruman/bot-raid/compare/v1.14.2...v1.14.3
 [1.14.2]: https://github.com/Chaeruman/bot-raid/compare/v1.14.1...v1.14.2
