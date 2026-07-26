@@ -151,7 +151,10 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
     .map((m) => {
       const bullet = (recommendedSet.has(m.uid) ? "⭐" : "•") + (m.hasAlias ? "" : "⚠️");
       const note = m.hasAlias ? "" : " _(bukan IGN mereka)_";
-      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g [ ${sellerIgns(m.uid).join(" | ")} ]`;
+      // Panel count and IGN list are deliberately both here: the IGNs are
+      // deduped, so "2 panel [ santenaz ]" is a real case (same character sold
+      // both). The count answers "how many", the IGNs "which character".
+      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g (${agg[m.uid].panelNums.length} panel) [ ${sellerIgns(m.uid).join(" | ")} ]`;
     })
     .join("\n");
 

@@ -14,6 +14,15 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.4] — 2026-07-26
+
+### Added
+- **`/kirim-gaji` — jumlah panel balik ke baris member** — sekarang
+  `35.393g (3 panel) [ santenaz | Rubiq ]`. Daftar IGN di-dedupe, jadi
+  jumlah IGN nggak selalu sama dengan jumlah panel (satu karakter bisa jual
+  beberapa panel). Angka panel jawab "berapa banyak", IGN jawab "karakter
+  mana" — dua-duanya perlu, IGN tetap ada buat verifikasi.
+
 ## [1.15.3] — 2026-07-26
 
 ### Added
@@ -471,7 +480,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.3...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.4...HEAD
+[1.15.4]: https://github.com/Chaeruman/bot-raid/compare/v1.15.3...v1.15.4
 [1.15.3]: https://github.com/Chaeruman/bot-raid/compare/v1.15.2...v1.15.3
 [1.15.2]: https://github.com/Chaeruman/bot-raid/compare/v1.15.1...v1.15.2
 [1.15.1]: https://github.com/Chaeruman/bot-raid/compare/v1.15.0...v1.15.1
