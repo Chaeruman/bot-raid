@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.14.1] — 2026-07-22
+
+### Added
+- **Price All: `gacha` keyword retroaktif** — item yang awalnya diketik tanpa
+  `gacha` di Type Items sekarang bisa ditandai not-for-sale belakangan lewat
+  Price All (ketik `gacha` di baris item itu sebelum `=`).
+
 ## [1.14.0] — 2026-07-22
 
 ### Added
@@ -392,7 +399,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.14.0...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.14.1...HEAD
+[1.14.1]: https://github.com/Chaeruman/bot-raid/compare/v1.14.0...v1.14.1
 [1.14.0]: https://github.com/Chaeruman/bot-raid/compare/v1.13.1...v1.14.0
 [1.13.1]: https://github.com/Chaeruman/bot-raid/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/Chaeruman/bot-raid/compare/v1.12.0...v1.13.0

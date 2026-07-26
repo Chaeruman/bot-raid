@@ -93,4 +93,22 @@ const { memberSalary, allItemsSold } = require("./builders/lootPanel");
   assert.strictEqual(memberSalary(panel, null), 0);
 }
 
+// 9) Retroactive "gacha" via Price All — same detection logic as
+// setPrices.js's handler: an item typed WITHOUT gacha at add-time can still
+// be marked not-for-sale later by typing "gacha" in its Price All line.
+{
+  const item = { itemKey: "gdn_fragment", qty: 1, price: null, notForSale: false, note: null };
+  const line = "1. GDN Fragment x1 gacha #dibagikan =";
+  const eqIdx = line.lastIndexOf("=");
+  let left = line.slice(0, eqIdx);
+  if (/\bgacha\b/i.test(left)) {
+    left = left.replace(/\bgacha\b/i, " ").replace(/\s+/g, " ");
+    item.notForSale = true;
+  }
+  const hashIdx = left.indexOf("#");
+  if (hashIdx >= 0) item.note = left.slice(hashIdx + 1).trim() || null;
+  assert.strictEqual(item.notForSale, true);
+  assert.strictEqual(item.note, "dibagikan");
+}
+
 console.log("✅ gacha (notForSale) item mechanism OK");

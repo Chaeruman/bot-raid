@@ -28,10 +28,18 @@ async function handleSetPricesModal(interaction) {
     // #note comes before "=", price comes after it (rightmost).
     const eqIdx = line.lastIndexOf("=");
     if (eqIdx < 0) continue;
-    const left = line.slice(0, eqIdx);
+    let left = line.slice(0, eqIdx);
     const right = line.slice(eqIdx + 1);
 
     let changed = false;
+
+    // "gacha" keyword marks an item not-for-sale retroactively, even if it
+    // wasn't typed with "gacha" originally in Type Items. One-directional
+    // (only sets it) — matches the same keyword parseItems.js recognizes.
+    if (/\bgacha\b/i.test(left)) {
+      left = left.replace(/\bgacha\b/i, " ").replace(/\s+/g, " ");
+      if (!item.notForSale) { item.notForSale = true; changed = true; }
+    }
 
     // Inline note after '#' (present but empty → clears the note).
     const hashIdx = left.indexOf("#");
@@ -53,7 +61,7 @@ async function handleSetPricesModal(interaction) {
       }
     }
 
-    if (changed) updated.push({ name: CATALOG[item.itemKey].name, detail: item.detail, price: item.price });
+    if (changed) updated.push({ name: CATALOG[item.itemKey].name, detail: item.detail, price: item.price, notForSale: item.notForSale });
   }
 
   if (updated.length) saveState();
@@ -63,11 +71,11 @@ async function handleSetPricesModal(interaction) {
     lines.push(`✅ Updated ${updated.length} item(s):`);
     for (const u of updated) {
       const d = u.detail ? ` (${u.detail})` : "";
-      const p = u.price != null ? `${u.price.toLocaleString()}g` : "(note only)";
+      const p = u.notForSale ? "🎁 gacha, tidak dijual" : u.price != null ? `${u.price.toLocaleString()}g` : "(note only)";
       lines.push(`• ${u.name}${d} — ${p}`);
     }
   }
-  const unpriced = panel.items.filter((i) => i.price == null).length;
+  const unpriced = panel.items.filter((i) => i.price == null && !i.notForSale).length;
   if (unpriced) lines.push(`${lines.length ? "\n" : ""}⚠️ ${unpriced} item(s) still without a price.`);
   if (!lines.length) lines.push("No prices changed.");
 
