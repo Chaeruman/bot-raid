@@ -14,6 +14,20 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.14.3] — 2026-07-26
+
+### Fixed
+- **`/kirim-gaji` nampilin panel yang belum ada isinya** — `myPanels()` punya
+  salinan sendiri cek "siap bayar" yang ketinggalan guard `hasPayout` waktu
+  `allItemsSold()` dibikin di 1.14.0. Karena `[].every()` selalu `true`,
+  panel tanpa item sellable ikut kebawa dengan gaji 0g. Sekarang pakai
+  `allItemsSold()` yang sama dengan tombol Mark Paid — satu sumber kebenaran.
+  Panel gacha-only kena regresi ini sejak 1.14.0; panel kosong total
+  sebenarnya sudah bocor sejak sebelum itu. Panel gold-only tetap muncul.
+- `_gabtest.js` — ekspektasi total masih angka pra-pajak-mail 0.3% (basi sejak
+  1.2.0), jadi test-nya crash di assert pertama dan bagian `myPanels()` di
+  bawahnya nggak pernah kejalan — itu sebabnya regresi di atas lolos.
+
 ## [1.14.2] — 2026-07-22
 
 ### Changed
@@ -408,7 +422,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.14.2...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.14.3...HEAD
+[1.14.3]: https://github.com/Chaeruman/bot-raid/compare/v1.14.2...v1.14.3
 [1.14.2]: https://github.com/Chaeruman/bot-raid/compare/v1.14.1...v1.14.2
 [1.14.1]: https://github.com/Chaeruman/bot-raid/compare/v1.14.0...v1.14.1
 [1.14.0]: https://github.com/Chaeruman/bot-raid/compare/v1.13.1...v1.14.0

@@ -1,16 +1,17 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState, recordSalaryPaid } = require("../../state");
-const { memberSalary, refreshLootPanel, MAIL_TAX_RATE } = require("../../builders/lootPanel");
+const { memberSalary, refreshLootPanel, allItemsSold, MAIL_TAX_RATE } = require("../../builders/lootPanel");
 const { checkTop5Records } = require("../../salaryRecords");
 
 // My open panels = panels I'm the seller of that aren't closed, whose thread
 // is still open too (not archived/locked — e.g. auto-archived after inactivity),
-// and every sellable item is priced (payment-ready) — notForSale items (gacha
-// giveaways) don't need a price, and a panel still being priced shouldn't
-// show up here and risk mark-paid colliding with in-progress pricing.
+// and that are payment-ready. `allItemsSold()` is the single source of truth
+// for that (same check the panel's own Mark Paid button uses): every sellable
+// item priced AND something actually there to pay out, so a panel with nothing
+// but gacha giveaways — or nothing at all yet — doesn't show up with 0g.
 async function myPanels(client, sellerId) {
   const candidates = Object.values(activeLootPanels).filter(
-    (p) => p.sellerId === sellerId && !p.closed && p.items.filter((i) => !i.notForSale).every((i) => i.price != null),
+    (p) => p.sellerId === sellerId && !p.closed && allItemsSold(p),
   );
   const checks = await Promise.all(
     candidates.map(async (p) => {
