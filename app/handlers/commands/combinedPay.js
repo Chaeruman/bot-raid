@@ -155,8 +155,12 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
       // deduped, so "2 panel [ santenaz ]" is a real case (same character sold
       // both). The count answers "how many", the IGNs "which character".
       // "_balance" glued on with no space — double-click grabs the whole
-      // "Ng_balance" token cleanly instead of stopping at "N" or "g".
-      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g_balance (${agg[m.uid].panelNums.length} panel) [ ${sellerIgns(m.uid).join(" | ")} ]`;
+      // "Ng_balance" token cleanly instead of stopping at "N" or "g". The
+      // underscore is escaped (\_) so Discord doesn't eat it as an italic
+      // delimiter (which also swallowed the literal char and, paired with
+      // the note's own _..._ italics elsewhere on the line, italicized
+      // everything in between).
+      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g\\_balance (${agg[m.uid].panelNums.length} panel) [ ${sellerIgns(m.uid).join(" | ")} ]`;
     })
     .join("\n");
 

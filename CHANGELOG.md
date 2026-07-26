@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.6] — 2026-07-26
+
+### Fixed
+- **`/kirim-gaji` — underscore `_balance` kemakan markdown Discord** — jadi
+  ngilang dan malah bikin teks di sekitarnya (termasuk `_(bukan IGN
+  mereka)_`) ke-italic bareng. Sekarang di-escape (`\_`) biar literal.
+
 ## [1.15.5] — 2026-07-26
 
 ### Changed
@@ -487,7 +494,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.5...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.6...HEAD
+[1.15.6]: https://github.com/Chaeruman/bot-raid/compare/v1.15.5...v1.15.6
 [1.15.5]: https://github.com/Chaeruman/bot-raid/compare/v1.15.4...v1.15.5
 [1.15.4]: https://github.com/Chaeruman/bot-raid/compare/v1.15.3...v1.15.4
 [1.15.3]: https://github.com/Chaeruman/bot-raid/compare/v1.15.2...v1.15.3
