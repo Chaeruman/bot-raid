@@ -4,15 +4,24 @@ const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
 function addToPanel(panel, itemKey, qty, note, notForSale) {
-  // Only merge when note AND notForSale match too — see addItems.js's
-  // addToPanel for why (different notes/status must stay separate lines).
-  const existing = panel.items.find(
-    (i) => i.itemKey === itemKey && i.detail === null && i.note === (note || null) && !!i.notForSale === !!notForSale,
-  );
+  // "unique" items never merge — see addItems.js's addToPanel for why.
+  // "quantity" items only merge when note AND notForSale match too.
+  const existing =
+    CATALOG[itemKey].type === "unique"
+      ? null
+      : panel.items.find(
+          (i) => i.itemKey === itemKey && i.detail === null && i.note === (note || null) && !!i.notForSale === !!notForSale,
+        );
   if (existing) {
     existing.qty += qty;
+    return;
+  }
+
+  const base = { itemKey, price: null, detail: null, note: note || null, notForSale: !!notForSale };
+  if (CATALOG[itemKey].type === "unique" && qty > 1) {
+    for (let n = 0; n < qty; n++) panel.items.push({ ...base, qty: 1 });
   } else {
-    panel.items.push({ itemKey, qty, price: null, detail: null, note: note || null, notForSale: !!notForSale });
+    panel.items.push({ ...base, qty });
   }
 }
 

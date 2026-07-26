@@ -5,28 +5,33 @@ const { refreshLootPanel } = require("../../builders/lootPanel");
 const { parseItemLines } = require("../../utils/parseItems");
 
 function addToPanel(panel, it) {
-  // Only merge into an existing line if the note AND notForSale status match
+  // "unique" items (equipment, runes, accessories) never merge — each drop
+  // is a distinct physical item that may end up sold to a different buyer
+  // at a different price, so qty must stay 1 per line. "quantity" items
+  // (fragments) are fungible and still stack, matched by note/notForSale
   // too — different notes/status mean the seller wants them tracked (and
-  // displayed) separately, e.g. same item for two different buyers, or one
-  // copy sold and one given away via gacha.
-  const existing = panel.items.find(
-    (i) =>
-      i.itemKey === it.itemKey &&
-      i.detail === (it.detail || null) &&
-      i.note === (it.note || null) &&
-      !!i.notForSale === !!it.notForSale,
-  );
+  // displayed) separately, e.g. one copy sold and one given away via gacha.
+  const existing =
+    CATALOG[it.itemKey].type === "unique"
+      ? null
+      : panel.items.find(
+          (i) =>
+            i.itemKey === it.itemKey &&
+            i.detail === (it.detail || null) &&
+            i.note === (it.note || null) &&
+            !!i.notForSale === !!it.notForSale,
+        );
   if (existing) {
     existing.qty += it.qty;
+    return;
+  }
+
+  const base = { itemKey: it.itemKey, price: null, detail: it.detail || null, note: it.note || null, notForSale: !!it.notForSale };
+  if (CATALOG[it.itemKey].type === "unique" && it.qty > 1) {
+    // "thorns x2" in one line still means two distinct drops — one row each.
+    for (let n = 0; n < it.qty; n++) panel.items.push({ ...base, qty: 1 });
   } else {
-    panel.items.push({
-      itemKey: it.itemKey,
-      qty: it.qty,
-      price: null,
-      detail: it.detail || null,
-      note: it.note || null,
-      notForSale: !!it.notForSale,
-    });
+    panel.items.push({ ...base, qty: it.qty });
   }
 }
 

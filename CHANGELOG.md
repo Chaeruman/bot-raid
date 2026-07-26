@@ -14,6 +14,15 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.14.2] — 2026-07-22
+
+### Changed
+- **Item unique nggak pernah digabung** — equipment/rune/accessory yang
+  diketik berkali-kali (baris terpisah atau `x3` dalam satu baris) sekarang
+  selalu jadi baris terpisah (qty 1) di panel, bukan digabung jadi satu baris
+  dengan qty ditotal. Tiap drop bisa di-price beda-beda ke buyer beda. Item
+  quantity (fragment) tetap nge-stack seperti biasa.
+
 ## [1.14.1] — 2026-07-22
 
 ### Added
@@ -399,7 +408,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.14.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.14.2...HEAD
+[1.14.2]: https://github.com/Chaeruman/bot-raid/compare/v1.14.1...v1.14.2
 [1.14.1]: https://github.com/Chaeruman/bot-raid/compare/v1.14.0...v1.14.1
 [1.14.0]: https://github.com/Chaeruman/bot-raid/compare/v1.13.1...v1.14.0
 [1.13.1]: https://github.com/Chaeruman/bot-raid/compare/v1.13.0...v1.13.1
