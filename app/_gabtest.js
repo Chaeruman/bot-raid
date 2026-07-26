@@ -17,10 +17,12 @@ const agg = aggregate([
 ]);
 
 // Totals are post-0.3%-mail-tax: 100 → 99, 200 → 199.
-assert.deepStrictEqual(agg.a, { total: 198, count: 2 }); // excluded from ÷7 both panels
-assert.deepStrictEqual(agg.b, { total: 199, count: 1 });
-assert.deepStrictEqual(agg.c, { total: 199, count: 1 });
-console.log("✅ combined-pay aggregate + HC-exclusion OK");
+// panelNums are 1-based indexes into the panels array, used for the clickable
+// per-member panel links in the /kirim-gaji reply.
+assert.deepStrictEqual(agg.a, { total: 198, panelNums: [1, 2] }); // excluded from ÷7 both panels
+assert.deepStrictEqual(agg.b, { total: 199, panelNums: [1] });
+assert.deepStrictEqual(agg.c, { total: 199, panelNums: [2] });
+console.log("✅ combined-pay aggregate + HC-exclusion + panelNums OK");
 
 // myPanels() must skip archived/locked threads and dead threads.
 (async () => {

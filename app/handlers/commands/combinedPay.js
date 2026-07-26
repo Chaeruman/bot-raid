@@ -26,17 +26,21 @@ async function myPanels(client, sellerId) {
   return checks.filter(Boolean);
 }
 
-// uid -> { total, count } of exact unpaid salary across my open panels (HC-exclusion aware).
+// uid -> { total, panelNums } of exact unpaid salary across my open panels
+// (HC-exclusion aware). panelNums are 1-based positions in `panels`, matching
+// the numbered panel list in the reply, so a member's row can link straight to
+// the panels they're still owed from. Count is just panelNums.length — kept as
+// one field so the two can't drift apart.
 function aggregate(panels) {
   const agg = {};
-  for (const p of panels) {
+  panels.forEach((p, i) => {
     for (const uid of p.members) {
       if (p.payments[uid]) continue;
-      (agg[uid] ??= { total: 0, count: 0 });
+      (agg[uid] ??= { total: 0, panelNums: [] });
       agg[uid].total += memberSalary(p, uid);
-      agg[uid].count += 1;
+      agg[uid].panelNums.push(i + 1);
     }
-  }
+  });
   return agg;
 }
 
@@ -121,7 +125,7 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
   const options = memberInfo.map((m) => ({
     label: m.label,
     value: m.uid,
-    description: `${agg[m.uid].total.toLocaleString()}g dari ${agg[m.uid].count} panel`,
+    description: `${agg[m.uid].total.toLocaleString()}g dari ${agg[m.uid].panelNums.length} panel`,
     default: recommendedSet.has(m.uid),
   }));
 
@@ -138,16 +142,22 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
   // clean word boundary so copying the IGN doesn't drag the trailing space in.
   // ⭐ (recommended) and ⚠️ (no IGN alias) are independent — both show
   // together when they both apply, neither hides the other.
+  // Each member's panel numbers are clickable and point at that panel's loot
+  // message, so the seller can jump straight to the one they want to check
+  // instead of matching titles by eye against the list below.
+  const panelUrl = (p) => `https://discord.com/channels/${guild.id}/${p.threadId}/${p.lootMsgId}`;
+
   const list = memberInfo
     .map((m) => {
       const bullet = (recommendedSet.has(m.uid) ? "⭐" : "•") + (m.hasAlias ? "" : "⚠️");
       const note = m.hasAlias ? "" : " _(bukan IGN mereka)_";
-      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g (${agg[m.uid].count} panel)`;
+      const nums = agg[m.uid].panelNums.map((n) => `[${n}](${panelUrl(panels[n - 1])})`).join(" | ");
+      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g — panel ${nums}`;
     })
     .join("\n");
 
   const panelLinks = panels
-    .map((p) => `• [${p.eventTitle}](https://discord.com/channels/${guild.id}/${p.threadId}/${p.lootMsgId})`)
+    .map((p, i) => `**${i + 1}.** [${p.eventTitle}](${panelUrl(p)})`)
     .join("\n");
 
   let budgetNote = "";

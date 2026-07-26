@@ -14,6 +14,20 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.0] — 2026-07-26
+
+### Added
+- **`/kirim-gaji` — nomor panel per member** — tiap baris member sekarang
+  nutup dengan `panel 1 | 2 | 3`, tiap angka link langsung ke loot message
+  panel yang bersangkutan. Daftar **Panel:** di bawah ikut dinomori supaya
+  cocok. Seller nggak perlu cocokin judul panel satu-satu buat tahu member
+  ini nunggak di panel mana.
+
+### Changed
+- `aggregate()` — field `count` diganti `panelNums` (array 1-based); jumlah
+  panel tinggal `panelNums.length`. Sengaja satu field, bukan dua yang harus
+  sinkron — dua field yang bisa drift persis penyebab bug 1.14.3.
+
 ## [1.14.3] — 2026-07-26
 
 ### Fixed
@@ -422,7 +436,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.14.3...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.0...HEAD
+[1.15.0]: https://github.com/Chaeruman/bot-raid/compare/v1.14.3...v1.15.0
 [1.14.3]: https://github.com/Chaeruman/bot-raid/compare/v1.14.2...v1.14.3
 [1.14.2]: https://github.com/Chaeruman/bot-raid/compare/v1.14.1...v1.14.2
 [1.14.1]: https://github.com/Chaeruman/bot-raid/compare/v1.14.0...v1.14.1
