@@ -154,7 +154,9 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
       // Panel count and IGN list are deliberately both here: the IGNs are
       // deduped, so "2 panel [ santenaz ]" is a real case (same character sold
       // both). The count answers "how many", the IGNs "which character".
-      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g (${agg[m.uid].panelNums.length} panel) [ ${sellerIgns(m.uid).join(" | ")} ]`;
+      // "_balance" glued on with no space — double-click grabs the whole
+      // "Ng_balance" token cleanly instead of stopping at "N" or "g".
+      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g_balance (${agg[m.uid].panelNums.length} panel) [ ${sellerIgns(m.uid).join(" | ")} ]`;
     })
     .join("\n");
 

@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.5] — 2026-07-26
+
+### Changed
+- **`/kirim-gaji` — gold diikat `_balance`** — `35.393g` jadi `35.393g_balance`
+  (nempel, tanpa spasi) biar double-click nyeleksi seluruh angka gold sebagai
+  satu token, bukan kepotong di huruf `g`.
+
 ## [1.15.4] — 2026-07-26
 
 ### Added
@@ -480,7 +487,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.4...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.5...HEAD
+[1.15.5]: https://github.com/Chaeruman/bot-raid/compare/v1.15.4...v1.15.5
 [1.15.4]: https://github.com/Chaeruman/bot-raid/compare/v1.15.3...v1.15.4
 [1.15.3]: https://github.com/Chaeruman/bot-raid/compare/v1.15.2...v1.15.3
 [1.15.2]: https://github.com/Chaeruman/bot-raid/compare/v1.15.1...v1.15.2
