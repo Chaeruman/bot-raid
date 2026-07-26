@@ -1,6 +1,6 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require("discord.js");
 const { activeLootPanels, saveState, recordSalaryPaid } = require("../../state");
-const { memberSalary, refreshLootPanel, allItemsSold, MAIL_TAX_RATE } = require("../../builders/lootPanel");
+const { memberSalary, salaryPerPerson, refreshLootPanel, allItemsSold, MAIL_TAX_RATE } = require("../../builders/lootPanel");
 const { checkTop5Records } = require("../../salaryRecords");
 
 // My open panels = panels I'm the seller of that aren't closed, whose thread
@@ -157,8 +157,24 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
 
   // Link text is just the seller IGN — the raid name and timestamp were long
   // and told the seller nothing they act on; the IGN is what they need.
+  // Prefixed with that panel's headline salary (same figure as the thread
+  // title) and suffixed with when it ran, so panels sold on the same
+  // character are still tellable apart.
+  // Raid titles are "<label> — <date> <time> WIB"; year and WIB are noise
+  // here. Standalone /loot panels have a free-form title with no " — ", so
+  // they just get no date.
+  const panelWhen = (p) => {
+    const idx = p.eventTitle.indexOf(" — ");
+    if (idx === -1) return null;
+    return p.eventTitle.slice(idx + 3).replace(/ \d{4}/, "").replace(/ WIB$/, "");
+  };
+
   const panelLinks = panels
-    .map((p) => `• [${p.sellerIgn || "IGN belum diset"}](https://discord.com/channels/${guild.id}/${p.threadId}/${p.lootMsgId})`)
+    .map((p) => {
+      const when = panelWhen(p);
+      const url = `https://discord.com/channels/${guild.id}/${p.threadId}/${p.lootMsgId}`;
+      return `• ${salaryPerPerson(p).toLocaleString()}g/org - [${p.sellerIgn || "IGN belum diset"}](${url})${when ? ` (${when})` : ""}`;
+    })
     .join("\n");
 
   let budgetNote = "";

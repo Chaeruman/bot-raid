@@ -14,6 +14,18 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.3] — 2026-07-26
+
+### Added
+- **`/kirim-gaji` — daftar Panel nampilin gaji + waktu** — formatnya sekarang
+  `9.970g/org - [santenaz](link) (23 Jul 11.22)`. Angka gaji pakai figure
+  headline yang sama dengan judul thread (`salaryPerPerson`), ditandai
+  `/org` biar nggak kebaca sebagai total panel. Tanggal diambil dari
+  `eventTitle` (tahun & "WIB" dibuang karena cuma noise); panel `/loot`
+  standalone judulnya bebas jadi nggak ada tanggal — bagian itu dilewat.
+  Ini juga yang bikin dua panel dari karakter yang sama akhirnya bisa
+  dibedain, masalah yang kebawa sejak 1.15.2.
+
 ## [1.15.2] — 2026-07-26
 
 ### Changed
@@ -459,7 +471,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.2...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.3...HEAD
+[1.15.3]: https://github.com/Chaeruman/bot-raid/compare/v1.15.2...v1.15.3
 [1.15.2]: https://github.com/Chaeruman/bot-raid/compare/v1.15.1...v1.15.2
 [1.15.1]: https://github.com/Chaeruman/bot-raid/compare/v1.15.0...v1.15.1
 [1.15.0]: https://github.com/Chaeruman/bot-raid/compare/v1.14.3...v1.15.0
