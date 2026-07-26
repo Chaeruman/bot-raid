@@ -1,18 +1,22 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require("discord.js");
 const { CATALOG } = require("../../../items");
 
-// Kept for compatibility with the (now-orphaned) select price flow.
+// Used by the "Price One" flow. notForSale (gacha) items are excluded —
+// nothing to price.
 function buildSetPriceRow(panel) {
-  const options = panel.items.map((item, idx) => {
-    const def = CATALOG[item.itemKey];
-    const detailStr = item.detail ? ` (${item.detail})` : "";
-    const priceStr = item.price != null ? ` — ${item.price.toLocaleString()}g` : " — no price";
-    return {
-      label: `${def.name}${detailStr}`.slice(0, 100),
-      value: String(idx),
-      description: `${item.qty}x${priceStr}`.slice(0, 100),
-    };
-  });
+  const options = panel.items
+    .map((item, idx) => {
+      if (item.notForSale) return null;
+      const def = CATALOG[item.itemKey];
+      const detailStr = item.detail ? ` (${item.detail})` : "";
+      const priceStr = item.price != null ? ` — ${item.price.toLocaleString()}g` : " — no price";
+      return {
+        label: `${def.name}${detailStr}`.slice(0, 100),
+        value: String(idx),
+        description: `${item.qty}x${priceStr}`.slice(0, 100),
+      };
+    })
+    .filter(Boolean);
 
   return new ActionRowBuilder().addComponents(
     new StringSelectMenuBuilder()
@@ -22,17 +26,22 @@ function buildSetPriceRow(panel) {
   );
 }
 
-// One numbered line per item; #note before "=", price after it (rightmost —
-// "=" stays right next to the price so it's still clear what to type there).
+// One numbered line per sellable item; #note before "=", price after it
+// (rightmost — "=" stays right next to the price so it's clear what to type
+// there). notForSale (gacha) items are skipped — nothing to price — but the
+// line numbers still match their real panel.items index, since the modal
+// parser looks items up by that index.
 function buildPricePrefill(panel) {
   return panel.items
     .map((item, i) => {
+      if (item.notForSale) return null;
       const def = CATALOG[item.itemKey];
       const detail = item.detail ? ` (${item.detail})` : "";
       const note = item.note ? ` #${item.note}` : "";
       const cur = item.price != null ? item.price : "";
       return `${i + 1}. ${def.name}${detail} x${item.qty}${note} = ${cur}`;
     })
+    .filter(Boolean)
     .join("\n")
     .slice(0, 4000);
 }
@@ -44,6 +53,9 @@ async function handleSetPrice(interaction, panel) {
 
   if (panel.items.length === 0) {
     return interaction.reply({ content: "❌ No items added yet.", flags: MessageFlags.Ephemeral });
+  }
+  if (panel.items.every((i) => i.notForSale)) {
+    return interaction.reply({ content: "🎁 Semua item di panel ini gacha — nggak ada yang perlu di-price.", flags: MessageFlags.Ephemeral });
   }
 
   const modal = new ModalBuilder()
@@ -71,6 +83,9 @@ async function handleSetPriceOne(interaction, panel) {
   }
   if (panel.items.length === 0) {
     return interaction.reply({ content: "❌ No items added yet.", flags: MessageFlags.Ephemeral });
+  }
+  if (panel.items.every((i) => i.notForSale)) {
+    return interaction.reply({ content: "🎁 Semua item di panel ini gacha — nggak ada yang perlu di-price.", flags: MessageFlags.Ephemeral });
   }
 
   return interaction.reply({

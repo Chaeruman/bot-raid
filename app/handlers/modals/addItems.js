@@ -5,16 +5,28 @@ const { refreshLootPanel } = require("../../builders/lootPanel");
 const { parseItemLines } = require("../../utils/parseItems");
 
 function addToPanel(panel, it) {
-  // Only merge into an existing line if the note matches too — different
-  // notes mean the seller wants them tracked (and displayed) separately,
-  // e.g. same item for two different buyers.
+  // Only merge into an existing line if the note AND notForSale status match
+  // too — different notes/status mean the seller wants them tracked (and
+  // displayed) separately, e.g. same item for two different buyers, or one
+  // copy sold and one given away via gacha.
   const existing = panel.items.find(
-    (i) => i.itemKey === it.itemKey && i.detail === (it.detail || null) && i.note === (it.note || null),
+    (i) =>
+      i.itemKey === it.itemKey &&
+      i.detail === (it.detail || null) &&
+      i.note === (it.note || null) &&
+      !!i.notForSale === !!it.notForSale,
   );
   if (existing) {
     existing.qty += it.qty;
   } else {
-    panel.items.push({ itemKey: it.itemKey, qty: it.qty, price: null, detail: it.detail || null, note: it.note || null });
+    panel.items.push({
+      itemKey: it.itemKey,
+      qty: it.qty,
+      price: null,
+      detail: it.detail || null,
+      note: it.note || null,
+      notForSale: !!it.notForSale,
+    });
   }
 }
 
@@ -68,7 +80,8 @@ async function handleAddItemsModal(interaction) {
     for (const it of added) {
       const def = CATALOG[it.itemKey];
       const d = it.detail ? ` (${it.detail})` : "";
-      lines.push(`• ${def.name}${d} ×${it.qty}`);
+      const gacha = it.notForSale ? " 🎁 (gacha, tidak dijual)" : "";
+      lines.push(`• ${def.name}${d} ×${it.qty}${gacha}`);
     }
   }
   if (golds.length) {

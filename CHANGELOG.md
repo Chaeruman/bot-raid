@@ -14,6 +14,29 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.14.0] — 2026-07-22
+
+### Added
+- **Type Items: `gacha` keyword** — tandain item yang didapat tapi dibagikan
+  lewat gacha/duck-race, bukan dijual (misal `gdn fragment gacha #buat siapa
+  yang menang`). Item tetap tercatat & tampil di panel (🎁 gacha, tidak
+  dijual), tapi nggak masuk hitungan stamp fee/gold, dan nggak perlu di-price.
+
+### Fixed
+- **Panel gold-raid tanpa item drop nggak dianggap ada data gaji** — panel
+  yang cuma punya gold raw (item-nya di-gacha atau nggak drop sama sekali)
+  sekarang bener dianggap "siap bayar" (thread dapat prefix 💵, muncul di
+  `/kirim-gaji`) selama ada gold raid ATAU item sellable yang udah di-price.
+- **Price All: blank di kanan `=` sekarang clear harga** (balik ke belum
+  di-price), bukan dibiarkan nggak berubah.
+- **Gaji nggak bisa minus lagi** — item yang ke-price di bawah stamp fee-nya
+  sendiri dulu bisa bikin `memberSalary()` negatif; sekarang di-clamp ke 0.
+- **Mark Paid hilang (bukan cuma disabled) sampai semua item sellable
+  ke-price** — nyegah gaji yang udah kecatat di `/gaji-saya` jadi basi kalau
+  ternyata masih ada item yang nyusul dijual setelah ada yang di-mark paid.
+- `resolveItems.js` (flow Resolve buat baris ambigu) punya `addToPanel`
+  sendiri yang ketinggalan fix note-merge dari sesi sebelumnya — disamakan.
+
 ## [1.13.1] — 2026-07-22
 
 ### Changed
@@ -369,7 +392,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.13.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.14.0...HEAD
+[1.14.0]: https://github.com/Chaeruman/bot-raid/compare/v1.13.1...v1.14.0
 [1.13.1]: https://github.com/Chaeruman/bot-raid/compare/v1.13.0...v1.13.1
 [1.13.0]: https://github.com/Chaeruman/bot-raid/compare/v1.12.0...v1.13.0
 [1.12.0]: https://github.com/Chaeruman/bot-raid/compare/v1.11.1...v1.12.0

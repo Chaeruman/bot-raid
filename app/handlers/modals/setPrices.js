@@ -40,11 +40,17 @@ async function handleSetPricesModal(interaction) {
       if (item.note !== note) { item.note = note; changed = true; }
     }
 
-    // Price = expression after "=" (math ok). Blank → unchanged.
-    const price = evalPrice(right);
-    if (price != null && item.price !== price) {
-      item.price = price;
-      changed = true;
+    // Price = expression after "=" (math ok). Blank → clears the price
+    // (e.g. reverting to "unpriced" after a mistaken entry). Non-blank but
+    // unparseable is left unchanged rather than silently wiped.
+    if (right.trim() === "") {
+      if (item.price !== null) { item.price = null; changed = true; }
+    } else {
+      const price = evalPrice(right);
+      if (price != null && item.price !== price) {
+        item.price = price;
+        changed = true;
+      }
     }
 
     if (changed) updated.push({ name: CATALOG[item.itemKey].name, detail: item.detail, price: item.price });

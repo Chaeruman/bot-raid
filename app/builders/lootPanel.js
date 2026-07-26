@@ -8,7 +8,9 @@ const MAIL_TAX_RATE = 0.003; // 0.3% mail tax, deducted from the final salary
 // they're excluded from, minus 0.3% mail tax. Pass uid=null for the headline
 // (non-excluded) figure.
 function memberSalary(panel, uid) {
-  const soldItems = panel.items.filter((i) => i.price != null);
+  // notForSale items (gacha/duck-race giveaways) exist in the list for
+  // record-keeping but were never actually sold — no stamp fee, no gold.
+  const soldItems = panel.items.filter((i) => i.price != null && !i.notForSale);
   const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
   const stampFee = soldStamps * (panel.stampRate ?? 4); // ponytail: panels made before the rate bump lack this field, default to the old 4g/stamp so they don't retroactively change
   const totalItemGold = soldItems.reduce(
@@ -21,14 +23,22 @@ function memberSalary(panel, uid) {
     .filter((g) => g.splitCount === 7 && g.excludedUserId !== uid)
     .reduce((sum, g) => sum + Math.floor(g.amount / 7), 0);
   const gross = Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson;
-  return Math.floor(gross * (1 - MAIL_TAX_RATE));
+  // An item priced below its own stamp fee can drag this negative — nobody
+  // owes the seller money, so floor the payout at 0.
+  return Math.max(0, Math.floor(gross * (1 - MAIL_TAX_RATE)));
 }
 
 // Headline (non-excluded) salary — used for thread title.
 const salaryPerPerson = (panel) => memberSalary(panel, null);
 
 function allItemsSold(panel) {
-  return panel.items.length > 0 && panel.items.every((i) => i.price != null);
+  // notForSale items don't need a price. A panel is "ready" once every
+  // sellable item is priced AND there's actually something to pay out
+  // (a sellable item or a raw gold entry) — a pure-gacha panel with only
+  // gold drops counts as ready even though panel.items has zero sellable rows.
+  const sellable = panel.items.filter((i) => !i.notForSale);
+  const hasPayout = sellable.length > 0 || panel.goldEntries.length > 0;
+  return hasPayout && sellable.every((i) => i.price != null);
 }
 
 // Rename the dedicated loot thread once all items are priced (💵) or all paid (✅).
@@ -57,12 +67,15 @@ function itemsText(panel) {
   return panel.items
     .map((item) => {
       const def = CATALOG[item.itemKey];
+      const detailStr = item.detail ? ` (${item.detail})` : "";
+      const noteStr = item.note ? ` _(${item.note})_` : "";
+      if (item.notForSale) {
+        return `• ${def.name}${detailStr} — ${item.qty}x — 🎁 _gacha, tidak dijual_${noteStr}`;
+      }
       const stamps = def.stampsPerUnit * item.qty;
       const priceStr = item.price != null
         ? ` — ${item.price.toLocaleString()} gold${def.type === "quantity" ? " total" : ""}`
         : "";
-      const detailStr = item.detail ? ` (${item.detail})` : "";
-      const noteStr = item.note ? ` _(${item.note})_` : "";
       return `• ${def.name}${detailStr} — ${item.qty}x — ${stamps} stamps${priceStr}${noteStr}`;
     })
     .join("\n")
@@ -85,7 +98,8 @@ function summaryText(panel) {
   if (panel.items.length === 0 && panel.goldEntries.length === 0) return null;
 
   const lines = [];
-  const soldItems = panel.items.filter((i) => i.price != null);
+  const sellableItems = panel.items.filter((i) => !i.notForSale);
+  const soldItems = sellableItems.filter((i) => i.price != null);
   const soldStamps = soldItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
   const stampFee = soldStamps * (panel.stampRate ?? 4); // ponytail: panels made before the rate bump lack this field, default to the old 4g/stamp so they don't retroactively change
   const totalItemGold = soldItems.reduce(
@@ -97,8 +111,8 @@ function summaryText(panel) {
   const excludedUids = panel.goldEntries.filter((g) => g.splitCount === 7 && g.excludedUserId).map((g) => g.excludedUserId);
   const pool = itemNet + gold8Total;
 
-  if (panel.items.length > 0) {
-    const totalStamps = panel.items.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
+  if (sellableItems.length > 0) {
+    const totalStamps = sellableItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
     lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
   }
 
@@ -203,7 +217,12 @@ function buildLootComponents(panel) {
 
   const row4 = [];
   if (hasSeller) {
-    row4.push(btn("mark_paid", "✅ Mark Paid", ButtonStyle.Success).setDisabled(!hasMembers));
+    // Hidden (not just disabled) until allItemsSold — paying before pricing
+    // is finalized locks in a stale salaryLog snapshot that never catches up
+    // if more items get sold afterward.
+    if (allItemsSold(panel)) {
+      row4.push(btn("mark_paid", "✅ Mark Paid", ButtonStyle.Success).setDisabled(!hasMembers));
+    }
     row4.push(btn("close", "🔒 Close Panel", ButtonStyle.Danger));
   }
 
@@ -223,4 +242,13 @@ async function refreshLootPanel(client, panel) {
   await updateThreadTitle(channel, panel);
 }
 
-module.exports = { buildLootEmbed, buildLootComponents, refreshLootPanel, salaryPerPerson, memberSalary, STAMP_RATE_GOLD, MAIL_TAX_RATE };
+module.exports = {
+  buildLootEmbed,
+  buildLootComponents,
+  refreshLootPanel,
+  salaryPerPerson,
+  memberSalary,
+  allItemsSold,
+  STAMP_RATE_GOLD,
+  MAIL_TAX_RATE,
+};

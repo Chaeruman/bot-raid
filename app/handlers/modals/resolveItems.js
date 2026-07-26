@@ -3,13 +3,16 @@ const { activeLootPanels, saveState, takePendingResolution } = require("../../st
 const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
-function addToPanel(panel, itemKey, qty, note) {
-  const existing = panel.items.find((i) => i.itemKey === itemKey && i.detail === null);
+function addToPanel(panel, itemKey, qty, note, notForSale) {
+  // Only merge when note AND notForSale match too — see addItems.js's
+  // addToPanel for why (different notes/status must stay separate lines).
+  const existing = panel.items.find(
+    (i) => i.itemKey === itemKey && i.detail === null && i.note === (note || null) && !!i.notForSale === !!notForSale,
+  );
   if (existing) {
     existing.qty += qty;
-    if (note) existing.note = note;
   } else {
-    panel.items.push({ itemKey, qty, price: null, detail: null, note: note || null });
+    panel.items.push({ itemKey, qty, price: null, detail: null, note: note || null, notForSale: !!notForSale });
   }
 }
 
@@ -38,7 +41,7 @@ async function handleResolveItemsModal(interaction) {
       return;
     }
     const picked = u.candidates[choice - 1];
-    addToPanel(panel, picked.key, u.qty, u.note);
+    addToPanel(panel, picked.key, u.qty, u.note, u.notForSale);
     added.push({ name: CATALOG[picked.key].name, qty: u.qty });
   });
 

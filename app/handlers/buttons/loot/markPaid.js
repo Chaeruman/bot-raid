@@ -1,4 +1,5 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
+const { allItemsSold } = require("../../../builders/lootPanel");
 
 async function buildMarkPaidRow(interaction, panel) {
   const options = await Promise.all(
@@ -32,6 +33,12 @@ async function buildMarkPaidRow(interaction, panel) {
 async function handleMarkPaid(interaction, panel) {
   if (interaction.user.id !== panel.hostId && interaction.user.id !== panel.sellerId) {
     return interaction.reply({ content: "⛔ Only the host or seller can mark payments.", flags: MessageFlags.Ephemeral });
+  }
+  if (!allItemsSold(panel)) {
+    return interaction.reply({
+      content: "⚠️ Selesaikan pricing semua item dulu (atau pastikan ada gold raid) sebelum mark paid — supaya gaji yang tercatat nggak basi kalau nanti nambah item lagi.",
+      flags: MessageFlags.Ephemeral,
+    });
   }
 
   const row = await buildMarkPaidRow(interaction, panel);

@@ -5,11 +5,12 @@ const { checkTop5Records } = require("../../salaryRecords");
 
 // My open panels = panels I'm the seller of that aren't closed, whose thread
 // is still open too (not archived/locked — e.g. auto-archived after inactivity),
-// and every item is priced (payment-ready) — a panel still being priced
-// shouldn't show up here and risk mark-paid colliding with in-progress pricing.
+// and every sellable item is priced (payment-ready) — notForSale items (gacha
+// giveaways) don't need a price, and a panel still being priced shouldn't
+// show up here and risk mark-paid colliding with in-progress pricing.
 async function myPanels(client, sellerId) {
   const candidates = Object.values(activeLootPanels).filter(
-    (p) => p.sellerId === sellerId && !p.closed && p.items.every((i) => i.price != null),
+    (p) => p.sellerId === sellerId && !p.closed && p.items.filter((i) => !i.notForSale).every((i) => i.price != null),
   );
   const checks = await Promise.all(
     candidates.map(async (p) => {

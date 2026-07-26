@@ -17,15 +17,18 @@ assert.deepStrictEqual(l, ["👤 Seller", "👥 Add Member"]);
 l = labels(buildLootComponents({ ...base, members: ["u1"] }));
 assert.deepStrictEqual(l, ["👤 Seller", "👥 Add Member"]);
 
-// Seller set, no items/gold/members: full row1/row2 minus remove-*, row3 no Remove Member, row4 present.
+// Seller set, no items/gold/members: full row1/row2 minus remove-*, row3 no
+// Remove Member, Close Panel present but Mark Paid hidden (nothing to pay yet).
 l = labels(buildLootComponents({ ...base, sellerId: "s1" }));
 assert.ok(l.includes("✍️ Type Items") && l.includes("📋 Browse Item"));
 assert.ok(!l.includes("🗑️ Remove Item"));
 assert.ok(!l.includes("🗑️ Remove Gold"));
 assert.ok(!l.includes("➖ Remove Member"));
-assert.ok(l.includes("💰 Add Gold") && l.includes("✅ Mark Paid") && l.includes("🔒 Close Panel"));
+assert.ok(l.includes("💰 Add Gold") && l.includes("🔒 Close Panel"));
+assert.ok(!l.includes("✅ Mark Paid"));
 
-// Seller set + items/gold/members present: remove-* buttons appear.
+// Seller set + items/gold/members present, but item unpriced: Mark Paid
+// still hidden — pricing isn't finalized yet, remove-* buttons appear.
 l = labels(
   buildLootComponents({
     ...base,
@@ -38,5 +41,22 @@ l = labels(
 assert.ok(l.includes("🗑️ Remove Item"));
 assert.ok(l.includes("🗑️ Remove Gold"));
 assert.ok(l.includes("➖ Remove Member"));
+assert.ok(!l.includes("✅ Mark Paid"));
+
+// Seller set + gold entry only (zero items) — the pure-gacha/gold-raid case:
+// Mark Paid appears since there's something to pay out and nothing left unpriced.
+l = labels(buildLootComponents({ ...base, sellerId: "s1", goldEntries: [{ amount: 100, splitCount: 8 }], members: ["u1"] }));
+assert.ok(l.includes("✅ Mark Paid"));
+
+// Item priced (fully sold) + members: Mark Paid appears.
+l = labels(
+  buildLootComponents({
+    ...base,
+    sellerId: "s1",
+    items: [{ itemKey: "gdn_fragment", qty: 1, price: 800 }],
+    members: ["u1"],
+  }),
+);
+assert.ok(l.includes("✅ Mark Paid"));
 
 console.log("✅ loot panel button visibility rules OK");

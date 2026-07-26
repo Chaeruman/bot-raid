@@ -250,11 +250,17 @@ function parseItemLines(text) {
     // Inline note: everything after the first '#' on the line.
     const hashIdx = lineRaw.indexOf("#");
     const note = hashIdx >= 0 ? lineRaw.slice(hashIdx + 1).trim() || null : null;
-    const raw = (hashIdx >= 0 ? lineRaw.slice(0, hashIdx) : lineRaw).trim();
+    let raw = (hashIdx >= 0 ? lineRaw.slice(0, hashIdx) : lineRaw).trim();
     if (!raw) {
       errors.push(lineRaw);
       continue;
     }
+
+    // "gacha" keyword: item exists (dropped) but is given away via a gacha/
+    // duck-race, not sold — strip it before matching so it doesn't interfere
+    // with name lookup, and mark the resulting item not-for-sale.
+    const notForSale = /\bgacha\b/i.test(raw);
+    if (notForSale) raw = raw.replace(/\bgacha\b/i, " ").replace(/\s+/g, " ").trim();
 
     const gold = parseGoldLine(raw);
     if (gold) {
@@ -263,11 +269,11 @@ function parseItemLines(text) {
     }
     const named = matchNamed(raw);
     if (named && named.itemKey) {
-      added.push({ itemKey: named.itemKey, qty: named.qty, detail: null, note });
+      added.push({ itemKey: named.itemKey, qty: named.qty, detail: null, note, notForSale });
       continue;
     }
     if (named && named.candidates) {
-      unresolved.push({ raw, qty: named.qty, candidates: named.candidates, note });
+      unresolved.push({ raw, qty: named.qty, candidates: named.candidates, note, notForSale });
       continue;
     }
     if (named && named.error) {
@@ -277,22 +283,22 @@ function parseItemLines(text) {
     // Structural (fragments, accessories, equipment, thorns/etc.)
     const s = parseStructural(raw);
     if (s && s.itemKey) {
-      added.push({ itemKey: s.itemKey, qty: s.qty, detail: s.detail, note });
+      added.push({ itemKey: s.itemKey, qty: s.qty, detail: s.detail, note, notForSale });
       continue;
     }
     if (s && s.candidates) {
-      unresolved.push({ raw, qty: s.qty, candidates: s.candidates, note });
+      unresolved.push({ raw, qty: s.qty, candidates: s.candidates, note, notForSale });
       continue;
     }
 
     // Last resort: no-bracket keyword search of named equipment
     const fuzzy = matchNamedFuzzy(raw);
     if (fuzzy && fuzzy.itemKey) {
-      added.push({ itemKey: fuzzy.itemKey, qty: fuzzy.qty, detail: null, note });
+      added.push({ itemKey: fuzzy.itemKey, qty: fuzzy.qty, detail: null, note, notForSale });
       continue;
     }
     if (fuzzy && fuzzy.candidates) {
-      unresolved.push({ raw, qty: fuzzy.qty, candidates: fuzzy.candidates, note });
+      unresolved.push({ raw, qty: fuzzy.qty, candidates: fuzzy.candidates, note, notForSale });
       continue;
     }
     if (fuzzy && fuzzy.error) {
