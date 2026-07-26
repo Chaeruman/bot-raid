@@ -14,6 +14,16 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.2] — 2026-07-26
+
+### Changed
+- **`/kirim-gaji` — daftar Panel cukup IGN seller** — teks link yang tadinya
+  judul panel + tanggal + jam (`[GDN HC — 23 Jul 2026 11.22 WIB](…) — santenaz`)
+  dipendekin jadi `[santenaz](…)` saja. Judul raid-nya sudah kelihatan begitu
+  thread-nya kebuka, jadi ngulang di sini cuma makan jatah 2000 karakter.
+  Hemat ~33 karakter per panel. Catatan: URL-nya sendiri 88 karakter, jadi
+  kalau nanti beneran mepet, yang perlu dibuang link-nya, bukan label-nya.
+
 ## [1.15.1] — 2026-07-26
 
 ### Changed
@@ -449,7 +459,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.1...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.2...HEAD
+[1.15.2]: https://github.com/Chaeruman/bot-raid/compare/v1.15.1...v1.15.2
 [1.15.1]: https://github.com/Chaeruman/bot-raid/compare/v1.15.0...v1.15.1
 [1.15.0]: https://github.com/Chaeruman/bot-raid/compare/v1.14.3...v1.15.0
 [1.14.3]: https://github.com/Chaeruman/bot-raid/compare/v1.14.2...v1.14.3

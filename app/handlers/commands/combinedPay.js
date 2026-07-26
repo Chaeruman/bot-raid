@@ -155,8 +155,10 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
     })
     .join("\n");
 
+  // Link text is just the seller IGN — the raid name and timestamp were long
+  // and told the seller nothing they act on; the IGN is what they need.
   const panelLinks = panels
-    .map((p) => `• [${p.eventTitle}](https://discord.com/channels/${guild.id}/${p.threadId}/${p.lootMsgId}) — ${p.sellerIgn || "_IGN belum diset_"}`)
+    .map((p) => `• [${p.sellerIgn || "IGN belum diset"}](https://discord.com/channels/${guild.id}/${p.threadId}/${p.lootMsgId})`)
     .join("\n");
 
   let budgetNote = "";
