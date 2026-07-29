@@ -150,7 +150,10 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
   const list = memberInfo
     .map((m) => {
       const bullet = (recommendedSet.has(m.uid) ? "⭐" : "•") + (m.hasAlias ? "" : "⚠️");
-      const note = m.hasAlias ? "" : " _(bukan IGN mereka)_";
+      // Plain text, no italic underscores — those kept colliding with the
+      // escaped "_balance" underscore elsewhere on the line and leaving a
+      // stray literal "_" visible instead of rendering as italic.
+      const note = m.hasAlias ? "" : " (bukan IGN mereka)";
       // Panel count and IGN list are deliberately both here: the IGNs are
       // deduped, so "2 panel [ santenaz ]" is a real case (same character sold
       // both). The count answers "how many", the IGNs "which character".
