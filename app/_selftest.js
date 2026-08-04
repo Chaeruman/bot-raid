@@ -85,9 +85,11 @@ for (const [line, q] of [["gdn fragment x3", 3], ["gdn fragment 7", 7]]) {
 }
 
 // 4b) No-bracket keyword fallback reaches the named item (mobile-friendly).
+// Named fragments (Spitflower Ignis etc.) have no dungeon — the line is just
+// the name itself, not prefixed with the literal string "null".
 for (const e of NAMED_EQUIPMENT) {
   const kw = e.name.replace(/^(ddn|gdn|sdn)\s+/i, "");
-  const line = `${e.dungeon} ${kw}`; // same as bracket form, but without ()
+  const line = e.dungeon ? `${e.dungeon} ${kw}` : kw; // same as bracket form, but without ()
   const { added, unresolved } = parseItemLines(line);
   const ok =
     (added.length === 1 && added[0].itemKey === e.key) ||

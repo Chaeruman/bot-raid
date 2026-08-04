@@ -14,6 +14,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.9] — 2026-08-05
+
+### Fixed
+- **`_selftest.js` no-bracket test false-failed on named fragments** — items
+  with no dungeon (Spitflower Ignis dkk) got tested as literal `"null <name>"`
+  instead of just `<name>`, since the test always prefixed `${e.dungeon}`
+  without checking it could be `null`. Parser itself was never broken.
+
 ## [1.15.8] — 2026-08-05
 
 ### Added
@@ -509,7 +517,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.8...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.9...HEAD
+[1.15.9]: https://github.com/Chaeruman/bot-raid/compare/v1.15.8...v1.15.9
 [1.15.8]: https://github.com/Chaeruman/bot-raid/compare/v1.15.7...v1.15.8
 [1.15.7]: https://github.com/Chaeruman/bot-raid/compare/v1.15.6...v1.15.7
 [1.15.6]: https://github.com/Chaeruman/bot-raid/compare/v1.15.5...v1.15.6
