@@ -167,6 +167,12 @@ function parseStructural(raw) {
     return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
   }
 
+  if (has("research") || has("res")) {
+    // ponytail: only a DDN variant exists right now, so no dungeon typed = DDN.
+    const key = `${dungeon || "ddn"}_research_book`;
+    return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
+  }
+
   // Accessory: triggered by "accessory"/"acc" OR a type word/alias (ring / neck / ear).
   // Tier: legend/l/hunter/hc → L, unique/u/squad → U. Ring subtype via alias (atk/magic/hyb…);
   // Necklace/Earrings via INT VIT / AGI INT / STR AGI words.

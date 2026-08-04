@@ -20,6 +20,7 @@ const CATALOG = {
   ddn_fragment:     { name: "DDN Fragment", type: "quantity", stampsPerUnit: 1 },
   gdn_fragment:     { name: "GDN Fragment", type: "quantity", stampsPerUnit: 1 },
   ddn_smelted_rune:          { name: "DDN Smelted Rune", type: "unique", stampsPerUnit: 4 },
+  ddn_research_book:         { name: "Desert Dragon Research Book", type: "unique", stampsPerUnit: 3 },
 };
 
 // Aliases for the old junk/good rune keys (removed — junk/good was cosmetic
@@ -75,6 +76,11 @@ const CATEGORIES = [
     key: "rune",
     label: "🔥 Rune",
     items: ["ddn_smelted_rune"],
+  },
+  {
+    key: "research",
+    label: "📖 Research",
+    items: ["ddn_research_book"],
   },
 ];
 

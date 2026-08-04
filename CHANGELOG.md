@@ -14,6 +14,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.15.8] — 2026-08-05
+
+### Added
+- **Type Items: Desert Dragon Research Book (DDN HC)** — ketik `ddn research
+  book`, `ddn res`, atau cukup `res`/`research` (default DDN, satu-satunya
+  varian). Stamp 3, muncul di Browse Item kategori 📖 Research.
+
 ## [1.15.7] — 2026-07-27
 
 ### Fixed
@@ -502,7 +509,8 @@ Rilis pertama yang ter-versioning. Merangkum seluruh fitur yang sudah jalan.
 - **Versioning** — semver di `package.json`, dibaca lewat `app/version.js`,
   tampil di log boot & `/state`.
 
-[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.7...HEAD
+[Unreleased]: https://github.com/Chaeruman/bot-raid/compare/v1.15.8...HEAD
+[1.15.8]: https://github.com/Chaeruman/bot-raid/compare/v1.15.7...v1.15.8
 [1.15.7]: https://github.com/Chaeruman/bot-raid/compare/v1.15.6...v1.15.7
 [1.15.6]: https://github.com/Chaeruman/bot-raid/compare/v1.15.5...v1.15.6
 [1.15.5]: https://github.com/Chaeruman/bot-raid/compare/v1.15.4...v1.15.5
