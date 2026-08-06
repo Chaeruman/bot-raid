@@ -7,8 +7,12 @@ const { handleResolveItemsModal } = require("./resolveItems");
 const { handleSetPricesModal } = require("./setPrices");
 const { handleGabBudgetModal } = require("./gabBudget");
 const { handlePartyPingModal } = require("./partyPing");
+const { handleBountyQuestModal } = require("./bountyQuest");
 
 async function handleModal(interaction) {
+  if (interaction.customId.startsWith("bounty-modal:quest:")) {
+    return handleBountyQuestModal(interaction);
+  }
   if (interaction.customId.startsWith("gab-budget-modal:")) {
     return handleGabBudgetModal(interaction);
   }

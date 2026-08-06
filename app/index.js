@@ -4,6 +4,8 @@ const { handleCommand } = require("./handlers/commands");
 const { handleButton } = require("./handlers/buttons");
 const { handleSelectMenu } = require("./handlers/selectMenus");
 const { handleModal } = require("./handlers/modals");
+const { handleAutocomplete } = require("./handlers/autocomplete");
+const { validateData } = require("./bounty");
 const { activeEvents, activeLootPanels, loadState, saveState } = require("./state");
 const { version } = require("./version");
 const keepAlive = require("./utils/keepAlive");
@@ -27,6 +29,7 @@ client.on("clientReady", () => {
 
 client.on("interactionCreate", async (interaction) => {
   try {
+    if (interaction.isAutocomplete()) return await handleAutocomplete(interaction);
     if (interaction.isChatInputCommand())
       return await handleCommand(interaction);
     if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu())
@@ -108,6 +111,16 @@ process.on("unhandledRejection", console.error);
     staleIds.forEach((id) => delete activeEvents[id]);
     saveState();
     console.log(`🧹 Pruned ${staleIds.length} stale event(s) older than 24h`);
+  }
+
+  // Group Bounty data check. These are all failures that would produce a wrong
+  // answer rather than an error — a quest routed to the wrong nest, a variant
+  // with no label — so a bad commit is made loud at boot instead of silently
+  // mis-filing someone's week.
+  const bountyProblems = validateData();
+  if (bountyProblems.length > 0) {
+    console.error(`❌ app/data/dungeons.js has ${bountyProblems.length} problem(s):`);
+    bountyProblems.forEach((p) => console.error(`   • ${p}`));
   }
 
   keepAlive.start();

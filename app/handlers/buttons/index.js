@@ -16,6 +16,7 @@ const { handlePartyPingButton, handlePartyUp } = require("./partyPing");
 const { handleLootButton } = require("./loot");
 const { handleGabBudgetButton } = require("./gabBudget");
 const { handleGabMarkPaidRec } = require("../commands/combinedPay");
+const { handleBountyLeave, handleBountyJoin } = require("../commands/bountyRun");
 
 async function handleButton(interaction) {
   // Loot panel buttons are independent of activeEvents — handle them first
@@ -95,6 +96,8 @@ async function handleButton(interaction) {
     case "cancel_my_role": return handleCancelMyRole(interaction, event);
     case "toggle_lock":    return handleToggleLock(interaction, event);
     case "cancel_run":     return handleCancelRun(interaction, event);
+    case "bounty_leave":   return handleBountyLeave(interaction, event);
+    case "bounty_join":    return handleBountyJoin(interaction, event);
     case "done_run":       return handleDoneRun(interaction, event);
     case "party_up":       return handlePartyUp(interaction, event);
     default:

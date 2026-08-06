@@ -1,5 +1,6 @@
 const { REST, Routes, SlashCommandBuilder } = require("discord.js");
 const config = require("./config");
+const { ROLES } = require("./data/bounty");
 
 const commands = [
   new SlashCommandBuilder()
@@ -210,6 +211,100 @@ const commands = [
           { name: "Add Member", value: "add-member" },
           { name: "Remove Member", value: "remove-member" },
         ),
+    )
+    .toJSON(),
+
+  // ── Group Bounty ────────────────────────────────────────────────────────
+  new SlashCommandBuilder()
+    .setName("bounty-char")
+    .setDescription("Manage your Group Bounty characters")
+    .addSubcommand((s) =>
+      s
+        .setName("add")
+        .setDescription("Add a character — using an existing name edits it instead")
+        .addStringOption((o) =>
+          o.setName("name").setDescription("Character name in game").setRequired(true).setMaxLength(32),
+        )
+        .addStringOption((o) =>
+          o
+            .setName("role")
+            .setDescription("Party role — the same list as the raid signup buttons")
+            .setRequired(true)
+            .addChoices(...ROLES.map((r) => ({ name: r, value: r }))),
+        )
+        .addStringOption((o) =>
+          o
+            .setName("dps")
+            .setDescription("Gear tier — used to check a party can clear")
+            .setRequired(true)
+            .addChoices(
+              { name: "High DPS", value: "high" },
+              { name: "Good DPS", value: "good" },
+              { name: "Low DPS", value: "low" },
+            ),
+        )
+        .addStringOption((o) =>
+          o.setName("job").setDescription("In-game class (optional)").setMaxLength(32),
+        ),
+    )
+    .addSubcommand((s) => s.setName("list").setDescription("Show your characters"))
+    .addSubcommand((s) =>
+      s
+        .setName("remove")
+        .setDescription("Remove a character from your roster")
+        .addStringOption((o) =>
+          o.setName("name").setDescription("Character name").setRequired(true).setAutocomplete(true),
+        ),
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("bounty-quest")
+    .setDescription("Record this week's bounty quests for one character")
+    .addStringOption((o) =>
+      o
+        .setName("character")
+        .setDescription("Which character these quests belong to")
+        .setRequired(true)
+        .setAutocomplete(true),
+    )
+    .addBooleanOption((o) =>
+      o
+        .setName("replace")
+        .setDescription("Replace this character's unclaimed quests instead of adding to them"),
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("bounty-me")
+    .setDescription("Your bounty quests, claims left, and what you've earned this week")
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("bounty-plan")
+    .setDescription("Which nests are worth forming a party for this week")
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("bounty-run")
+    .setDescription("Build a bounty party — picks the best nest if you don't name one")
+    .addStringOption((o) =>
+      o
+        .setName("dungeon")
+        .setDescription("Leave empty to run whatever is top of /bounty-plan")
+        .setAutocomplete(true),
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
+    .setName("bounty-need")
+    .setDescription("Who can stack here, and who has claims spare to fill a seat")
+    .addStringOption((o) =>
+      o
+        .setName("dungeon")
+        .setDescription("Nest and variant")
+        .setRequired(true)
+        .setAutocomplete(true),
     )
     .toJSON(),
 ];
