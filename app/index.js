@@ -37,6 +37,7 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       const isEventScoped =
         !interaction.customId.startsWith("loot-btn:") &&
+        !interaction.customId.startsWith("bounty-card:") &&
         !interaction.customId.startsWith("gab-budget:") &&
         !interaction.customId.startsWith("gab-paid-rec:");
       if (isEventScoped && !activeEvents[interaction.message.id]) {

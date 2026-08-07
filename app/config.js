@@ -21,6 +21,7 @@ module.exports = {
   digestChannelId: process.env.DIGEST_CHANNEL_ID,
   top5ChannelId: process.env.TOP5_CHANNEL_ID,
   lzChannelId: process.env.LZ_CHANNEL_ID,
+  bountyChannelId: process.env.BOUNTY_CHANNEL_ID,
   tim1RoleId: process.env.TIM1_ROLE_ID,
   tim2RoleId: process.env.TIM2_ROLE_ID,
 };

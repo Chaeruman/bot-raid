@@ -350,20 +350,29 @@ eq("12. spare claims count characters with any left", plan.charsWithClaims, 5);
 eq("12. and total them", plan.spareClaims, 5 * 6);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 14. Seat filling. /bounty-run builds the party itself, so this is the bit that
-//     decides who ends up in it — and what "Can't make it" promotes.
-const { fillSeats } = require("./handlers/commands/bountyRun");
-const b = (n) => Array.from({ length: n }, (_, i) => ({ userId: `f${i}`, charName: `F${i}` }));
+// 14. Whole-roster paste — the one thing everyone does, once, on Saturday.
+const { parseRoster, matchName } = require("./bounty");
 
-eq("14. fills empty seats to capacity", fillSeats([{ userId: "a" }], b(9), 8).length, 8);
-eq("14. stops when the bench runs dry", fillSeats([{ userId: "a" }], b(2), 8).length, 3);
-eq("14. never overfills a 4-cap variant", fillSeats([], b(9), 4).length, 4);
-eq("14. a full party pulls nobody", fillSeats(b(8), b(4), 8).length, 8);
-check("14. promoted members carry no quest", fillSeats([], b(1), 8)[0].quest === null);
-// The bench is consumed, so the same person can't be promoted twice.
-const bench1 = b(3);
-fillSeats([], bench1, 2);
-eq("14. promoted members leave the bench", bench1.length, 1);
+const roster = parseRoster(`
+elestra: gdn cl u wep
+saint: ddn hc leg acc box
+elestra: memo 1 rl wtd
+adept
+badline: gdn zzz u wep
+`);
+eq("14. two characters recognised", roster.byChar.size, 2);
+eq("14. same character accumulates", roster.byChar.get("elestra").length, 2);
+eq("14. quest parsed under its character", roster.byChar.get("elestra")[0].poolKey, "gdn:classic");
+eq("14. second line keeps its own nest", roster.byChar.get("saint")[0].poolKey, "ddn:hc");
+check("14. card box survives the split", roster.byChar.get("saint")[0].box === true);
+eq("14. a line with no colon is an error", roster.errors.filter((e) => e.raw === "adept").length, 1);
+eq("14. a bad quest is an error, not a silent drop", roster.errors.length, 2);
+
+// Names are typed by hand, so one edit of slack — but not two characters apart.
+const names = ["Elestra", "Saint", "Adept"];
+eq("14. exact match ignores case", matchName("elestra", names), "Elestra");
+eq("14. one typo still matches", matchName("elestrs", names), "Elestra");
+eq("14. a different name does not", matchName("Zephyr", names), null);
 
 // ─────────────────────────────────────────────────────────────────────────────
 console.log(`\n${pass} passed, ${fails.length} failed`);

@@ -276,6 +276,49 @@ function parseQuestLine(raw) {
   return { raw, poolKey, rarity, scroll, box };
 }
 
+// Whole-roster paste: one line per quest, character before the colon.
+//
+//   elestra: gdn cl u wep
+//   saint:   ddn hc leg acc box
+//
+// This is the shape of the real task — on Saturday you read the in-game board
+// top to bottom once and type it all out, rather than running a command per
+// character.
+function parseRoster(text) {
+  const byChar = new Map();
+  const errors = [];
+
+  for (const line of String(text || "").split(/\n+/).map((s) => s.trim()).filter(Boolean)) {
+    const m = line.match(/^([^:]+):\s*(.+)$/);
+    if (!m) {
+      errors.push({ raw: line, error: "no character name", hint: "`nama: gdn cl u wep`" });
+      continue;
+    }
+    const quest = parseQuestLine(m[2]);
+    if (quest.error) {
+      errors.push({ ...quest, raw: line });
+      continue;
+    }
+    const name = m[1].trim();
+    if (!byChar.has(name)) byChar.set(name, []);
+    byChar.get(name).push(quest);
+  }
+
+  return { byChar, errors };
+}
+
+// Roster names are typed by hand, so an exact match first and then one edit's
+// worth of slack. Beyond that it's a different character, not a typo.
+function matchName(input, names) {
+  const want = lc(input);
+  const exact = names.find((n) => lc(n) === want);
+  if (exact) return exact;
+  const near = names
+    .map((n) => ({ n, d: levenshtein(want, lc(n)) }))
+    .sort((a, b) => a.d - b.d)[0];
+  return near && near.d <= 2 ? near.n : null;
+}
+
 // Split on newlines and pipes, same as the loot panel's item input.
 // Exact repeats are dropped rather than stored twice — a duplicate line is a
 // double paste far more often than it is two real quests.
@@ -632,6 +675,8 @@ module.exports = {
   validateData,
   parseQuestLine,
   parseQuestLines,
+  parseRoster,
+  matchName,
   suggestVariants,
   collapsePhrases,
   collapse,

@@ -2,12 +2,8 @@ const { handleRemoveMemberSelect } = require("./removeMember");
 const { handleSubRoleSelect } = require("./subRoleSelect");
 const { handleLootSelect } = require("./loot");
 const { handleCombinedPaySelect } = require("../commands/combinedPay");
-const { handleBountyCharSelect } = require("../commands/bountyQuest");
 
 async function handleSelectMenu(interaction) {
-  if (interaction.customId.startsWith("bounty-sel:quest-char")) {
-    return handleBountyCharSelect(interaction);
-  }
   if (interaction.customId.startsWith("gab:")) {
     return handleCombinedPaySelect(interaction);
   }

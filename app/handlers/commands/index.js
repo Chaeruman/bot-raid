@@ -13,10 +13,8 @@ const { handleLz } = require("./lz");
 const { handleLzNow } = require("./lzNow");
 const { handleSoundboardList } = require("./soundboardList");
 const { handleBountyChar } = require("./bountyChar");
-const { handleBountyQuest } = require("./bountyQuest");
 const { handleBountyMe } = require("./bountyMe");
-const { handleBountyPlan, handleBountyNeed } = require("./bountyPlan");
-const { handleBountyRun } = require("./bountyRun");
+const { handleBounty } = require("./bounty");
 
 const commandHandlers = {
   start:    handleStart,
@@ -34,11 +32,8 @@ const commandHandlers = {
   "lz-now": handleLzNow,
   "soundboard-list": handleSoundboardList,
   "bounty-char": handleBountyChar,
-  "bounty-quest": handleBountyQuest,
   "bounty-me": handleBountyMe,
-  "bounty-plan": handleBountyPlan,
-  "bounty-need": handleBountyNeed,
-  "bounty-run": handleBountyRun,
+  bounty: handleBounty,
 };
 
 async function handleCommand(interaction) {

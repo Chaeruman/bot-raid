@@ -19,6 +19,8 @@ let bountyReminderLastSent = 0; // same idea, for the Friday pre-reset ping
 // in the single state doc rather than earning a collection of their own.
 const bountyThreads = {}; // userId → permanent private thread
 const bountyWeekThreads = {}; // weekKey → public weekly thread
+// `${weekKey}:${poolKey}` → { messageId, channelId, fillers[], runId }
+const bountyCards = {};
 
 // Connect to MongoDB and hydrate in-memory state. Call once before login.
 async function loadState() {
@@ -45,6 +47,7 @@ async function loadState() {
     Object.assign(activeLootPanels, doc.activeLootPanels || {});
     Object.assign(bountyThreads, doc.bountyThreads || {});
     Object.assign(bountyWeekThreads, doc.bountyWeekThreads || {});
+    Object.assign(bountyCards, doc.bountyCards || {});
     digestLastSent = doc.digestLastSent || 0;
     lzDigestLastSent = doc.lzDigestLastSent || 0;
     bountyReminderLastSent = doc.bountyReminderLastSent || 0;
@@ -66,6 +69,7 @@ function saveState() {
         activeLootPanels,
         bountyThreads,
         bountyWeekThreads,
+        bountyCards,
         digestLastSent,
         lzDigestLastSent,
         bountyReminderLastSent,
@@ -239,6 +243,7 @@ module.exports = {
   setLzDigestLastSent,
   bountyThreads,
   bountyWeekThreads,
+  bountyCards,
   getBountyReminderLastSent,
   setBountyReminderLastSent,
   getChars,

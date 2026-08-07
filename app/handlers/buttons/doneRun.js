@@ -16,10 +16,6 @@ async function handleDoneRun(interaction, event) {
   delete activeEvents[event.messageId];
   saveState();
 
-  if (event.bounty) {
-    return require("../commands/bountyRun").finishBountyRun(interaction, event);
-  }
-
   if (event.noThread) {
     return interaction.message.edit({
       content: `✅ **${event.title}** completed!`,
