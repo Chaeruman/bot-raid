@@ -226,9 +226,11 @@ function parseQuestLine(raw) {
   if (extra.length)
     return { raw, error: `two values for the same thing — "${spell(extra[0])}" is one too many` };
 
-  // Resolve nest + variant into the pool key. Ambiguity is reported with the
-  // exact words to add rather than opening a picker: quests are 1-3 lines a
-  // week, so retyping one line beats a stateful resolve flow (arch §7).
+  // Resolve nest + variant into the pool key. Where the answer is one of a
+  // known few, the error carries `candidates` so the caller can offer them as a
+  // picker instead of a sentence — rarity and scroll are already parsed above,
+  // so each candidate is a COMPLETE quest and nothing has to be stored while
+  // someone decides.
   let poolKey = null;
   if (nestKey && variantWord) {
     const variantKey = VARIANT_BY_NEST.get(nestKey)?.get(variantWord);
@@ -237,6 +239,8 @@ function parseQuestLine(raw) {
         raw,
         error: `"${spell(variantWord)}" is not a variant of ${NEST_NAME.get(nestKey)}`,
         hint: `try: ${variantsOfNest(nestKey).map((v) => v.label).join(", ")}`,
+        candidates: variantsOfNest(nestKey).map((v) => v.poolKey),
+        rarity, scroll, box,
       };
     poolKey = `${nestKey}:${variantKey}`;
   } else if (variantWord) {
@@ -247,6 +251,8 @@ function parseQuestLine(raw) {
         raw,
         error: `"${spell(variantWord)}" belongs to ${owners.length} nests — which one?`,
         hint: `add a nest: ${[...new Set(owners.map((v) => v.nestAliases[0]))].join(", ")}`,
+        candidates: owners.map((v) => v.poolKey),
+        rarity, scroll, box,
       };
     }
   } else if (nestKey) {
@@ -257,6 +263,8 @@ function parseQuestLine(raw) {
         raw,
         error: `which ${NEST_NAME.get(nestKey)}?`,
         hint: `add a variant: ${vs.map((v) => v.label).join(", ")}`,
+        candidates: vs.map((v) => v.poolKey),
+        rarity, scroll, box,
       };
   } else {
     return { raw, error: "no nest here", hint: "a line looks like `ddn hc u wep`" };

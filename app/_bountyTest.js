@@ -652,8 +652,22 @@ const roster = (n) =>
   Array.from({ length: n }, (_, i) => ({ name: `Char${i}`, role: "FU", dpsTier: "high" }));
 
 const m32 = buildQuestModal(roster(2)).toJSON();
-eq("32. the character is a select inside the modal", m32.components[0].component.type, 3);
-eq("32. and the quests are a text input", m32.components[1].component.type, 4);
+eq("32. the fields",
+  m32.components.map((c) => c.component.custom_id).join(","), "char,pool,rarity,scroll,lines");
+eq("32. exactly Discord's five", m32.components.length, 5);
+// Only the character is compulsory: the dropdowns cover one quest and the box
+// covers the rest, and someone fluent uses only the box.
+eq("32. only the character is required",
+  m32.components.filter((c) => c.component.required !== false).map((c) => c.component.custom_id).join(","),
+  "char");
+// Card box folded into rarity is what frees the fifth slot for the text field.
+eq("32. rarity carries the card box", m32.components[2].component.options.length, 6);
+check("32. as its own option",
+  m32.components[2].component.options.some((o) => o.label === "Legendary + card box"));
+// A select takes 25 options. Enabling a nest that pushes past it would silently
+// drop dungeons off the end of the list rather than fail.
+check("32. every dungeon fits in one select", VARIANT_LIST.length <= 25, `${VARIANT_LIST.length} variants`);
+eq("32. and they are all offered", m32.components[1].component.options.length, VARIANT_LIST.length);
 
 // No name in the customId — that is what ended the "names may contain ':'"
 // parsing, so a character called "a:b" can no longer confuse the handler.
@@ -912,6 +926,102 @@ pending.push((async () => {
   cfg38.bountyMeChannelId = was;
   delete bountyEntry.messageId;
 })());
+
+
+// 39. The three dropdowns are ONE quest between them. A dungeon with no rarity
+//     is not half a quest, it is an unanswerable one — and saving it would put a
+//     quest on someone's board that pays nothing and can never be matched.
+const { handleBountyQuestModal } = require("./handlers/modals/bountyQuest");
+
+const questModalInt = (picks, lines = "") => {
+  const seen = {};
+  return {
+    seen,
+    customId: `${MODAL_PREFIX}a`,
+    user: { id: "u39" },
+    client: {},
+    isFromMessage: () => false,
+    fields: {
+      getStringSelectValues: (id) => (id === "char" ? ["Chelssea"] : picks[id] ? [picks[id]] : []),
+      getTextInputValue: () => lines,
+    },
+    reply: async (o) => { seen.reply = o.content; },
+  };
+};
+
+pending.push((async () => {
+  const half = questModalInt({ pool: "gdn:hc" });
+  await handleBountyQuestModal(half);
+  check("39. a dungeon alone is refused", /Kurang/.test(half.seen.reply || ""));
+  check("39. naming what is missing",
+    half.seen.reply.includes("Rarity") && half.seen.reply.includes("Scroll"));
+
+  const noScroll = questModalInt({ pool: "gdn:hc", rarity: "legendary" });
+  await handleBountyQuestModal(noScroll);
+  check("39. two of three is still refused", /Kurang/.test(noScroll.seen.reply || ""));
+  check("39. and only the missing one is named",
+    noScroll.seen.reply.includes("Scroll") && !noScroll.seen.reply.includes("Rarity"));
+
+  // All three, or none at all — typing alone has to keep working untouched.
+  // Mongo is not connected here, so an accepted quest lands on the storage
+  // guard — and reaching that guard is itself the proof, since only a quest
+  // that made it into the save list can get there.
+  const stored = /Database tidak tersambung/;
+
+  const full = questModalInt({ pool: "gdn:hc", rarity: "legendary|box", scroll: "weapon" });
+  await handleBountyQuestModal(full);
+  check("39. all three builds a real quest", stored.test(full.seen.reply || ""), full.seen.reply);
+
+  const typed = questModalInt({}, "gdn cl u wep");
+  await handleBountyQuestModal(typed);
+  check("39. dropdowns left empty still lets you type", stored.test(typed.seen.reply || ""));
+
+  // Nothing anywhere is not an error, just nothing.
+  const blank = questModalInt({});
+  await handleBountyQuestModal(blank);
+  check("39. an empty submit says so quietly", /Nothing new to add/.test(blank.seen.reply || ""));
+})());
+
+
+// 40. Ambiguity is answered by picking, not by retyping. The option carries the
+//     WHOLE quest, so nothing is stored while the menu waits — a menu left
+//     unanswered for a week costs nothing and expires on its own.
+const { buildPickers, isFixable, FIX } = require("./handlers/modals/bountyQuest");
+
+const errs = (text) => parseQuestLines(text).errors;
+
+// "hc" is in three nests; the rest of the line is already known.
+const amb = errs("hc u wep")[0];
+check("40. an ambiguous nest is fixable", isFixable(amb));
+eq("40. with every candidate", amb.candidates.join(","), "ddn:hc,gdn:hc,sdn:hc");
+// A nest with no variant is the same shape of question.
+check("40. so is a missing variant", isFixable(errs("gdn u wep")[0]));
+// These have no shortlist to offer — a wrong token could mean anything, and a
+// missing rarity cannot be guessed from what is there.
+check("40. a bad token is not", !isFixable(errs("blah u wep")[0]));
+check("40. nor is a missing rarity", !isFixable(errs("gdn hc")[0]));
+
+const rows = buildPickers("Chelssea", errs("hc u wep\ngdn leg acc box\nblah u wep"));
+eq("40. one menu per fixable line", rows.length, 2);
+const sel0 = rows[0].toJSON().components[0];
+check("40. the failed line is the placeholder", sel0.placeholder.startsWith("hc u wep"));
+// The value is the answer itself, which is why no state is kept anywhere.
+eq("40. the option carries the whole quest", sel0.options[0].value, "ddn:hc|unique|weapon|0");
+// Card box is part of the line, and dropping it here would quietly pay less.
+// Both ambiguity branches carry it — an unknown nest and an unknown variant are
+// different code paths, and only one of them was covered when this was written.
+check("40. including the card box",
+  rows[1].toJSON().components[0].options.every((o) => o.value.endsWith("|1")));
+check("40. on the ambiguous-nest branch too",
+  buildPickers("x", errs("hc leg acc box"))[0].toJSON().components[0]
+    .options.every((o) => o.value.endsWith("|1")));
+// Names may contain ":", so the row index goes first and the name goes last.
+eq("40. each menu is addressable", sel0.custom_id, `${FIX}0:Chelssea`);
+check("40. and the name survives a colon in it",
+  buildPickers("a:b", errs("hc u wep"))[0].toJSON().components[0].custom_id.slice(FIX.length).split(":").slice(1).join(":") === "a:b");
+// Discord takes five action rows; a sixth would be rejected at send time.
+check("40. never more menus than a message can hold",
+  buildPickers("x", errs(Array(8).fill("hc u wep").join("\n"))).length <= 5);
 
 
 // A throw inside an async block would reject Promise.all and take the summary

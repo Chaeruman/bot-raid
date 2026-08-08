@@ -4,6 +4,9 @@ const { handleLootSelect } = require("./loot");
 const { handleCombinedPaySelect } = require("../commands/combinedPay");
 
 async function handleSelectMenu(interaction) {
+  if (interaction.customId.startsWith("bounty-fix:")) {
+    return require("./bountyFix").handleQuestFix(interaction);
+  }
   if (interaction.customId.startsWith("bounty-fin:pick:")) {
     return require("../../bountyJoin").handleCharPick(interaction);
   }
