@@ -1,7 +1,7 @@
 const { Client, GatewayIntentBits, MessageFlags } = require("discord.js");
 const config = require("./config");
 const { handleCommand } = require("./handlers/commands");
-const { handleButton } = require("./handlers/buttons");
+const { handleButton, EVENT_FREE } = require("./handlers/buttons");
 const { handleSelectMenu } = require("./handlers/selectMenus");
 const { handleModal } = require("./handlers/modals");
 const { handleAutocomplete } = require("./handlers/autocomplete");
@@ -36,11 +36,7 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isStringSelectMenu() || interaction.isUserSelectMenu())
       return await handleSelectMenu(interaction);
     if (interaction.isButton()) {
-      const isEventScoped =
-        !interaction.customId.startsWith("loot-btn:") &&
-        !interaction.customId.startsWith("bounty-fin:") &&
-        !interaction.customId.startsWith("gab-budget:") &&
-        !interaction.customId.startsWith("gab-paid-rec:");
+      const isEventScoped = !EVENT_FREE.some((p) => interaction.customId.startsWith(p));
       if (isEventScoped && !activeEvents[interaction.message.id]) {
         return interaction.reply({
           content: "❌ This panel is no longer active.",

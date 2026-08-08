@@ -17,20 +17,22 @@ const { handleLootButton } = require("./loot");
 const { handleGabBudgetButton } = require("./gabBudget");
 const { handleGabMarkPaidRec } = require("../commands/combinedPay");
 
+// Buttons whose panel is not an entry in activeEvents. index.js reads the keys
+// to know which ones to let through — every other button is answered with "this
+// panel is no longer active" before it ever reaches here, so a handler added
+// below without a key is dead on arrival. That is exactly how the bounty panel
+// shipped broken: the router kept its own copy of this list, and only that copy
+// was forgotten.
+const EVENT_FREE = {
+  "loot-btn:": (i) => handleLootButton(i),
+  "bounty-panel:": (i) => require("../../bountyPanel").handlePanelButton(i),
+  "gab-budget:": (i) => handleGabBudgetButton(i),
+  "gab-paid-rec:": (i) => handleGabMarkPaidRec(i),
+};
+
 async function handleButton(interaction) {
-  // Loot panel buttons are independent of activeEvents — handle them first
-  if (interaction.customId.startsWith("loot-btn:")) {
-    return handleLootButton(interaction);
-  }
-  if (interaction.customId.startsWith("bounty-panel:")) {
-    return require("../../bountyPanel").handlePanelButton(interaction);
-  }
-  if (interaction.customId.startsWith("gab-budget:")) {
-    return handleGabBudgetButton(interaction);
-  }
-  if (interaction.customId.startsWith("gab-paid-rec:")) {
-    return handleGabMarkPaidRec(interaction);
-  }
+  for (const [prefix, handler] of Object.entries(EVENT_FREE))
+    if (interaction.customId.startsWith(prefix)) return handler(interaction);
 
   const userId = interaction.user.id;
   const event = activeEvents[interaction.message.id];
@@ -112,4 +114,6 @@ async function handleButton(interaction) {
   }
 }
 
-module.exports = { handleButton };
+// The prefixes, not the map: index.js only needs to know which buttons to let
+// through, and deriving them here is what makes the two impossible to disagree.
+module.exports = { handleButton, EVENT_FREE: Object.keys(EVENT_FREE) };

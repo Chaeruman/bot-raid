@@ -683,6 +683,27 @@ pending.push((async () => {
 })());
 
 
+// 34. The panel's buttons have to survive the ROUTER, not just the handler.
+//     index.js answers "this panel is no longer active" for any button whose
+//     message is not an activeEvents entry, and a bounty panel never is — so a
+//     missing prefix made every button on it dead while the handler underneath
+//     was perfectly correct. Checking the handler alone would have passed.
+const { EVENT_FREE } = require("./handlers/buttons");
+const routerLetsThrough = (customId) => EVENT_FREE.some((p) => customId.startsWith(p));
+
+pending.push((async () => {
+  const ids = (await buildPanel("u1")).components
+    .flatMap((r) => r.toJSON().components)
+    .map((b) => b.custom_id);
+
+  eq("34. the panel has buttons to check", ids.length, 6);
+  check("34. every one of them reaches its handler", ids.every(routerLetsThrough), ids.find((i) => !routerLetsThrough(i)));
+  // The event-scoped default is what protects the raid panels, so it has to
+  // still say no to everything else.
+  check("34. and a raid button is still event-scoped", !routerLetsThrough("role_FU"));
+})());
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.
