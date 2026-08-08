@@ -16,29 +16,16 @@ const { MAX_SHARE_STACK, rankOf } = require("./data/bounty");
 // party holds — a 4-player nest cannot stack 6 because only 4 people can share.
 const stackCap = (event) => Math.min(event.maxSlot, MAX_SHARE_STACK);
 
-// Stacks are PER VARIANT. A marathon is two clears, so GDN HC and GDN CL each
-// get their own 6 — counting them against one shared cap would refuse quests
-// that fit fine.
-const stackedNow = (event, poolKey) =>
-  Object.values(event.users || {}).reduce((n, u) => n + ((u.bountyQuests || {})[poolKey] || 0), 0);
+// One cap for the whole run, even when it clears two variants. The 6 comes from
+// the WEEKLY CLAIM limit, and a marathon's two clears spend from that same
+// budget — so GDN HC and GDN CL share the 6 rather than getting one each.
+const stackedNow = (event) =>
+  Object.values(event.users || {}).reduce((n, u) => n + (u.bountyQuests || 0), 0);
 
-// What of a character's quests actually fits, per variant. `seat.bountyQuests`
-// is this map — quests past a cap were shared with nobody, so they must not be
-// marked done later.
-function fitToStack(event, quests) {
-  const cap = stackCap(event);
-  const want = {};
-  for (const q of quests) want[q.poolKey] = (want[q.poolKey] || 0) + 1;
-
-  const fit = {};
-  for (const [pool, n] of Object.entries(want)) {
-    const room = Math.max(0, cap - stackedNow(event, pool));
-    if (room) fit[pool] = Math.min(n, room);
-  }
-  return fit;
-}
-
-const totalOf = (map) => Object.values(map || {}).reduce((a, b) => a + b, 0);
+// How many of a character's quests actually fit. Quests past the cap were
+// shared with nobody, so they must not be marked done later.
+const fitToStack = (event, quests) =>
+  Math.max(0, Math.min(quests.length, stackCap(event) - stackedNow(event)));
 
 const PICK = "bounty-fin:pick"; // + :<eventMessageId>:<slotKey>
 const JOIN = "bounty-join"; // closed-to-bounty panels: one button instead of roles
@@ -189,13 +176,13 @@ async function handleCharPick(interaction) {
   const msg = await interaction.channel.messages.fetch(messageId).catch(() => null);
   if (msg) await require("./builders/content").updateMessage(msg, event);
 
-  const fitted = totalOf(seat.bountyQuests);
+  const fitted = seat.bountyQuests;
   const wasted = (mine?.quests.length || 0) - fitted;
   return interaction.update({
     content:
       `🎯 **${charName}** masuk party` +
       (fitted ? ` — ${fitted} quest masuk stack.` : " sebagai numpang.") +
-      (wasted ? ` ⚠️ ${wasted} quest-mu tidak muat (stack maks ${stackCap(event)} per varian) — tetap di board.` : ""),
+      (wasted ? ` ⚠️ ${wasted} quest-mu tidak muat (stack maks ${stackCap(event)}) — tetap di board.` : ""),
     components: [],
   });
 }
@@ -277,7 +264,7 @@ async function markPartyDone(client, event) {
 
   const wk = weekKey();
   const cap = stackCap(event);
-  const stacked = {}; // poolKey → how many are already in that variant's stack
+  let stacked = 0;
   let marked = 0;
   const unsure = [];
   const overflow = [];
@@ -294,18 +281,11 @@ async function markPartyDone(client, event) {
       continue;
     }
 
-    // Only what fit, per variant. A quest past its variant's cap was shared
-    // with nobody, so it stays on the board — marking it would hand out a
-    // reward that was never received.
-    const take = {};
-    for (const q of pick.quests) {
-      const used = stacked[q.poolKey] || 0;
-      if (used >= cap) continue;
-      stacked[q.poolKey] = used + 1;
-      take[q.poolKey] = (take[q.poolKey] || 0) + 1;
-    }
-    if (totalOf(take) < pick.quests.length) overflow.push(userId);
-    if (!totalOf(take)) continue;
+    // Only what fit. A quest past the cap was shared with nobody, so it stays
+    // on the board — marking it would hand out a reward nobody received.
+    const take = Math.min(pick.quests.length, cap - stacked);
+    if (take < pick.quests.length) overflow.push(userId);
+    if (take <= 0) continue;
 
     const doc = await getBountyWeek(userId, wk);
     // Best first, so a partial stack takes the valuable quests.
@@ -314,12 +294,11 @@ async function markPartyDone(client, event) {
       .sort((a, b) => rankOf(b) - rankOf(a));
 
     let n = 0;
-    for (const q of board) {
-      if (!take[q.poolKey]) continue;
-      take[q.poolKey]--;
+    for (const q of board.slice(0, take)) {
       q.runId = event.messageId;
       n++;
     }
+    stacked += n;
     if (n) {
       await saveBountyWeek(doc);
       marked += n;

@@ -1,4 +1,5 @@
 const { MessageFlags } = require("discord.js");
+const config = require("../../config");
 const { getChars, saveChars } = require("../../state");
 const { DPS_TIERS } = require("../../data/bounty");
 
@@ -13,9 +14,21 @@ const same = (a, b) => a.toLowerCase() === b.toLowerCase();
 const reply = (interaction, content) =>
   interaction.reply({ content: content.slice(0, 2000), flags: MessageFlags.Ephemeral });
 
+// Invite-only, but only if you set the role. Unset means open to everyone —
+// so the gate never silently locks people out of a bot that never had one.
+const isHunter = (interaction) =>
+  !config.bountyHunterRoleId ||
+  interaction.member?.roles?.cache?.has(config.bountyHunterRoleId) === true;
+
+const notHunter =
+  "🎯 Fitur bounty khusus **Bounty Hunter**. Ajukan dulu dengan `/bounty-char apply`.";
+
 async function handleBountyChar(interaction) {
   switch (interaction.options.getSubcommand()) {
+    case "apply":
+      return applyHunter(interaction);
     case "add":
+      if (!isHunter(interaction)) return reply(interaction, notHunter);
       return addChar(interaction);
     case "list":
       return listChars(interaction);
@@ -99,6 +112,32 @@ async function removeChar(interaction) {
   );
 }
 
+// The bot only carries the request — the role is granted by hand, so nothing
+// here needs Manage Roles.
+async function applyHunter(interaction) {
+  if (!config.bountyHunterRoleId)
+    return reply(interaction, "Belum ada role Bounty Hunter di server ini — semua orang sudah bisa pakai.");
+  if (isHunter(interaction)) return reply(interaction, "Kamu sudah Bounty Hunter. 🎯");
+  if (!config.bountyAdminChannelId)
+    return reply(interaction, "⚠️ `BOUNTY_ADMIN_CHANNEL_ID` belum diset — pengajuan tidak bisa dikirim.");
+
+  const channel = await interaction.client.channels
+    .fetch(config.bountyAdminChannelId)
+    .catch(() => null);
+  if (!channel) return reply(interaction, "⚠️ Channel admin tidak ditemukan.");
+
+  const chars = await getChars(interaction.user.id);
+  await channel.send({
+    content:
+      `🎯 <@${interaction.user.id}> mengajukan diri jadi **Bounty Hunter** ` +
+      `(${chars.length} karakter terdaftar).
+Kasih role <@&${config.bountyHunterRoleId}> kalau setuju.`,
+    allowedMentions: { parse: [] },
+  });
+
+  return reply(interaction, "✅ Pengajuanmu dikirim ke admin. Tunggu role-nya dipasang.");
+}
+
 async function autocompleteBountyChar(interaction) {
   const focused = interaction.options.getFocused().toLowerCase();
   const chars = await getChars(interaction.user.id);
@@ -109,4 +148,4 @@ async function autocompleteBountyChar(interaction) {
   return interaction.respond(hits);
 }
 
-module.exports = { handleBountyChar, autocompleteBountyChar };
+module.exports = { handleBountyChar, autocompleteBountyChar, isHunter, notHunter };

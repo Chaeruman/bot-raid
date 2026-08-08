@@ -55,6 +55,10 @@ function buildCharSelect(chars) {
 }
 
 async function handleBountyQuest(interaction) {
+  const { isHunter, notHunter } = require("./bountyChar");
+  if (!isHunter(interaction))
+    return interaction.reply({ content: notHunter, flags: MessageFlags.Ephemeral });
+
   const chars = await getChars(interaction.user.id);
   if (!chars.length)
     return interaction.reply({

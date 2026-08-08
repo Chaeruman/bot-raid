@@ -278,6 +278,9 @@ const commands = [
           o.setName("job").setDescription("In-game class (optional)").setMaxLength(32),
         ),
     )
+    .addSubcommand((s) =>
+      s.setName("apply").setDescription("Ajukan diri jadi Bounty Hunter — dikirim ke admin"),
+    )
     .addSubcommand((s) => s.setName("list").setDescription("Show your characters"))
     .addSubcommand((s) =>
       s

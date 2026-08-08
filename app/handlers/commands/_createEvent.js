@@ -1,7 +1,8 @@
 const { MessageFlags } = require("discord.js");
 const templates = require("../../templates");
 const { activeEvents, saveState } = require("../../state");
-const { updateMessage } = require("../../builders/content");
+const config = require("../../config");
+const { updateMessage, buildSignupEmbed } = require("../../builders/content");
 
 async function createEvent(interaction, templateKey, labelOverride = null) {
   console.log(`[createEvent] called with templateKey=${templateKey}`);
@@ -62,13 +63,37 @@ async function createEvent(interaction, templateKey, labelOverride = null) {
     locked: false,
   };
 
-  const msg = await interaction.channel.send({ content: "Loading…" });
+  // 8 players is a raid, 4 is a nest. Unset env vars keep the panel where the
+  // command was typed, so nothing breaks before the channels exist.
+  const targetId =
+    template.maxSlot >= 8 ? config.publicRaidChannelId : config.publicNestChannelId;
+  const target =
+    (targetId && (await interaction.client.channels.fetch(targetId).catch(() => null))) ||
+    interaction.channel;
+
+  const msg = await target.send({ content: "Loading…" });
   event.messageId = msg.id;
+
+  // A live preview in the command channel, so #public-raid stays panels-only
+  // while people still see the party fill from where they talk.
+  if (target.id !== interaction.channel.id) {
+    event.panelUrl = msg.url;
+    const preview = await interaction.channel
+      .send({ embeds: [buildSignupEmbed(event, true)] })
+      .catch(() => null);
+    if (preview) {
+      event.previewMessageId = preview.id;
+      event.previewChannelId = preview.channelId;
+    }
+  }
+
   activeEvents[msg.id] = event;
   saveState();
 
   await updateMessage(msg, event);
-  return interaction.editReply(`**${event.title}** started!`);
+  return interaction.editReply(
+    `**${event.title}** started!` + (target.id !== interaction.channel.id ? ` → <#${target.id}>` : ""),
+  );
 }
 
 module.exports = { createEvent };

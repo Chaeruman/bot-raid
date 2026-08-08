@@ -541,9 +541,9 @@ const { buildSignupEmbed: sEmbed } = require("./builders/content");
 const stackPanel = (maxSlot, per, pools = ["gdn:classic"]) => ({
   messageId: "m", hostId: "h", title: "t", maxSlot, locked: false,
   poolKeys: pools, roles: {},
-  users: Object.fromEntries(per.map((q, i) => [`u${i}`, { slot: "FU", bountyQuests: q }])),
+  users: Object.fromEntries(per.map((n, i) => [`u${i}`, { slot: "FU", bountyQuests: n }])),
 });
-const q1 = (n) => ({ "gdn:classic": n });
+const q1 = (n) => n;
 const stackLine = (ev) => sEmbed(ev).data.description.split("\n").find((l) => l.includes("Stack"));
 
 check("24. counts quests, not people", stackLine(stackPanel(8, [q1(2), q1(1)])).includes("3/6"));
@@ -551,10 +551,11 @@ check("24. caps at 6 on an 8-player raid", stackLine(stackPanel(8, [q1(2), q1(2)
 // A 4-player nest can never stack 6 — only 4 people are there to share.
 check("24. a 4-player nest caps at 4", stackLine(stackPanel(4, [q1(2), q1(2), q1(2)])).includes("4/4"));
 check("24. empty party shows an empty stack", stackLine(stackPanel(8, [])).includes("0/6"));
-// A marathon is two clears, so HC and CL each get their own 6 — one shared cap
-// would refuse quests that fit fine.
-const mPanel = stackPanel(8, [{ "gdn:hc": 1, "gdn:classic": 1 }], tpls.marathon_gdn.poolKeys);
-check("24. marathon counts each variant on its own", stackLine(mPanel).includes("HC 1/6") && stackLine(mPanel).includes("Classic 1/6"));
+// A marathon clears two variants but spends ONE weekly claim budget, so both
+// count against the same 6 — showing 6 per variant would read as 12 available.
+const mPanel = stackPanel(8, [2, 1], tpls.marathon_gdn.poolKeys);
+check("24. marathon shares one cap, not one per variant", stackLine(mPanel).includes("3/6"));
+check("24. and never shows two caps", !stackLine(mPanel).includes("/6 ·"));
 check("24. a non-bounty panel has no stack line",
   !sEmbed({ ...stackPanel(8, [q1(1)]), poolKeys: null }).data.description.includes("Stack"));
 
@@ -573,6 +574,46 @@ check("25. the variant is named", mLines[0].includes("Green Dragon Nest HC"));
 check("25. and not named on a plain GDN HC run",
   !questLines([{ charName: "X", role: "FU", quests: [mQuests[0]] }], tpls.gdn_hc.poolKeys.length > 1)[0]
     .includes("Green Dragon Nest HC"));
+
+
+// 26. The Bounty Hunter gate. Unset role = open to everyone, so turning the
+//     feature on later never silently locks out people already using it.
+const { isHunter } = require("./handlers/commands/bountyChar");
+const cfg = require("./config");
+const member = (roles) => ({ member: { roles: { cache: new Set(roles) } } });
+
+const savedRole = cfg.bountyHunterRoleId;
+cfg.bountyHunterRoleId = null;
+check("26. no role configured means everyone passes", isHunter(member([])));
+cfg.bountyHunterRoleId = "R1";
+check("26. holder passes", isHunter({ member: { roles: { cache: new Map([["R1", {}]]) } } }));
+check("26. non-holder is refused", !isHunter({ member: { roles: { cache: new Map() } } }));
+check("26. no member object is refused, not crashed", !isHunter({}));
+cfg.bountyHunterRoleId = savedRole;
+
+
+// 27. Preview vs panel. The join link belongs only on the preview — the panel
+//     is what it points at.
+const { buildSignupEmbed: pEmbed, updatePreview, closePreview } = require("./builders/content");
+const pv = (over) => ({
+  messageId: "m", hostId: "h", title: "t", maxSlot: 8, locked: false,
+  roles: { FU: { max: 2, users: [] } }, users: {}, ...over,
+});
+
+check("27. panel has no join link", !pEmbed(pv({ panelUrl: "http://x" })).data.description.includes("Join di sini"));
+check("27. preview has one", pEmbed(pv({ panelUrl: "http://x" }), true).data.description.includes("Join di sini"));
+check("27. no link when the panel was not moved", !pEmbed(pv({}), true).data.description.includes("Join di sini"));
+
+// A missing preview must never take the panel down with it.
+(async () => {
+  const ev = pv({ previewMessageId: "gone", previewChannelId: "c" });
+  const msg = { client: { channels: { fetch: async () => { throw new Error("no access"); } } } };
+  await updatePreview(msg, ev);
+  check("27. a lost preview is forgotten, not thrown", ev.previewMessageId === null);
+  const ev2 = pv({ previewMessageId: "gone", previewChannelId: "c" });
+  await closePreview(msg, ev2, "done");
+  check("27. closing a lost preview is silent too", ev2.previewMessageId === null);
+})();
 
 
 console.log(`\n${pass} passed, ${fails.length} failed`);

@@ -4,6 +4,7 @@ const {
   buildSignupEmbed,
   buildThreadTitle,
   buildThreadContent,
+  closePreview,
 } = require("../../builders/content");
 const {
   buildLootEmbed,
