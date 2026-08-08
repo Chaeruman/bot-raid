@@ -104,8 +104,14 @@ async function handleBountyQuestModal(interaction) {
   // result underneath. From the slash command there is no panel to redraw.
   if (interaction.isFromMessage()) {
     await interaction.update(await require("../../bountyPanel").buildPanel(userId));
+    await require("../../bountyThread")
+      .refreshThread(interaction.client, userId, interaction.message?.id)
+      .catch(() => {});
     return interaction.followUp(payload);
   }
+  // From the slash command there is no panel here, but the one in their thread
+  // still has to stop showing quests they just replaced.
+  await require("../../bountyThread").refreshThread(interaction.client, userId).catch(() => {});
   return interaction.reply(payload);
 }
 

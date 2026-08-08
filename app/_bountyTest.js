@@ -586,13 +586,13 @@ const fakeInt = () => {
 pending.push((async () => {
   const empty = fakeInt();
   await saveChar(empty, false, { name: "  ", role: "Acro", dpsTier: "a", account: "1" });
-  check("31. saveChar validates the name it was handed", empty.seen.content.includes("cannot be empty"));
+  check("31. saveChar validates the name it was handed", empty.seen.content.includes("tidak boleh kosong"));
 
   // Mongo is not connected here, so a valid write lands on the storage guard —
   // reaching it at all proves the supplied values passed every check above it.
   const good = fakeInt();
   await saveChar(good, false, { name: "ChelseaQT", role: "Acro", dpsTier: "a", account: "1" });
-  check("31. saveChar reads values, not options", good.seen.content.includes("MongoDB is not configured"));
+  check("31. saveChar reads values, not options", good.seen.content.includes("Database tidak tersambung"));
 
   const rm = fakeInt();
   await removeChar(rm, "ChelseaQT");
@@ -735,6 +735,52 @@ check("35. same on edit", ["account", "accountNew"].every((f) => optional(editMo
 check("35. every modal stays within 5 fields",
   [addModal("u", noAcc), addModal("u", twoAcc), editModal("u", twoAcc)].every(
     (m) => m.toJSON().components.length <= 5));
+
+
+// 36. The thread that hosts the panel. Everything here fails silently in
+//     production if it is wrong: a stale panel still renders, an archived
+//     thread still opens, and a forgotten router prefix still shows buttons.
+const { wake, liveThread, refreshThread, NEW } = require("./bountyThread");
+const { bountyThreads } = require("./state");
+
+check("36. the entry button reaches its handler", routerLetsThrough(NEW), NEW);
+
+const fakeThread = (over = {}) => {
+  const t = { archived: false, setArchived: async (v) => { t.archived = v; t.woken = true; }, isThread: () => true };
+  return Object.assign(t, over);
+};
+
+pending.push((async () => {
+  // A button click does not wake an archived thread by itself, and the edit
+  // that follows would fail — leaving a panel that looks fine and will not
+  // change.
+  const sleeping = fakeThread({ archived: true });
+  await wake(sleeping);
+  check("36. an archived thread is opened before writing", sleeping.archived === false);
+
+  const awake = fakeThread();
+  await wake(awake);
+  check("36. an open one is left alone", !awake.woken);
+  await wake(undefined); // the panel also lives in ephemeral replies, which have no thread
+  check("36. and a non-thread channel is not an error", true);
+
+  // A thread deleted by hand must be forgotten, not retried forever.
+  bountyThreads["gone"] = { threadId: "t1", messageId: "m1" };
+  const dead = { channels: { fetch: async () => { throw new Error("Unknown Channel"); } } };
+  eq("36. a deleted thread resolves to nothing", await liveThread(dead, "gone"), null);
+  check("36. and is dropped from state", !bountyThreads["gone"]);
+
+  // The interaction already redrew this message; doing it again is a wasted
+  // edit on the message the user is looking at.
+  bountyThreads["skip"] = { threadId: "t2", messageId: "m2" };
+  let touched = false;
+  const watcher = { channels: { fetch: async () => { touched = true; return null; } } };
+  await refreshThread(watcher, "skip", "m2");
+  check("36. refreshing skips the message just updated", !touched);
+  await refreshThread(watcher, "nobody");
+  check("36. and does nothing for someone with no thread", !touched);
+  delete bountyThreads["skip"];
+})());
 
 
 // A throw inside an async block would reject Promise.all and take the summary

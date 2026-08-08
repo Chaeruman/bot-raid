@@ -1,14 +1,16 @@
 # 🎯 Group Bounty — Command
 
+Semua ini juga ada tombolnya di thread pribadimu — command cuma cadangan.
+
 | Command | Buat apa |
 |---|---|
-| `/bounty-char add` | Daftar char baru. Butuh `name` `role` `dps` `account`. |
+| `/bounty-char add` | Daftar char baru. `account` opsional. |
 | `/bounty-char edit` | Ubah char yang udah ada. Isi yang mau diganti aja. |
 | `/bounty-char list` | Lihat char kamu. |
 | `/bounty-char remove` | Hapus char. |
 | `/bounty-char apply` | Ajukan role Bounty Hunter ke admin (kalau server-nya ngunci fitur ini). |
 | `/bounty` | Catat quest minggu ini. Char-nya dipilih di dalam form. Tambah `replace:true` kalau mau ulang dari nol. |
-| `/bounty-me` | Quest kamu, sisa claim, reward yang udah dapet. |
+| `/bounty-me` | Panel kamu — karakter, quest, reward. Semua aksinya tombol. |
 | `closed_to_bounty:true` | Option di `/raid` `/start` `/marathon` `/memo` `/nest`. Bikin party khusus bounty. |
 
 ## Nulis quest — 1 baris 1 quest
@@ -19,6 +21,11 @@ memo 1 rl wtd         Memoria 1 (nggak usah tulis ddn) · rare legendary
 ```
 Urutan bebas. Rarity `u` `leg` `rl` · scroll `wep` `wtd` `acc` `arm` · card box `box`.
 Salah ketik nest → bot kasih tebakan. Lupa varian → bot nanya.
+
+## Thread pribadi — cara paling gampang
+Di `#bounty-me` ada satu tombol **🎯 Buat thread bounty-ku**. Pencet sekali, thread-mu nongol di daftar kiri dan isinya sudah lengkap: karakter, quest minggu ini, sisa claim, plus tombol buat semuanya. Nggak perlu hafal command lagi.
+
+Cuma kamu dan moderator yang bisa lihat. Tombol orang lain nggak bisa kamu pencet.
 
 ## Yang jalan sendiri
 - **Board** di `#bounty-board` — muncul tiap Sabtu 08:00, update tiap ada yang ngisi. Cuma buat dilihat, nggak ada tombol.

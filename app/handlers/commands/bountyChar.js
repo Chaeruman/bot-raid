@@ -64,16 +64,16 @@ async function saveChar(interaction, mustExist, values = fromOptions(interaction
   const job = norm(values.job);
   const dpsTier = values.dpsTier;
 
-  if (!name) return reply(interaction, "❌ Name cannot be empty.");
-  if (name.length > MAX_NAME) return reply(interaction, `❌ Name is too long (max ${MAX_NAME}).`);
+  if (!name) return reply(interaction, "❌ Nama karakter tidak boleh kosong.");
+  if (name.length > MAX_NAME) return reply(interaction, `❌ Nama kepanjangan (maks ${MAX_NAME} huruf).`);
 
   const chars = await getChars(interaction.user.id);
   const existing = chars.find((c) => same(c.name, name));
 
   if (mustExist && !existing)
-    return reply(interaction, `❌ Tidak ada karakter **${name}**. Daftarkan dulu: \`/bounty-char add\`.`);
+    return reply(interaction, `❌ Tidak ada karakter **${name}** — mungkin baru dihapus.`);
   if (!mustExist && existing)
-    return reply(interaction, `❌ **${existing.name}** sudah terdaftar. Ubah dengan \`/bounty-char edit\`.`);
+    return reply(interaction, `❌ **${existing.name}** sudah terdaftar — ubah karakternya, jangan tambah lagi.`);
 
   // Reuse the existing spelling when it only differs by case or spacing —
   // "Akun 1" and "akun 1" splitting into two accounts is a silent wrong answer,
@@ -94,12 +94,12 @@ async function saveChar(interaction, mustExist, values = fromOptions(interaction
     if (account) existing.account = account;
     if (job) existing.job = job; // don't wipe the planner's class on edit
   } else {
-    if (chars.length >= MAX_CHARS) return reply(interaction, `❌ Roster is full (${MAX_CHARS}).`);
+    if (chars.length >= MAX_CHARS) return reply(interaction, `❌ Roster penuh (maks ${MAX_CHARS} karakter).`);
     chars.push({ name, role, dpsTier, account, ...(job ? { job } : {}) });
   }
 
   if (!(await saveChars(interaction.user.id, chars)))
-    return reply(interaction, "⚠️ MongoDB is not configured — nothing was saved.");
+    return reply(interaction, "⚠️ Database tidak tersambung — tidak ada yang tersimpan.");
 
   const saved = existing || chars[chars.length - 1];
   return reply(
@@ -114,15 +114,15 @@ async function saveChar(interaction, mustExist, values = fromOptions(interaction
 async function listChars(interaction) {
   const chars = await getChars(interaction.user.id);
   if (!chars.length)
-    return reply(interaction, "No characters yet. Add one with `/bounty-char add`.");
+    return reply(interaction, "Belum ada karakter. Bikin panel-mu dengan `/bounty-me`.");
 
   const lines = chars.map(
     (c) =>
-      `• **${c.name}** — ${c.role || "no role set"} · ` +
-      `${DPS_TIERS[c.dpsTier] || "no DPS tier set"}` +
+      `• **${c.name}** — ${c.role || "belum ada role"} · ` +
+      `${DPS_TIERS[c.dpsTier] || "belum ada tier"}` +
       `${c.account ? ` · akun ${c.account}` : ""}${c.job ? ` · ${c.job}` : ""}`,
   );
-  return reply(interaction, `**Your characters (${chars.length})**\n${lines.join("\n")}`);
+  return reply(interaction, `**Karaktermu (${chars.length})**\n${lines.join("\n")}`);
 }
 
 // Same deal as saveChar: the panel's delete arrives from a select menu, not an
@@ -132,18 +132,18 @@ async function removeChar(interaction, rawName = interaction.options.getString("
   const chars = await getChars(interaction.user.id);
   const idx = chars.findIndex((c) => same(c.name, name));
 
-  if (idx === -1) return reply(interaction, `❌ No character named **${name}**.`);
+  if (idx === -1) return reply(interaction, `❌ Tidak ada karakter **${name}**.`);
 
   const [gone] = chars.splice(idx, 1);
   if (!(await saveChars(interaction.user.id, chars)))
-    return reply(interaction, "⚠️ MongoDB is not configured — nothing was saved.");
+    return reply(interaction, "⚠️ Database tidak tersambung — tidak ada yang tersimpan.");
 
   // This week's quests are keyed by character name and are left alone on
   // purpose: removing a character is usually a typo fix or a rename, and
   // deleting recorded claims would lose real history to a mistake.
   return reply(
     interaction,
-    `🗑️ Removed **${gone.name}**. Quests already recorded this week are kept.`,
+    `🗑️ **${gone.name}** dihapus. Quest yang sudah tercatat minggu ini tetap disimpan.`,
   );
 }
 

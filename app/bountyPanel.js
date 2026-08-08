@@ -205,6 +205,10 @@ async function handlePanelButton(interaction) {
   const { action, ownerId, mine } = owner(interaction);
   if (!mine) return ephemeral(interaction, "Ini panel orang lain — bikin punyamu sendiri dengan `/bounty-me`.");
 
+  // The panel may be sitting in a thread that archived itself. Editing a
+  // message in one fails, so the panel would look fine and refuse to change.
+  await require("./bountyThread").wake(interaction.channel);
+
   if (action === "refresh") return interaction.update(await buildPanel(ownerId));
   if (action === "quest" || action === "replace")
     return require("./handlers/commands/bountyQuest").openQuestModal(interaction, action === "replace");
@@ -248,6 +252,7 @@ const one = (interaction, id) => {
 async function handlePanelModal(interaction) {
   const { action, ownerId, mine } = owner(interaction);
   if (!mine) return ephemeral(interaction, "Ini panel orang lain.");
+  await require("./bountyThread").wake(interaction.channel);
 
   const { saveChar, removeChar } = require("./handlers/commands/bountyChar");
   const proxy = capture(interaction);
@@ -264,6 +269,14 @@ async function handlePanelModal(interaction) {
     });
 
   await interaction.update(await buildPanel(ownerId));
+
+  // The same person can have two panels open: this one, and the permanent one
+  // in their thread. Whichever was not just updated is now showing stale data
+  // in the place they go to trust it.
+  await require("./bountyThread")
+    .refreshThread(interaction.client, ownerId, interaction.message?.id)
+    .catch((err) => console.error(`❌ refreshThread (${ownerId}):`, err.message));
+
   if (proxy.box.content)
     return interaction.followUp({ content: proxy.box.content, flags: MessageFlags.Ephemeral });
 }

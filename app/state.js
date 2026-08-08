@@ -17,8 +17,9 @@ let bountyReminderLastSent = 0; // same idea, for the Friday pre-reset ping
 
 // Group Bounty thread ids. Tiny and bounded by member count, so they ride along
 // in the single state doc rather than earning a collection of their own.
-const bountyThreads = {}; // userId → permanent private thread
-const bountyWeekThreads = {}; // weekKey → public weekly thread
+const bountyThreads = {}; // userId → { threadId, messageId } of their panel
+// The one pinned "make my thread" message: { messageId }
+const bountyEntry = {};
 // The one weekly board message: { messageId, channelId, weekKey }
 const bountyBoard = {};
 
@@ -46,7 +47,7 @@ async function loadState() {
     Object.assign(activeEvents, doc.activeEvents || {});
     Object.assign(activeLootPanels, doc.activeLootPanels || {});
     Object.assign(bountyThreads, doc.bountyThreads || {});
-    Object.assign(bountyWeekThreads, doc.bountyWeekThreads || {});
+    Object.assign(bountyEntry, doc.bountyEntry || {});
     Object.assign(bountyBoard, doc.bountyBoard || {});
     digestLastSent = doc.digestLastSent || 0;
     lzDigestLastSent = doc.lzDigestLastSent || 0;
@@ -68,7 +69,7 @@ function saveState() {
         activeEvents,
         activeLootPanels,
         bountyThreads,
-        bountyWeekThreads,
+        bountyEntry,
         bountyBoard,
         digestLastSent,
         lzDigestLastSent,
@@ -242,7 +243,7 @@ module.exports = {
   getLzDigestLastSent,
   setLzDigestLastSent,
   bountyThreads,
-  bountyWeekThreads,
+  bountyEntry,
   bountyBoard,
   getBountyReminderLastSent,
   setBountyReminderLastSent,

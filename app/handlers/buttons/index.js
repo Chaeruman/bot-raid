@@ -26,6 +26,7 @@ const { handleGabMarkPaidRec } = require("../commands/combinedPay");
 const EVENT_FREE = {
   "loot-btn:": (i) => handleLootButton(i),
   "bounty-panel:": (i) => require("../../bountyPanel").handlePanelButton(i),
+  "bounty-thread:": (i) => require("../../bountyThread").handleCreateThread(i),
   "gab-budget:": (i) => handleGabBudgetButton(i),
   "gab-paid-rec:": (i) => handleGabMarkPaidRec(i),
 };
