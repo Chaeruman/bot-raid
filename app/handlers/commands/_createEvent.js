@@ -35,6 +35,9 @@ async function createEvent(interaction, templateKey, labelOverride = null) {
     timeZone: "Asia/Jakarta",
   });
 
+  const closed =
+    !!template.poolKeys && interaction.options?.getBoolean?.("closed_to_bounty") === true;
+
   const label = labelOverride || template.label;
 
   const event = {
@@ -49,6 +52,10 @@ async function createEvent(interaction, templateKey, labelOverride = null) {
     hcGoldSplit: template.hcGoldSplit !== undefined ? template.hcGoldSplit : false,
     subruns: template.subruns || null,
     poolKeys: template.poolKeys || null, // bounty variants this run clears
+    // Bounty-only parties drop the per-role caps: the character you bring
+    // decides the slot, and a quest holder is never turned away for "FU full".
+    closedToBounty: closed,
+    stackRoles: closed,
     jobs: template.jobs || null,
     roles,
     users: {},

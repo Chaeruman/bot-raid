@@ -32,12 +32,6 @@ async function handleButton(interaction) {
 
   // Bounty request messages are their own state, not activeEvents, and the
   // handler replies itself — so no deferUpdate first.
-  if (interaction.customId === "bounty-req:ok") {
-    return require("../../bountyBoard").handleRequestButton(interaction);
-  }
-  if (interaction.customId === "bounty-req:go") {
-    return require("../../bountyBoard").handleRequestGo(interaction);
-  }
 
   const userId = interaction.user.id;
   const event = activeEvents[interaction.message.id];
@@ -63,7 +57,7 @@ async function handleButton(interaction) {
       }
 
       const alreadyInSlot = role.users.includes(userId);
-      if (!alreadyInSlot && role.users.length >= role.max) {
+      if (!alreadyInSlot && !event.stackRoles && role.users.length >= role.max) {
         return interaction.reply({ content: `❌ **${role.label || slotKey}** is already full!`, flags: MessageFlags.Ephemeral });
       }
 
@@ -88,6 +82,11 @@ async function handleButton(interaction) {
     }
   }
 
+  // Bounty-only join replies with a menu — must be the first response.
+  if (interaction.customId === "bounty-join") {
+    return require("../../bountyJoin").handleBountyJoin(interaction, event);
+  }
+
   // remove_member sends its own ephemeral reply — must NOT deferUpdate first
   if (interaction.customId === "remove_member") {
     return handleRemoveMember(interaction, event);
@@ -105,6 +104,7 @@ async function handleButton(interaction) {
     case "cancel_my_role": return handleCancelMyRole(interaction, event);
     case "toggle_lock":    return handleToggleLock(interaction, event);
     case "cancel_run":     return handleCancelRun(interaction, event);
+    case "bounty-open":    return require("../../bountyJoin").handleToggleBounty(interaction, event);
     case "bounty_leave":   return handleBountyLeave(interaction, event);
     case "bounty_join":    return handleBountyJoin(interaction, event);
     case "done_run":       return handleDoneRun(interaction, event);

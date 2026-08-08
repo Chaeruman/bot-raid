@@ -14,7 +14,20 @@ function createButtons(event, viewerId = null) {
   // (not just disabled) — same treatment either way.
   const partyFull = Object.keys(event.users).length >= event.maxSlot;
   const roleRows = [];
-  if (!event.locked && !partyFull) {
+
+  // Bounty-only: one Join button instead of nine role buttons. The character you
+  // pick decides the slot, so there is nothing to choose here.
+  if (event.closedToBounty) {
+    if (!event.locked && !partyFull)
+      roleRows.push(
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId("bounty-join")
+            .setLabel("🎯 Join party (bounty)")
+            .setStyle(ButtonStyle.Primary),
+        ),
+      );
+  } else if (!event.locked && !partyFull) {
     let row = new ActionRowBuilder();
     let count = 0;
 
@@ -36,11 +49,15 @@ function createButtons(event, viewerId = null) {
       });
     } else {
       for (const [slotKey, role] of Object.entries(event.roles)) {
-        const isFull = role.users.length >= role.max;
+        // Bounty parties drop the per-role caps: a quest holder is never turned
+        // away because "FU is full". maxSlot still caps the party.
+        const isFull = !event.stackRoles && role.users.length >= role.max;
 
         let label;
         if (slotKey === "MC") {
           label = destroyerActive ? "Barba" : "MC";
+        } else if (event.stackRoles) {
+          label = role.label || slotKey;
         } else if (role.max > 1) {
           label = `${role.label || slotKey} (${role.users.length}/${role.max})`;
         } else {
@@ -83,6 +100,16 @@ function createButtons(event, viewerId = null) {
       .setStyle(ButtonStyle.Danger)
       .setDisabled(!isHost || Object.keys(event.users).length === 0),
   );
+
+  if (event.poolKeys?.length) {
+    controlRow1.addComponents(
+      new ButtonBuilder()
+        .setCustomId("bounty-open")
+        .setLabel(event.closedToBounty ? "🔓 Buka untuk semua" : "🎯 Khusus bounty")
+        .setStyle(event.closedToBounty ? ButtonStyle.Secondary : ButtonStyle.Primary)
+        .setDisabled(!isHost),
+    );
+  }
 
   const controlRow2 = new ActionRowBuilder().addComponents(
     new ButtonBuilder()

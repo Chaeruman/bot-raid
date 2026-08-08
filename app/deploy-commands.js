@@ -21,6 +21,11 @@ const commands = [
           { name: "Marathon DDN", value: "marathon_ddn" },
         ),
     )
+    .addBooleanOption((o) =>
+      o
+        .setName("closed_to_bounty")
+        .setDescription("Khusus bounty hunter? Tombol role diganti satu tombol Join"),
+    )
     .toJSON(),
 
   new SlashCommandBuilder()
@@ -39,6 +44,11 @@ const commands = [
           { name: "SDN HC", value: "sdn_hc" },
         ),
     )
+    .addBooleanOption((o) =>
+      o
+        .setName("closed_to_bounty")
+        .setDescription("Khusus bounty hunter? Tombol role diganti satu tombol Join"),
+    )
     .toJSON(),
 
   new SlashCommandBuilder()
@@ -53,6 +63,11 @@ const commands = [
           { name: "Marathon GDN", value: "marathon_gdn" },
           { name: "Marathon DDN", value: "marathon_ddn" },
         ),
+    )
+    .addBooleanOption((o) =>
+      o
+        .setName("closed_to_bounty")
+        .setDescription("Khusus bounty hunter? Tombol role diganti satu tombol Join"),
     )
     .toJSON(),
 
@@ -73,6 +88,11 @@ const commands = [
           { name: "Memo 3 & 4", value: "3,4" },
           { name: "Semua (1-4)", value: "1,2,3,4" },
         ),
+    )
+    .addBooleanOption((o) =>
+      o
+        .setName("closed_to_bounty")
+        .setDescription("Khusus bounty hunter? Tombol role diganti satu tombol Join"),
     )
     .toJSON(),
 
@@ -106,6 +126,11 @@ const commands = [
         .setDescription("Raid to run")
         .setRequired(true)
         .addChoices({ name: "TKN Hell", value: "tkn_hell" }),
+    )
+    .addBooleanOption((o) =>
+      o
+        .setName("closed_to_bounty")
+        .setDescription("Khusus bounty hunter? Tombol role diganti satu tombol Join"),
     )
     .toJSON(),
 

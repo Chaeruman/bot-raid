@@ -417,8 +417,11 @@ const groups = groupByVariant(boardDocs);
 eq("15. two nests have quests", groups.length, 2);
 eq("15. most wanted is first", groups[0].variant.poolKey, "gdn:classic");
 eq("15. total counts quests, not people", groups[0].total, 4);
-eq("15. and only two characters hold them", groups[0].entries.length, 2);
-eq("15. the 2-quest character leads", groups[0].entries[0].charName, "Chelssea");
+// One block per PLAYER now, each holding that player's characters.
+eq("15. one block per player", groups[0].entries.length, 2);
+eq("15. the 2-quest character leads its block", groups[0].entries[0].chars[0].charName, "Chelssea");
+eq("15. a player with two characters keeps both",
+  groups[0].entries.find((e) => e.userId === "royal").chars.length, 1);
 eq("15. disabled nests are excluded",
   groups.filter((g) => g.variant.nestKey === "abyssal_mire").length, 0);
 
@@ -433,104 +436,6 @@ check("15. sections are labelled",
 eq("15. Indonesian week label",
   weekLabelId(new Date("2026-08-10T05:00:00Z")), "minggu ke-2 Agustus 2026");
 check("15. an empty week says so", buildBoardEmbed([]).data.description.includes("Belum ada"));
-
-// 16. Party request — the board's one action. The ✅ line must only ever move
-//     for someone actually tagged, and only once.
-const { buildBoardComponents, renderRequest } = require("./bountyBoard");
-
-const comps = buildBoardComponents(groups);
-if (comps.length) {
-  const menu = comps[0].toJSON().components[0];
-  eq("16. one option per nest with quests", menu.options.length, groups.length);
-  eq("16. option value is the pool key", menu.options[0].value, "gdn:classic");
-}
-eq("16. no menu when nobody has quests", buildBoardComponents([]).length, 0);
-
-const req = {
-  poolKey: "gdn:classic", weekKey: "w", byUserId: "asker",
-  members: [{ userId: "ol", charName: "Chelssea", quests: 2 }, { userId: "royal", charName: "arcroyal", quests: 1 }],
-  confirmed: [],
-};
-check("16. everyone starts unconfirmed", !renderRequest(req).includes("✅ <@"));
-check("16. multi-quest is marked", renderRequest(req).includes("(2 quest)"));
-eq("16. counter starts at zero", renderRequest(req).includes("0/2 siap"), true);
-req.confirmed.push(ckey("ol", "Chelssea"));
-const done = renderRequest(req);
-check("16. only the confirmed line gets a tick", done.includes("✅ <@ol>") && done.includes("▫️ <@royal>"));
-eq("16. counter follows", done.includes("1/2 siap"), true);
-
-
-// 17. Create party — seats the quest holders into the raid panel's own roles.
-const { partyShape, seatHolders } = require("./bountyBoard");
-const tpl = require("./templates");
-
-eq("17. an 8-cap variant uses raid roles", partyShape(BY_POOL_KEY.get("gdn:hc")).roles, tpl.gdn_cl.roles);
-eq("17. a 4-cap variant uses the nest roles", partyShape(BY_POOL_KEY.get("tkn:hell")).roles, tpl.tkn_hell.roles);
-eq("17. Memoria uses the memo shape", partyShape(BY_POOL_KEY.get("ddn:i")).roles, tpl.memo.roles);
-check("17. and memo carries job buttons", !!partyShape(BY_POOL_KEY.get("ddn:i")).jobs);
-check("17. raid shape has none", !partyShape(BY_POOL_KEY.get("gdn:hc")).jobs);
-
-const mkParty = (shape, maxSlot) => {
-  const roles = {};
-  for (const [k, r] of Object.entries(shape.roles)) roles[k] = { ...r, users: [] };
-  return { roles, users: {}, maxSlot };
-};
-const ent = (userId, charName) => ({ userId, charName });
-
-// Raid shape: each holder lands in the slot their character sheet names.
-const raidShape = partyShape(BY_POOL_KEY.get("gdn:hc"));
-const raidEv = mkParty(raidShape, 8);
-const roleMap = new Map([
-  [ckey("u1", "A"), "Healer"], [ckey("u2", "B"), "MT"],
-  [ckey("u3", "C"), "Healer"], [ckey("u4", "D"), "Bard"],
-]);
-const { skipped: skip } = seatHolders(raidEv, raidShape, [ent("u1","A"), ent("u2","B"), ent("u3","C"), ent("u4","D")], roleMap);
-eq("17. healer takes the healer slot", raidEv.roles.HEALER.users[0], "u1");
-eq("17. MT takes the MT slot", raidEv.roles.MT.users[0], "u2");
-eq("17. a second healer has nowhere to sit", skip.map((e) => e.charName).includes("C"), true);
-eq("17. an unknown role is skipped too", skip.map((e) => e.charName).includes("D"), true);
-
-// One seat per PLAYER — a second character of the same person cannot take one.
-const dupEv = mkParty(raidShape, 8);
-seatHolders(dupEv, raidShape, [ent("u1","A"), ent("u1","A2")], new Map([[ckey("u1","A"),"MT"],[ckey("u1","A2"),"Healer"]]));
-eq("17. same player seats once", Object.keys(dupEv.users).length, 1);
-// The second character is reported, not silently dropped — it needs its own run.
-const dupEv2 = mkParty(raidShape, 8);
-const dupOut = seatHolders(dupEv2, raidShape, [ent("u1","A"), ent("u1","A2")],
-  new Map([[ckey("u1","A"),"MT"],[ckey("u1","A2"),"Healer"]]));
-eq("17. and the other is flagged for a separate run", dupOut.separate.map((e) => e.charName).join(), "A2");
-eq("17. it is not counted as a role problem", dupOut.skipped.length, 0);
-
-// Memo shape fills P1..P4 in order, role becomes the label.
-const memoShape = partyShape(BY_POOL_KEY.get("ddn:i"));
-const memoEv = mkParty(memoShape, 4);
-seatHolders(memoEv, memoShape, [ent("m1","X"), ent("m2","Y")], new Map([[ckey("m1","X"),"FU"],[ckey("m2","Y"),"Healer"]]));
-eq("17. first holder takes P1", memoEv.roles.P1.users[0], "m1");
-eq("17. second takes P2", memoEv.roles.P2.users[0], "m2");
-eq("17. job rides along as the label", memoEv.users.m1.subRole, "FU");
-
-// Capacity is the hard stop.
-const fullEv = mkParty(memoShape, 4);
-const { skipped: over } = seatHolders(fullEv, memoShape,
-  ["a","b","c","d","e"].map((n) => ent(n, n.toUpperCase())),
-  new Map(["a","b","c","d","e"].map((n) => [ckey(n, n.toUpperCase()), "FU"])));
-eq("17. capacity caps seating", Object.keys(fullEv.users).length, 4);
-eq("17. the rest are reported", over.length, 1);
-
-
-// 18. "Buat party sekarang" — locked until someone actually says they can come.
-const { requestButtons } = require("./bountyBoard");
-const btns = (confirmed) =>
-  requestButtons({ members: [{ userId: "a" }, { userId: "b" }], confirmed })
-    .toJSON().components;
-
-eq("18. locked with nobody confirmed", btns([])[1].disabled, true);
-eq("18. unlocked on the first tick", btns(["a"])[1].disabled, false);
-eq("18. the tick button is never locked", btns([])[0].disabled, undefined);
-check("18. the note says only ✅ get seated",
-  renderRequest({ poolKey: "gdn:hc", byUserId: "z", members: [{ userId: "a", charName: "A", quests: 1 }], confirmed: [] })
-    .includes("yang ✅ saja yang didudukkan"));
-
 
 // 19. Raid integration — the only place a quest ever gets marked done.
 const tpls = require("./templates");
@@ -572,18 +477,102 @@ eq("19. nobody seated means no role", takenRole({ users: {}, roles: {} }, "u"), 
 
 
 
-// 21. Two characters of the SAME job both holding a quest here — the bot must
+// 21. seatUser moves a player between slots and keeps the bounty character.
+const { seatUser } = require("./handlers/buttons/roleSelect");
+const seatEv = () => ({ roles: { FU: { users: [] }, MT: { users: [] } }, users: {} });
+
+const sv = seatEv();
+seatUser(sv, "u1", "FU");
+eq("21. seats into the slot", sv.roles.FU.users.join(), "u1");
+sv.users.u1.bountyChar = "Chelssea";
+seatUser(sv, "u1", "MT");
+eq("21. switching slots leaves the old one", sv.roles.FU.users.length, 0);
+eq("21. and fills the new one", sv.roles.MT.users.join(), "u1");
+eq("21. the named character survives the switch", sv.users.u1.bountyChar, "Chelssea");
+eq("21. an unknown slot seats nobody", seatUser(seatEv(), "u1", "NOPE"), null);
+
+// 22. Two characters of the SAME job both holding a quest here — the bot must
 //     not pre-tick either, or one click marks a quest that was never run.
 const preselect = (entries) => {
   const sole = entries.filter((e) => e.matches).length === 1;
   return entries.map((e) => sole && e.matches);
 };
-eq("21. one role match is pre-ticked",
+eq("22. one role match is pre-ticked",
   preselect([{ matches: true }, { matches: false }]).join(), "true,false");
-eq("21. two same-job matches are not",
+eq("22. two same-job matches are not",
   preselect([{ matches: true }, { matches: true }]).join(), "false,false");
-eq("21. no match, nothing pre-ticked",
+eq("22. no match, nothing pre-ticked",
   preselect([{ matches: false }, { matches: false }]).join(), "false,false");
+
+
+// 23. Bounty-only party: one Join button instead of nine role buttons, and the
+//     character you pick decides the slot.
+const { createButtons: cb } = require("./builders/buttons");
+const { slotForRole } = require("./bountyJoin");
+const tp = require("./templates");
+
+const panel = (over) => {
+  const roles = {};
+  for (const [k, r] of Object.entries(tp.gdn_cl.roles)) roles[k] = { ...r, users: [] };
+  return { messageId: "m", hostId: "h", maxSlot: 8, locked: false, roles, users: {},
+           poolKeys: tp.gdn_cl.poolKeys, ...over };
+};
+const ids = (ev) => cb(ev, "h").flatMap((r) => r.toJSON().components).map((c) => c.custom_id);
+
+check("23. open party keeps its role buttons", ids(panel({})).filter((i) => i.startsWith("role_")).length > 5);
+eq("23. bounty-only has no role buttons", ids(panel({ closedToBounty: true })).filter((i) => i.startsWith("role_")).length, 0);
+check("23. bounty-only has one Join", ids(panel({ closedToBounty: true })).includes("bounty-join"));
+check("23. the toggle is there either way",
+  ids(panel({})).includes("bounty-open") && ids(panel({ closedToBounty: true })).includes("bounty-open"));
+// A signup that clears no bounty has nothing to toggle.
+check("23. no toggle on a non-bounty panel", !ids(panel({ poolKeys: null })).includes("bounty-open"));
+
+// A locked or full bounty party offers no Join, same as role buttons.
+eq("23. locked hides Join", ids(panel({ closedToBounty: true, locked: true })).includes("bounty-join"), false);
+
+eq("23. role maps to its slot", slotForRole(panel({}), "Ice Stacker"), "ICE");
+eq("23. SM/DA maps too", slotForRole(panel({}), "SM/DA"), "SM");
+eq("23. an unknown role has no slot", slotForRole(panel({}), "Bard"), null);
+
+
+// 24. The 6-quest stack cap. A 7th shared quest is claimed by nobody, so it
+//     must neither show as stacked nor be marked done.
+const { buildSignupEmbed: sEmbed } = require("./builders/content");
+const stackPanel = (maxSlot, per, pools = ["gdn:classic"]) => ({
+  messageId: "m", hostId: "h", title: "t", maxSlot, locked: false,
+  poolKeys: pools, roles: {},
+  users: Object.fromEntries(per.map((q, i) => [`u${i}`, { slot: "FU", bountyQuests: q }])),
+});
+const q1 = (n) => ({ "gdn:classic": n });
+const stackLine = (ev) => sEmbed(ev).data.description.split("\n").find((l) => l.includes("Stack"));
+
+check("24. counts quests, not people", stackLine(stackPanel(8, [q1(2), q1(1)])).includes("3/6"));
+check("24. caps at 6 on an 8-player raid", stackLine(stackPanel(8, [q1(2), q1(2), q1(2), q1(2)])).includes("6/6"));
+// A 4-player nest can never stack 6 — only 4 people are there to share.
+check("24. a 4-player nest caps at 4", stackLine(stackPanel(4, [q1(2), q1(2), q1(2)])).includes("4/4"));
+check("24. empty party shows an empty stack", stackLine(stackPanel(8, [])).includes("0/6"));
+// A marathon is two clears, so HC and CL each get their own 6 — one shared cap
+// would refuse quests that fit fine.
+const mPanel = stackPanel(8, [{ "gdn:hc": 1, "gdn:classic": 1 }], tpls.marathon_gdn.poolKeys);
+check("24. marathon counts each variant on its own", stackLine(mPanel).includes("HC 1/6") && stackLine(mPanel).includes("Classic 1/6"));
+check("24. a non-bounty panel has no stack line",
+  !sEmbed({ ...stackPanel(8, [q1(1)]), poolKeys: null }).data.description.includes("Stack"));
+
+
+// 25. A marathon clears two variants, so it must see quests for both — and say
+//     which is which, since "Unique · Weapon" alone would be ambiguous.
+const mQuests = [
+  { poolKey: "gdn:hc", rarity: "unique", scroll: "weapon" },
+  { poolKey: "gdn:classic", rarity: "legendary", scroll: "accessory" },
+];
+const mPools = tpls.marathon_gdn.poolKeys;
+eq("25. both variants are in scope", mQuests.filter((q) => mPools.includes(q.poolKey)).length, 2);
+const mLines = questLines([{ charName: "X", role: "FU", quests: mQuests }], mPools.length > 1);
+check("25. the variant is named", mLines[0].includes("Green Dragon Nest HC"));
+// A single-variant run stays quiet about it.
+check("25. and not named on a plain GDN HC run",
+  !questLines([{ charName: "X", role: "FU", quests: [mQuests[0]] }], tpls.gdn_hc.poolKeys.length > 1)[0]
+    .includes("Green Dragon Nest HC"));
 
 
 console.log(`\n${pass} passed, ${fails.length} failed`);

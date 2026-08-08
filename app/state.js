@@ -21,8 +21,6 @@ const bountyThreads = {}; // userId → permanent private thread
 const bountyWeekThreads = {}; // weekKey → public weekly thread
 // The one weekly board message: { messageId, channelId, weekKey }
 const bountyBoard = {};
-// requestMessageId → { poolKey, weekKey, members[], confirmed[] }
-const bountyRequests = {};
 
 // Connect to MongoDB and hydrate in-memory state. Call once before login.
 async function loadState() {
@@ -50,7 +48,6 @@ async function loadState() {
     Object.assign(bountyThreads, doc.bountyThreads || {});
     Object.assign(bountyWeekThreads, doc.bountyWeekThreads || {});
     Object.assign(bountyBoard, doc.bountyBoard || {});
-    Object.assign(bountyRequests, doc.bountyRequests || {});
     digestLastSent = doc.digestLastSent || 0;
     lzDigestLastSent = doc.lzDigestLastSent || 0;
     bountyReminderLastSent = doc.bountyReminderLastSent || 0;
@@ -73,7 +70,6 @@ function saveState() {
         bountyThreads,
         bountyWeekThreads,
         bountyBoard,
-        bountyRequests,
         digestLastSent,
         lzDigestLastSent,
         bountyReminderLastSent,
@@ -248,7 +244,6 @@ module.exports = {
   bountyThreads,
   bountyWeekThreads,
   bountyBoard,
-  bountyRequests,
   getBountyReminderLastSent,
   setBountyReminderLastSent,
   getChars,

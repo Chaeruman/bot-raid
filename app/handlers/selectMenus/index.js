@@ -5,17 +5,8 @@ const { handleCombinedPaySelect } = require("../commands/combinedPay");
 const { handleBountyCharSelect } = require("../commands/bountyQuest");
 
 async function handleSelectMenu(interaction) {
-  if (interaction.customId === "bounty-req:pick") {
-    return require("../../bountyBoard").handleRequestSelect(interaction);
-  }
-  if (interaction.customId === "bounty-req:new") {
-    return require("../../bountyBoard").handleCreateSelect(interaction);
-  }
   if (interaction.customId.startsWith("bounty-fin:pick:")) {
     return require("../../bountyJoin").handleCharPick(interaction);
-  }
-  if (interaction.customId.startsWith("bounty-req:char:")) {
-    return require("../../bountyBoard").handleRequestPick(interaction);
   }
   if (interaction.customId.startsWith("bounty-sel:quest-char")) {
     return handleBountyCharSelect(interaction);
