@@ -17,10 +17,6 @@ async function handleDoneRun(interaction, event) {
   delete activeEvents[event.messageId];
   saveState();
 
-  if (event.bounty) {
-    return require("../commands/bountyRun").finishBountyRun(interaction, event);
-  }
-
   // Close out any bounty the party was carrying, and record what this run
   // cleared so the per-person "sudah beres" button still works now that the
   // event is gone — clear → Done → "oh, I forgot to tick" is the normal order.

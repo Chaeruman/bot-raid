@@ -246,21 +246,21 @@ const commands = [
     .addSubcommand((s) =>
       s
         .setName("add")
-        .setDescription("Add a character — using an existing name edits it instead")
+        .setDescription("Daftarkan karakter baru")
         .addStringOption((o) =>
-          o.setName("name").setDescription("Character name in game").setRequired(true).setMaxLength(32),
+          o.setName("name").setDescription("Nama karakter di game").setRequired(true).setMaxLength(32),
         )
         .addStringOption((o) =>
           o
             .setName("role")
-            .setDescription("Party role — the same list as the raid signup buttons")
+            .setDescription("Party role — sama dengan tombol di signup raid")
             .setRequired(true)
             .addChoices(...ROLES.map((r) => ({ name: r, value: r }))),
         )
         .addStringOption((o) =>
           o
             .setName("dps")
-            .setDescription("Gear tier — used to check a party can clear")
+            .setDescription("Gear tier — dipakai mengecek party sanggup clear")
             .setRequired(true)
             .addChoices(
               { name: "High DPS", value: "high" },
@@ -271,12 +271,46 @@ const commands = [
         .addStringOption((o) =>
           o
             .setName("account")
-            .setDescription("Akun game — karakter satu akun tidak bisa satu party (default: sama semua)")
+            .setDescription("Akun game — karakter satu akun tidak bisa jalan barengan")
+            .setRequired(true)
+            .setAutocomplete(true)
             .setMaxLength(16),
         )
         .addStringOption((o) =>
           o.setName("job").setDescription("In-game class (optional)").setMaxLength(32),
         ),
+    )
+    .addSubcommand((s) =>
+      s
+        .setName("edit")
+        .setDescription("Ubah karakter yang sudah ada — isi yang mau diganti saja")
+        .addStringOption((o) =>
+          o
+            .setName("name")
+            .setDescription("Karakter mana")
+            .setRequired(true)
+            .setAutocomplete(true),
+        )
+        .addStringOption((o) =>
+          o
+            .setName("role")
+            .setDescription("Party role baru")
+            .addChoices(...ROLES.map((r) => ({ name: r, value: r }))),
+        )
+        .addStringOption((o) =>
+          o
+            .setName("dps")
+            .setDescription("Gear tier baru")
+            .addChoices(
+              { name: "High DPS", value: "high" },
+              { name: "Good DPS", value: "good" },
+              { name: "Low DPS", value: "low" },
+            ),
+        )
+        .addStringOption((o) =>
+          o.setName("account").setDescription("Pindah akun game").setAutocomplete(true).setMaxLength(16),
+        )
+        .addStringOption((o) => o.setName("job").setDescription("In-game class").setMaxLength(32))
     )
     .addSubcommand((s) =>
       s.setName("apply").setDescription("Ajukan diri jadi Bounty Hunter — dikirim ke admin"),
@@ -314,33 +348,8 @@ const commands = [
     .setDescription("Your bounty quests, claims left, and what you've earned this week")
     .toJSON(),
 
-  new SlashCommandBuilder()
-    .setName("bounty-plan")
-    .setDescription("Which nests are worth forming a party for this week")
-    .toJSON(),
 
-  new SlashCommandBuilder()
-    .setName("bounty-run")
-    .setDescription("Build a bounty party — picks the best nest if you don't name one")
-    .addStringOption((o) =>
-      o
-        .setName("dungeon")
-        .setDescription("Leave empty to run whatever is top of /bounty-plan")
-        .setAutocomplete(true),
-    )
-    .toJSON(),
 
-  new SlashCommandBuilder()
-    .setName("bounty-need")
-    .setDescription("Who can stack here, and who has claims spare to fill a seat")
-    .addStringOption((o) =>
-      o
-        .setName("dungeon")
-        .setDescription("Nest and variant")
-        .setRequired(true)
-        .setAutocomplete(true),
-    )
-    .toJSON(),
 ];
 
 const rest = new REST({ version: "10" }).setToken(config.token);

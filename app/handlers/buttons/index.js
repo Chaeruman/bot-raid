@@ -16,7 +16,6 @@ const { handlePartyPingButton, handlePartyUp } = require("./partyPing");
 const { handleLootButton } = require("./loot");
 const { handleGabBudgetButton } = require("./gabBudget");
 const { handleGabMarkPaidRec } = require("../commands/combinedPay");
-const { handleBountyLeave, handleBountyJoin } = require("../commands/bountyRun");
 
 async function handleButton(interaction) {
   // Loot panel buttons are independent of activeEvents — handle them first
@@ -29,9 +28,6 @@ async function handleButton(interaction) {
   if (interaction.customId.startsWith("gab-paid-rec:")) {
     return handleGabMarkPaidRec(interaction);
   }
-
-  // Bounty request messages are their own state, not activeEvents, and the
-  // handler replies itself — so no deferUpdate first.
 
   const userId = interaction.user.id;
   const event = activeEvents[interaction.message.id];
@@ -105,8 +101,6 @@ async function handleButton(interaction) {
     case "toggle_lock":    return handleToggleLock(interaction, event);
     case "cancel_run":     return handleCancelRun(interaction, event);
     case "bounty-open":    return require("../../bountyJoin").handleToggleBounty(interaction, event);
-    case "bounty_leave":   return handleBountyLeave(interaction, event);
-    case "bounty_join":    return handleBountyJoin(interaction, event);
     case "done_run":       return handleDoneRun(interaction, event);
     case "party_up":       return handlePartyUp(interaction, event);
     default:

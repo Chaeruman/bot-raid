@@ -6,8 +6,8 @@
 // panels, which already own everything a party needs.
 const { EmbedBuilder } = require("discord.js");
 const config = require("./config");
-const { bountyBoard, saveState, getBountyWeekAll } = require("./state");
-const { BY_POOL_KEY, weekKey, resetSaturday, weekOrdinal, rewardText } = require("./bounty");
+const { bountyBoard, saveState, getBountyWeekAll, getAllChars } = require("./state");
+const { BY_POOL_KEY, weekKey, ckey, resetSaturday, weekOrdinal, rewardText } = require("./bounty");
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -26,7 +26,15 @@ function weekLabelId(now = new Date()) {
 // Unclaimed quests grouped by variant, then by PLAYER, then by character — one
 // person with three characters is one block, not three loose lines repeating
 // the same mention.
-function groupByVariant(weekDocs) {
+//
+// The game account rides along because the bot cannot act on it but a reader
+// can: two characters on one account are two separate runs, on two accounts
+// they can go at the same time with someone else at the keyboard.
+function groupByVariant(weekDocs, charDocs = []) {
+  const accountOf = new Map();
+  for (const doc of charDocs)
+    for (const c of doc.chars || []) accountOf.set(ckey(doc._id, c.name), c.account || null);
+
   const byVariant = new Map();
 
   for (const doc of weekDocs) {
@@ -42,6 +50,7 @@ function groupByVariant(weekDocs) {
         const chars = players.get(userId);
         if (!chars.has(charName)) chars.set(charName, []);
         chars.get(charName).push(q);
+        chars.get(charName).account = accountOf.get(ckey(userId, charName)) || null;
       }
     }
   }
@@ -52,8 +61,14 @@ function groupByVariant(weekDocs) {
         .map(([userId, chars]) => ({
           userId,
           chars: [...chars]
-            .map(([charName, quests]) => ({ charName, quests }))
-            .sort((a, b) => b.quests.length - a.quests.length || a.charName.localeCompare(b.charName)),
+            .map(([charName, quests]) => ({ charName, quests, account: quests.account || null }))
+            // Same account together, so "these two need two runs" reads at a glance.
+            .sort(
+              (a, b) =>
+                String(a.account).localeCompare(String(b.account)) ||
+                b.quests.length - a.quests.length ||
+                a.charName.localeCompare(b.charName),
+            ),
         }))
         .sort((a, b) => b.chars.length - a.chars.length);
       const total = entries.reduce((n, e) => n + e.chars.reduce((m, c) => m + c.quests.length, 0), 0);
@@ -69,13 +84,14 @@ const renderPlayer = (e) =>
     `<@${e.userId}>`,
     ...e.chars.map(
       (c) =>
-        `　• **${c.charName}**${c.quests.length > 1 ? ` (${c.quests.length} quest)` : ""} — ` +
+        `　• **${c.charName}**${c.quests.length > 1 ? ` (${c.quests.length} quest)` : ""}` +
+        `${c.account ? ` · akun ${c.account}` : ""} — ` +
         c.quests.map(rewardText).join(" | "),
     ),
   ].join("\n");
 
-function buildBoardEmbed(weekDocs, now = new Date()) {
-  const groups = groupByVariant(weekDocs);
+function buildBoardEmbed(weekDocs, charDocs = [], now = new Date()) {
+  const groups = groupByVariant(weekDocs, charDocs);
   const embed = new EmbedBuilder()
     .setTitle("📋 BOUNTY BOARD")
     .setColor(0xe67e22)
@@ -108,7 +124,8 @@ async function syncBoard(client) {
   const channel = await client.channels.fetch(config.bountyBoardChannelId).catch(() => null);
   if (!channel) return;
 
-  const embed = buildBoardEmbed(await getBountyWeekAll(wk));
+  const [weekDocs, charDocs] = await Promise.all([getBountyWeekAll(wk), getAllChars()]);
+  const embed = buildBoardEmbed(weekDocs, charDocs);
 
   // Week rolled over — drop last week's board and start a fresh one.
   if (bountyBoard.weekKey && bountyBoard.weekKey !== wk) {

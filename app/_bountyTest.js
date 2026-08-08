@@ -14,7 +14,6 @@ const {
   VARIANT_LIST,
   BY_POOL_KEY,
   NEST_INFERENCE,
-  maxStack,
   claimsUsed,
   claimsLeft,
   validateData,
@@ -23,11 +22,6 @@ const {
   questLabel,
   tally,
   collapse,
-  buildStacks,
-  buildPlan,
-  fillerCandidates,
-  stackSummary,
-  renderPlanRow,
   ckey,
 } = require("./bounty");
 const { NESTS, VARIANTS } = require("./data/dungeons");
@@ -200,14 +194,6 @@ eq("5. variant label override wins", BY_POOL_KEY.get("ddn:i").label, "Memoria 1"
 eq("5. display name joins nest + variant", BY_POOL_KEY.get("ddn:i").name, "Desert Dragon Nest Memoria 1");
 eq("5. shared vocabulary supplies the default label", BY_POOL_KEY.get("gdn:hc").label, "HC");
 
-// 7. maxStack — a variant's own capacity overrides the nest default, so DDN
-//    Memoria caps at 4 while DDN HC on the very same nest row caps at 6.
-eq("7. ddn:i capacity is the variant override", BY_POOL_KEY.get("ddn:i").capacity, 4);
-eq("7. ddn:hc capacity is the nest default", BY_POOL_KEY.get("ddn:hc").capacity, 8);
-eq("7. ddn:i stacks at most 4", maxStack(BY_POOL_KEY.get("ddn:i")), 4);
-eq("7. ddn:hc stacks at most 6", maxStack(BY_POOL_KEY.get("ddn:hc")), MAX_SHARE_STACK);
-eq("7. tkn:hell stacks at most 4", maxStack(BY_POOL_KEY.get("tkn:hell")), 4);
-
 // 6. Rank table — rare legendary > legendary+box > unique = legendary.
 eq("6. rare legendary", rankOf({ rarity: "rare_legendary" }), 5);
 eq("6. legendary + box", rankOf({ rarity: "legendary", box: true }), 4);
@@ -250,150 +236,6 @@ eq("13. rare legendary pays two scrolls", t.scroll.wtd, 2);
 eq("13. an empty week tallies to zero", tally(undefined).potion, 0);
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 8/9/10. The matcher.
-const cand = (userId, charName, rank, dpsTier) => ({ userId, charName, rank, dpsTier });
-const ddnHc = BY_POOL_KEY.get("ddn:hc");   // 8 capacity → stacks of 6
-const memo1 = BY_POOL_KEY.get("ddn:i");    // 4 capacity → stacks of 4
-
-// 8. Two separate rules, and mixing them up is what the old version got wrong.
-//
-// 8a. One character's quests for a variant ALL land in the same run — clearing
-//     once completes every one of them.
-const twoQuests = buildStacks(
-  [cand("u1", "A", 5), cand("u1", "A", 3)], ddnHc,
-);
-eq("8a. one character with 2 quests makes ONE run", twoQuests.length, 1);
-eq("8a. and the run counts both quests", twoQuests[0].length, 2);
-eq("8a. best quest first", twoQuests[0][0].rank, 5);
-
-// 8b. One character per GAME ACCOUNT — characters with no account recorded all
-//     count as one, which keeps the old, conservative behaviour.
-const solo = buildStacks(
-  [cand("u1", "A", 3), cand("u1", "B", 3), cand("u1", "C", 3)], ddnHc,
-);
-eq("8b. same account never stacks with itself", solo.length, 3);
-check("8b. each run holds exactly one of them", solo.every((s) => s.length === 1));
-
-// 8c. …but different accounts may share a party, because someone else can be
-//     fielding that character.
-const acct = (userId, charName, account) => ({ ...cand(userId, charName, 3), account });
-const twoAccounts = buildStacks(
-  [acct("u1", "A", "1"), acct("u1", "B", "2")], ddnHc,
-);
-eq("8c. different accounts share one run", twoAccounts.length, 1);
-eq("8c. both quests count", twoAccounts[0].length, 2);
-// A character whose quests would overflow the cap waits for the next run.
-const bigThenSmall = buildStacks(
-  [acct("u1", "A", "1"), acct("u1", "A", "1"), acct("u1", "A", "1"), acct("u1", "A", "1"),
-   acct("u2", "B", "1"), acct("u2", "B", "1"), acct("u2", "B", "1")], memo1,
-);
-eq("8c. a 4-quest character fills a 4-cap run alone", bigThenSmall[0].length, 4);
-eq("8c. the rest spill", bigThenSmall[1].length, 3);
-
-// 9. Spill — 14 candidates from 14 different players at an 8-capacity nest.
-const many = buildStacks(
-  Array.from({ length: 14 }, (_, i) => cand(`u${i}`, `C${i}`, 3)), ddnHc,
-);
-eq("9. 14 candidates make 3 runs", many.length, 3);
-eq("9. run sizes are 6, 6, 2", many.map((s) => s.length).join(","), "6,6,2");
-// A 4-capacity variant caps at its own capacity, not at MAX_SHARE_STACK.
-eq("9. memoria caps at 4",
-  buildStacks(Array.from({ length: 6 }, (_, i) => cand(`u${i}`, `C${i}`, 3)), memo1)
-    .map((s) => s.length).join(","), "4,2");
-
-// The best quests must land in the FIRST run — it's the one most likely to happen.
-const mixed = buildStacks(
-  [cand("u1", "A", 3), cand("u2", "B", 5), cand("u3", "C", 4)], memo1,
-);
-eq("9. highest rank goes first", mixed[0].map((q) => q.rank).join(","), "5,4,3");
-
-// 10. Scoring and ranking. This fixture is the exact case §2.2 exists to keep
-//     visible: a 2-stack of legendary+box out-QUALITIES a 4-stack of uniques
-//     while ranking BELOW it on value. Blending them would hide it.
-const boardOf = (...quests) => ({ board: quests, shares: [] });
-const uq = (poolKey, rarity, scroll, box) => ({ poolKey, rarity, scroll, box: !!box, runId: null });
-
-const weekDocs = [
-  { _id: "u1:w", owners: ["u1"], weekKey: "w", chars: {
-      A: boardOf(uq("ddn:hc", "unique", "weapon"), uq("gdn:hc", "legendary", "accessory", true)) } },
-  { _id: "u2:w", owners: ["u2"], weekKey: "w", chars: {
-      B: boardOf(uq("ddn:hc", "unique", "weapon"), uq("gdn:hc", "legendary", "accessory", true)) } },
-  { _id: "u3:w", owners: ["u3"], weekKey: "w", chars: { C: boardOf(uq("ddn:hc", "unique", "wtd")) } },
-  { _id: "u4:w", owners: ["u4"], weekKey: "w", chars: { D: boardOf(uq("ddn:hc", "unique", "armor")) } },
-];
-const charDocs = [
-  { _id: "u1", chars: [{ name: "A", job: "Sorceress", dpsTier: "high" }] },
-  { _id: "u2", chars: [{ name: "B", job: "Warrior", dpsTier: "high" }] },
-  { _id: "u3", chars: [{ name: "C", job: "Cleric", dpsTier: "low" }] },
-  { _id: "u4", chars: [{ name: "D", job: "Archer", dpsTier: "good" }] },
-  // Registered but entered no quests — still holds all 6 claims, and is exactly
-  // the person who should be filling a seat.
-  { _id: "u5", chars: [{ name: "E", job: "Academic", dpsTier: "high" }] },
-];
-
-const plan = buildPlan(weekDocs, charDocs);
-const ddnRow = plan.rows.find((r) => r.variant.poolKey === "ddn:hc");
-const gdnRow = plan.rows.find((r) => r.variant.poolKey === "gdn:hc");
-
-eq("10. 4-stack of uniques is worth 12", ddnRow.value, 12);
-eq("10. it costs 4 claims", ddnRow.cost, 4);
-eq("10. four quests from four characters", ddnRow.members, 4);
-eq("10. 2-stack of legendary+box is worth 8", gdnRow.value, 8);
-eq("10. the 2-stack costs 2 claims", gdnRow.cost, 2);
-check("10. the 4-stack ranks first on value", plan.rows[0].variant.poolKey === "ddn:hc");
-check("10. the 4-stack outranks it on value", ddnRow.value > gdnRow.value);
-
-eq("10. seats open on an 8-cap nest", ddnRow.seatsOpen, 4);
-// ddn:hc wants 6 high DPS and the stack has 2.
-eq("10. high DPS gap is reported", ddnRow.highDpsGap, 4);
-eq("10. stack summary counts by rarity", stackSummary(ddnRow.stack), "4× Unique");
-eq("10. and names the card box", stackSummary(gdnRow.stack), "2× Legendary + card box");
-
-// Claimed quests leave the pool; below-unique never enters it.
-const spent = [{ _id: "u9:w", owners: ["u9"], weekKey: "w", chars: {
-  Z: { board: [
-    { poolKey: "ddn:hc", rarity: "unique", scroll: "weapon", runId: "done" },
-    { poolKey: "ddn:hc", rarity: "magic", scroll: "weapon", runId: null },
-    { poolKey: "abyssal_mire:mutant", rarity: "unique", scroll: "weapon", runId: null },
-  ], shares: [] } } }];
-eq("10. claimed, low-rank and disabled quests are all excluded",
-  buildPlan(spent, [{ _id: "u9", chars: [{ name: "Z", dpsTier: "high" }] }]).rows.length, 0);
-
-// 12. Filler candidates — claims must cover the stack, one entry per player.
-const fillers = fillerCandidates(ddnRow, charDocs, plan.committed);
-eq("12. only the uninvolved player can fill", fillers.length, 1);
-eq("12. and it's the one with quests-free claims", fillers[0].charName, "E");
-// u1 spent 2 claims on this week's board? No — nothing is claimed yet, so they
-// have all 6; they're excluded purely for being in the stack.
-check("12. players already in the stack are never offered",
-  !fillers.some((f) => ["u1", "u2", "u3", "u4"].includes(f.userId)));
-// A player short on claims is not recommended, even though they may still join.
-const broke = [{ _id: "u5", chars: [{ name: "E", dpsTier: "high" }] }];
-const brokeCommitted = new Map([[ckey("u5", "E"), 4]]); // 2 left, stack costs 4
-eq("12. too few claims left means not recommended",
-  fillerCandidates(ddnRow, broke, brokeCommitted).length, 0);
-
-eq("12. spare claims count characters with any left", plan.charsWithClaims, 5);
-eq("12. and total them", plan.spareClaims, 5 * 6);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 14. Seat filling. /bounty-run builds the party itself, so this is the bit that
-//     decides who ends up in it — and what "Can't make it" promotes.
-const { fillSeats } = require("./handlers/commands/bountyRun");
-const b = (n) => Array.from({ length: n }, (_, i) => ({ userId: `f${i}`, charName: `F${i}` }));
-
-eq("14. fills empty seats to capacity", fillSeats([{ userId: "a" }], b(9), 8).length, 8);
-eq("14. stops when the bench runs dry", fillSeats([{ userId: "a" }], b(2), 8).length, 3);
-eq("14. never overfills a 4-cap variant", fillSeats([], b(9), 4).length, 4);
-eq("14. a full party pulls nobody", fillSeats(b(8), b(4), 8).length, 8);
-check("14. promoted members carry no quest", fillSeats([], b(1), 8)[0].quest === null);
-// The bench is consumed, so the same person can't be promoted twice.
-const bench1 = b(3);
-fillSeats([], bench1, 2);
-eq("14. promoted members leave the bench", bench1.length, 1);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// ─────────────────────────────────────────────────────────────────────────────
 // 15. The weekly board — groups by nest then by character, ordered by how many
 //     quests sit behind each nest, so the first section is "Most Wanted".
 const { groupByVariant, weekLabelId, buildBoardEmbed } = require("./bountyBoard");
@@ -413,7 +255,12 @@ const boardDocs = [
                        bq("abyssal_mire:mutant", "unique", "weapon")], shares: [] } } },
 ];
 
-const groups = groupByVariant(boardDocs);
+// The account comes from the roster, not the week doc — the board reads both.
+const boardChars = [
+  { _id: "ol", chars: [{ name: "Chelssea", account: "1" }, { name: "Santeterz", account: "2" }] },
+  { _id: "royal", chars: [{ name: "arcroyal", account: "main" }] },
+];
+const groups = groupByVariant(boardDocs, boardChars);
 eq("15. two nests have quests", groups.length, 2);
 eq("15. most wanted is first", groups[0].variant.poolKey, "gdn:classic");
 eq("15. total counts quests, not people", groups[0].total, 4);
@@ -425,7 +272,7 @@ eq("15. a player with two characters keeps both",
 eq("15. disabled nests are excluded",
   groups.filter((g) => g.variant.nestKey === "abyssal_mire").length, 0);
 
-const boardDesc = buildBoardEmbed(boardDocs, new Date("2026-08-10T05:00:00Z")).data.description;
+const boardDesc = buildBoardEmbed(boardDocs, boardChars, new Date("2026-08-10T05:00:00Z")).data.description;
 check("15. one line per character, not per quest",
   (boardDesc.match(/Chelssea/g) || []).length === 1);
 check("15. multi-quest is marked", boardDesc.includes("(2 quest)"));
@@ -436,6 +283,10 @@ check("15. sections are labelled",
 eq("15. Indonesian week label",
   weekLabelId(new Date("2026-08-10T05:00:00Z")), "minggu ke-2 Agustus 2026");
 check("15. an empty week says so", buildBoardEmbed([]).data.description.includes("Belum ada"));
+// The bot can't act on the account, but a reader can: same account = two runs.
+check("15. the game account is shown", boardDesc.includes("akun 1"));
+check("15. a character with no account recorded shows none",
+  !buildBoardEmbed(boardDocs, [], new Date()).data.description.includes("akun"));
 
 // 19. Raid integration — the only place a quest ever gets marked done.
 const tpls = require("./templates");
@@ -616,6 +467,28 @@ check("27. no link when the panel was not moved", !pEmbed(pv({}), true).data.des
 })();
 
 
+// 28. add and edit are one write with opposite expectations, and the SCHEMA
+//     carries which fields are required — so this checks the schema, not a
+//     runtime branch that could disagree with it.
+const charCmd = (() => {
+  const { SlashCommandBuilder } = require("discord.js");
+  const src = require("fs").readFileSync(`${__dirname}/deploy-commands.js`, "utf8");
+  const from = src.indexOf('.setName("bounty-char")');
+  return from === -1 ? "" : src.slice(from, src.indexOf(".toJSON(),", from));
+  return m ? m[0] : "";
+})();
+check("28. bounty-char has an edit subcommand", charCmd.includes('.setName("edit")'));
+check("28. and still an add", charCmd.includes('.setName("add")'));
+// add demands everything; edit demands only which character.
+const addBlock = charCmd.slice(charCmd.indexOf('.setName("add")'), charCmd.indexOf('.setName("edit")'));
+const editBlock = charCmd.slice(charCmd.indexOf('.setName("edit")'), charCmd.indexOf('.setName("apply")'));
+eq("28. add requires name, role, dps, account",
+  (addBlock.match(/setRequired\(true\)/g) || []).length, 4);
+eq("28. edit requires only the name",
+  (editBlock.match(/setRequired\(true\)/g) || []).length, 1);
+check("28. edit offers autocomplete on the name", editBlock.includes("setAutocomplete(true)"));
+
+
 console.log(`\n${pass} passed, ${fails.length} failed`);
 if (fails.length) {
   console.log("\nFailures:");
@@ -631,23 +504,8 @@ if (fails.length) {
   for (const v of VARIANT_LIST) {
     console.log(
       `   ${v.poolKey.padEnd(18)} ${v.name.padEnd(34)} ` +
-        `${v.capacity}p · stack ≤${maxStack(v)} · needs ${v.minHighDps} high DPS`,
+        `${v.capacity}p · needs ${v.minHighDps} high DPS`,
     );
   }
-
-  // Sample plan from the §10 fixture — the fastest way to see a rendering
-  // change without deploying.
-  console.log(`\n── sample /bounty-plan ─────────────────────────────────────`);
-  const strip = (s) => s.replace(/\*\*/g, "");
-  plan.rows.forEach((row, i) => console.log("   " + strip(renderPlanRow(row, i)).replace(/\n/g, "\n   ")));
-  console.log(
-    `\n   ${plan.charsWithClaims} characters still have claims (${plan.spareClaims} total).`,
-  );
-  console.log(`\n── sample /bounty-need ddn:hc ──────────────────────────────`);
-  console.log(`   ${ddnRow.cost} quests · ${ddnRow.members}/${ddnRow.variant.capacity} slots · needs ${ddnRow.highDpsGap} more high DPS`);
-  ddnRow.stack.forEach((q) => console.log(`   • ${q.charName} — ${q.rarity} · ${q.scroll}`));
-  fillerCandidates(ddnRow, charDocs, plan.committed).forEach((f) =>
-    console.log(`   + ${f.charName} can fill — ${f.dpsTier} · ${f.claimsLeft} claims left`),
-  );
   console.log();
 }

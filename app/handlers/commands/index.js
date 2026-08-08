@@ -15,8 +15,6 @@ const { handleSoundboardList } = require("./soundboardList");
 const { handleBountyChar } = require("./bountyChar");
 const { handleBountyQuest } = require("./bountyQuest");
 const { handleBountyMe } = require("./bountyMe");
-const { handleBountyPlan, handleBountyNeed } = require("./bountyPlan");
-const { handleBountyRun } = require("./bountyRun");
 
 const commandHandlers = {
   start:    handleStart,
@@ -36,9 +34,6 @@ const commandHandlers = {
   "bounty-char": handleBountyChar,
   bounty: handleBountyQuest,
   "bounty-me": handleBountyMe,
-  "bounty-plan": handleBountyPlan,
-  "bounty-need": handleBountyNeed,
-  "bounty-run": handleBountyRun,
 };
 
 async function handleCommand(interaction) {

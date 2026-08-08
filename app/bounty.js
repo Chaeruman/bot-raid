@@ -1,20 +1,12 @@
 // Group Bounty — pure logic. No Discord objects, no Mongo, so all of it is
 // testable with plain `node app/_bountyTest.js`.
 //
-// Design notes: docs/bounty-arch.md. Phase 2 covers the week key, the variant
-// index and claim accounting; the parser and stack builder land in phases 3-4.
+// Design notes: docs/bounty-arch.md. Covers the week key, the nest/variant
+// index, the quest-line parser and claim accounting. Party forming lives on the
+// signup panels (bountyJoin.js); the board is bountyBoard.js.
 
 const { NESTS, VARIANTS } = require("./data/dungeons");
-const {
-  WEEKLY_CLAIMS,
-  MAX_SHARE_STACK,
-  MIN_WORTH_RANK,
-  RARITY,
-  SCROLL,
-  BOX_ALIASES,
-  rankOf,
-  rewardOf,
-} = require("./data/bounty");
+const { WEEKLY_CLAIMS, RARITY, SCROLL, BOX_ALIASES, rewardOf } = require("./data/bounty");
 
 const lc = (s) => String(s).toLowerCase().trim().replace(/\s+/g, " ");
 
@@ -86,11 +78,6 @@ function flattenVariants(nests = NESTS) {
 
 const VARIANT_LIST = flattenVariants();
 const BY_POOL_KEY = new Map(VARIANT_LIST.map((v) => [v.poolKey, v]));
-
-// A 4-capacity variant can never stack more than 4: only 4 people can be in the
-// party to share them. Capacity is the variant's when it sets one, else the
-// nest's — DDN Memoria is 4-player while DDN HC on the same row is 8.
-const maxStack = (variant) => Math.min(variant.capacity, MAX_SHARE_STACK);
 
 // ── Alias indexes ────────────────────────────────────────────────────────────
 // Aliases may be phrases ("memo 1", "rare legendary", "dark dragon"), which a
@@ -407,240 +394,11 @@ function validateData(nests = NESTS, variants = VARIANTS) {
   return problems;
 }
 
-// ── The matcher ──────────────────────────────────────────────────────────────
-// Depth buys time. A claim pays what the quest's rarity pays
-// whether it's stacked with five others or run alone — stacking N quests just
-// means ONE dungeon clear instead of N. So two numbers come out of every stack
-// and neither is blended away (arch §2.2):
-//
-//   value   = Σ rank   what one clear delivers to EVERY party member  → guild ranks on this
-// `value` orders the rows and is never displayed — its unit is invented, so
-// showing it reads as precision the player cannot check.
-//
-// A player with 2 claims left should take a 2-stack of legendaries over a
-// 4-stack of uniques, and no single score can say that — so both are printed.
 
 // A character is identified by (player, name). ":" separates them unambiguously
 // because a Discord user id is always digits — the first colon is always the
-// boundary, whatever the character is called. Printable on purpose: a control
-// character here makes grep treat this whole file as binary.
+// boundary, whatever the character is called.
 const ckey = (userId, charName) => `${userId}:${charName}`;
-
-// A stack is measured in QUESTS, not people.
-//
-// Two rules, and they are different rules:
-//
-//   • One character's quests for a variant ALL go in the same run. Clearing the
-//     dungeon once completes every one of them, so splitting them across runs
-//     would throw away free claims.
-//   • At most one character per GAME ACCOUNT per run — you can only be logged
-//     into one character at a time. Not per Discord user: a player with two
-//     accounts can have someone else field the second character, so those two
-//     characters may share a party.
-//
-// Characters with no `account` recorded all count as one account, which is the
-// conservative reading and matches how the roster behaved before the field
-// existed.
-const acctKey = (c) => ckey(c.userId, c.account || "1");
-
-function buildStacks(candidates, variant) {
-  const cap = Math.max(1, maxStack(variant));
-
-  const byChar = new Map();
-  for (const q of candidates) {
-    const k = ckey(q.userId, q.charName);
-    if (!byChar.has(k)) byChar.set(k, []);
-    byChar.get(k).push(q);
-  }
-
-  // Deepest contributor first, then highest rank — the best run happens first.
-  const chars = [...byChar.values()]
-    .map((quests) => quests.slice(0, cap).sort((a, b) => b.rank - a.rank))
-    .sort((a, b) => b.length - a.length || b[0].rank - a[0].rank);
-
-  const stacks = [];
-  let rest = chars;
-
-  while (rest.length) {
-    const stack = [];
-    const taken = new Set();
-    rest = rest.filter((quests) => {
-      const acct = acctKey(quests[0]);
-      if (taken.has(acct)) return true; // same account — defer to the next run
-      if (stack.length && stack.length + quests.length > cap) return true; // won't fit whole
-      stack.push(...quests);
-      taken.add(acct);
-      return false;
-    });
-    stacks.push(stack);
-  }
-  return stacks;
-}
-
-// weekDocs: bountyWeek documents for one week. charDocs: the shared `chars`
-// collection, which is where dpsTier lives and which also contains characters
-// that entered no quests at all — those still hold 6 claims and are exactly who
-// should be filling seats.
-function buildPlan(weekDocs = [], charDocs = []) {
-  const charByKey = new Map();
-  for (const doc of charDocs)
-    for (const c of doc.chars || []) charByKey.set(ckey(doc._id, c.name), c);
-
-  const pool = new Map(); // poolKey → candidates
-  const committed = new Map(); // characterKey → claims already spent
-
-  for (const doc of weekDocs) {
-    const userId = doc.owners?.[0] || String(doc._id).split(":")[0];
-    for (const [charName, charWeek] of Object.entries(doc.chars || {})) {
-      committed.set(ckey(userId, charName), claimsUsed(charWeek));
-
-      for (const quest of charWeek.board || []) {
-        if (quest.runId) continue; // already claimed
-        if (rankOf(quest) < MIN_WORTH_RANK) continue; // below unique is never stacked
-        if (!BY_POOL_KEY.has(quest.poolKey)) continue; // nest since disabled or removed
-
-        if (!pool.has(quest.poolKey)) pool.set(quest.poolKey, []);
-        const char = charByKey.get(ckey(userId, charName));
-        pool.get(quest.poolKey).push({
-          userId,
-          charName,
-          poolKey: quest.poolKey,
-          rarity: quest.rarity,
-          scroll: quest.scroll,
-          box: !!quest.box,
-          rank: rankOf(quest),
-          dpsTier: char?.dpsTier || null,
-          role: char?.role || null,
-          account: char?.account || null,
-        });
-      }
-    }
-  }
-
-  const rows = [];
-  for (const [poolKey, candidates] of pool) {
-    const variant = BY_POOL_KEY.get(poolKey);
-    const stacks = buildStacks(candidates, variant);
-    stacks.forEach((stack, i) => {
-      // Quests and bodies are different counts now: one character can bring two
-      // quests. Claims and reward scale with quests; seats and DPS with people.
-      const chars = new Set(stack.map((q) => ckey(q.userId, q.charName)));
-      const highDps = new Set(
-        stack.filter((q) => q.dpsTier === "high").map((q) => ckey(q.userId, q.charName)),
-      ).size;
-
-      rows.push({
-        variant,
-        stack,
-        value: stack.reduce((sum, q) => sum + q.rank, 0), // ordering only, never shown
-        cost: stack.length, // quests = claims each member spends
-        members: chars.size,
-        seatsOpen: Math.max(0, variant.capacity - chars.size),
-        highDpsGap: Math.max(0, variant.minHighDps - highDps),
-        runIndex: i + 1,
-        totalRuns: stacks.length,
-      });
-    });
-  }
-
-  // Value first — it's reward per clear, which is what a party is formed for.
-  // Quality only breaks ties, and the name keeps the order stable run to run.
-  rows.sort(
-    (a, b) =>
-      b.value - a.value ||
-      a.variant.name.localeCompare(b.variant.name) ||
-      a.runIndex - b.runIndex,
-  );
-
-  let spareClaims = 0;
-  let charsWithClaims = 0;
-  for (const doc of charDocs)
-    for (const c of doc.chars || []) {
-      const left = WEEKLY_CLAIMS - (committed.get(ckey(doc._id, c.name)) || 0);
-      if (left > 0) {
-        charsWithClaims++;
-        spareClaims += left;
-      }
-    }
-
-  return { rows, committed, spareClaims, charsWithClaims };
-}
-
-// Who could take an open seat. Filtered to claimsLeft >= cost because a filler
-// short on claims wastes the difference — they may still join, they're just not
-// recommended into a seat that burns value.
-//
-// One entry per PLAYER, not per character: a player fields one character per
-// run, so listing all 15 of theirs would be noise. The best one is kept.
-function fillerCandidates(row, charDocs = [], committed = new Map()) {
-  const inStack = new Set(row.stack.map(acctKey));
-  const best = new Map();
-
-  for (const doc of charDocs) {
-    for (const c of doc.chars || []) {
-      const acct = acctKey({ userId: doc._id, account: c.account });
-      if (inStack.has(acct)) continue; // that account is already in the party
-
-      const claimsRemaining = WEEKLY_CLAIMS - (committed.get(ckey(doc._id, c.name)) || 0);
-      if (claimsRemaining < row.cost) continue;
-
-      const entry = {
-        userId: doc._id, charName: c.name,
-        dpsTier: c.dpsTier, role: c.role, claimsLeft: claimsRemaining,
-      };
-      const held = best.get(acct);
-      if (!held || isBetter(entry, held)) best.set(acct, entry);
-    }
-  }
-
-  return [...best.values()].sort(byBest);
-}
-
-// High DPS first, since that's what closes a highDpsGap; then most claims left.
-const rankTier = (t) => (t === "high" ? 2 : t === "good" ? 1 : 0);
-
-function isBetter(a, b) {
-  if (rankTier(a.dpsTier) !== rankTier(b.dpsTier)) return rankTier(a.dpsTier) > rankTier(b.dpsTier);
-  return a.claimsLeft > b.claimsLeft;
-}
-
-const byBest = (a, b) =>
-  rankTier(b.dpsTier) - rankTier(a.dpsTier) ||
-  b.claimsLeft - a.claimsLeft ||
-  a.charName.localeCompare(b.charName);
-
-// "1× Rare Legendary, 3× Unique" — what the stack actually pays each member.
-function stackSummary(stack) {
-  const counts = new Map();
-  for (const q of stack) {
-    const label = `${RARITY[q.rarity]?.label || q.rarity}${q.box ? " + card box" : ""}`;
-    counts.set(label, (counts.get(label) || 0) + 1);
-  }
-  return [...counts]
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([label, n]) => `${n}× ${label}`)
-    .join(", ");
-}
-
-// Every number here is one a player can check against the game. The internal
-// score that orders these rows is deliberately not shown: "3.0 per claim" reads
-// as precision but its unit is invented, and the composition line below already
-// says the same thing in reward names people recognise.
-function renderPlanRow(row, i) {
-  const bits = [
-    `${row.cost} quest`,
-    `${row.members} of ${row.variant.capacity} in the party`,
-  ];
-  if (row.totalRuns > 1) bits.push(`run ${row.runIndex}/${row.totalRuns}`);
-
-  const lines = [
-    `**${i + 1}. ${row.variant.name}** — ${bits.join(" · ")}`,
-    `   ${stackSummary(row.stack)} — everyone here spends ${row.cost} claim` +
-      `${row.cost === 1 ? "" : "s"} and gets all ${row.cost}`,
-  ];
-  if (row.highDpsGap > 0) lines.push(`   needs ${row.highDpsGap} more high DPS`);
-  return lines.join("\n");
-}
 
 module.exports = {
   resetSaturday,
@@ -652,18 +410,11 @@ module.exports = {
   BY_POOL_KEY,
   NEST_INFERENCE,
   buildNestInference,
-  variantsOfNest,
-  maxStack,
   claimsUsed,
   claimsLeft,
   questLabel,
   rewardText,
   tally,
-  buildStacks,
-  buildPlan,
-  fillerCandidates,
-  stackSummary,
-  renderPlanRow,
   ckey,
   validateData,
   parseQuestLine,

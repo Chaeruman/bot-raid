@@ -29,7 +29,10 @@ async function handleBountyChar(interaction) {
       return applyHunter(interaction);
     case "add":
       if (!isHunter(interaction)) return reply(interaction, notHunter);
-      return addChar(interaction);
+      return saveChar(interaction, false);
+    case "edit":
+      if (!isHunter(interaction)) return reply(interaction, notHunter);
+      return saveChar(interaction, true);
     case "list":
       return listChars(interaction);
     case "remove":
@@ -37,13 +40,14 @@ async function handleBountyChar(interaction) {
   }
 }
 
-// `add` upserts by name, so re-running it on an existing character edits that
-// character. That's why there is no separate `edit` subcommand — one verb, and
-// the reply says which of the two happened.
-async function addChar(interaction) {
+// `add` and `edit` are the same write with opposite expectations about whether
+// the name already exists. Two subcommands rather than one upsert because
+// nobody discovers "add an existing name to change it" from a command list —
+// and it lets the SCHEMA say which fields are required, instead of the handler.
+async function saveChar(interaction, mustExist) {
   const name = norm(interaction.options.getString("name"));
   const role = interaction.options.getString("role");
-  const account = norm(interaction.options.getString("account")) || null;
+  const accountTyped = norm(interaction.options.getString("account"));
   const job = norm(interaction.options.getString("job"));
   const dpsTier = interaction.options.getString("dps");
 
@@ -53,28 +57,42 @@ async function addChar(interaction) {
   const chars = await getChars(interaction.user.id);
   const existing = chars.find((c) => same(c.name, name));
 
+  if (mustExist && !existing)
+    return reply(interaction, `❌ Tidak ada karakter **${name}**. Daftarkan dulu: \`/bounty-char add\`.`);
+  if (!mustExist && existing)
+    return reply(interaction, `❌ **${existing.name}** sudah terdaftar. Ubah dengan \`/bounty-char edit\`.`);
+
+  // Reuse the existing spelling when it only differs by case or spacing —
+  // "Akun 1" and "akun 1" splitting into two accounts is a silent wrong answer,
+  // and the whole point of the field is telling accounts apart.
+  const account = accountTyped
+    ? chars.map((c) => c.account).find((a) => a && same(a, accountTyped)) || accountTyped
+    : null;
+
   if (existing) {
     // Assign in place rather than replacing the object: this document is shared
     // with the activity planner, and its stat fields on this character have to
     // survive untouched (docs/bounty-arch.md §2.4).
+    // Only what was actually passed. Leaving a field out keeps its old value —
+    // that is what makes this an edit rather than a re-entry.
     existing.name = name;
-    existing.role = role;
-    existing.dpsTier = dpsTier;
+    if (role) existing.role = role;
+    if (dpsTier) existing.dpsTier = dpsTier;
     if (account) existing.account = account;
-    if (job) existing.job = job; // optional — don't wipe the planner's class on edit
+    if (job) existing.job = job; // don't wipe the planner's class on edit
   } else {
     if (chars.length >= MAX_CHARS) return reply(interaction, `❌ Roster is full (${MAX_CHARS}).`);
-    chars.push({ name, role, dpsTier, ...(account ? { account } : {}), ...(job ? { job } : {}) });
+    chars.push({ name, role, dpsTier, account, ...(job ? { job } : {}) });
   }
 
   if (!(await saveChars(interaction.user.id, chars)))
     return reply(interaction, "⚠️ MongoDB is not configured — nothing was saved.");
 
-  const verb = existing ? "✏️ Updated" : "✅ Added";
+  const saved = existing || chars[chars.length - 1];
   return reply(
     interaction,
-    `${verb} **${name}** — ${role} · ${DPS_TIERS[dpsTier]}` +
-      `${account ? ` · akun ${account}` : ""}${job ? ` · ${job}` : ""}`,
+    `${mustExist ? "✏️ Diubah" : "✅ Ditambah"} **${saved.name}** — ${saved.role} · ` +
+      `${DPS_TIERS[saved.dpsTier]} · akun ${saved.account}${saved.job ? ` · ${saved.job}` : ""}`,
   );
 }
 
@@ -138,14 +156,26 @@ Kasih role <@&${config.bountyHunterRoleId}> kalau setuju.`,
   return reply(interaction, "✅ Pengajuanmu dikirim ke admin. Tunggu role-nya dipasang.");
 }
 
+// Two options want it: `name` on remove, `account` on add. Discord autocomplete
+// is a suggestion list, not a whitelist — typing an account that isn't listed
+// simply creates it, so there is no "add an account" command to build.
 async function autocompleteBountyChar(interaction) {
-  const focused = interaction.options.getFocused().toLowerCase();
+  const focused = interaction.options.getFocused(true);
+  const typed = String(focused.value || "").toLowerCase();
   const chars = await getChars(interaction.user.id);
-  const hits = chars
-    .filter((c) => c.name.toLowerCase().includes(focused))
-    .slice(0, 25)
-    .map((c) => ({ name: c.name, value: c.name }));
-  return interaction.respond(hits);
+
+  // `name` on add doubles as "pick one to edit"; on remove it is the only way in.
+  const values =
+    focused.name === "account"
+      ? [...new Set(chars.map((c) => c.account).filter(Boolean))]
+      : chars.map((c) => c.name);
+
+  return interaction.respond(
+    values
+      .filter((v) => v.toLowerCase().includes(typed))
+      .slice(0, 25)
+      .map((v) => ({ name: v.slice(0, 100), value: v.slice(0, 100) })),
+  );
 }
 
 module.exports = { handleBountyChar, autocompleteBountyChar, isHunter, notHunter };

@@ -1,6 +1,5 @@
 const { autocompleteBountyChar } = require("../commands/bountyChar");
 const { autocompleteBountyQuest } = require("../commands/bountyQuest");
-const { autocompleteVariant } = require("../commands/bountyPlan");
 
 // Autocomplete cannot be deferred and must answer within 3 seconds, so every
 // handler here stays to a single Mongo read. On any failure we respond with an
@@ -9,8 +8,6 @@ const { autocompleteVariant } = require("../commands/bountyPlan");
 const autocompleteHandlers = {
   "bounty-char": autocompleteBountyChar,
   bounty: autocompleteBountyQuest,
-  "bounty-need": autocompleteVariant,
-  "bounty-run": autocompleteVariant,
 };
 
 async function handleAutocomplete(interaction) {
