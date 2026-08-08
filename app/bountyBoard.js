@@ -6,7 +6,7 @@
 // panels, which already own everything a party needs.
 const { EmbedBuilder } = require("discord.js");
 const config = require("./config");
-const { bountyBoard, saveState, getBountyWeekAll, getAllChars } = require("./state");
+const { bountyBoard, saveState, getBountyWeekAll, getAllChars, primaryOf } = require("./state");
 const { BY_POOL_KEY, weekKey, ckey, resetSaturday, weekOrdinal, rewardText } = require("./bounty");
 const { MAX_SHARE_STACK } = require("./data/bounty");
 
@@ -39,7 +39,9 @@ function groupByVariant(weekDocs, charDocs = []) {
   const byVariant = new Map();
 
   for (const doc of weekDocs) {
-    const userId = doc.owners?.[0] || String(doc._id).split(":")[0];
+    // Linked accounts collapse to one mention — they are one person, and two
+    // entries side by side would read as two people to bring.
+    const userId = primaryOf(doc.owners?.[0] || String(doc._id).split(":")[0]);
     for (const [charName, charWeek] of Object.entries(doc.chars || {})) {
       for (const q of charWeek.board || []) {
         if (q.runId) continue;
@@ -134,7 +136,7 @@ function marathonBlock(weekDocs, charDocs = []) {
   const rows = [];
 
   for (const doc of weekDocs) {
-    const userId = doc.owners?.[0] || String(doc._id).split(":")[0];
+    const userId = primaryOf(doc.owners?.[0] || String(doc._id).split(":")[0]);
     for (const [charName, charWeek] of Object.entries(doc.chars || {})) {
       const mine = (charWeek.board || []).filter((q) => !q.runId && perPool.has(q.poolKey));
       if (!mine.length) continue;

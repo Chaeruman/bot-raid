@@ -11,6 +11,7 @@ const {
   ActionRowBuilder,
   ButtonBuilder,
   EmbedBuilder,
+  UserSelectMenuBuilder,
   ButtonStyle,
   ModalBuilder,
   LabelBuilder,
@@ -18,7 +19,11 @@ const {
   TextInputStyle,
   StringSelectMenuBuilder,
 } = require("discord.js");
-const { getChars, getBountyWeek } = require("./state");
+const {
+  getChars, getBountyWeek,
+  linkedTo, incomingLinks, bountyLinkRequests,
+  requestLink, cancelLink, approveLink, unlink,
+} = require("./state");
 const { weekKey, questLabel, tally } = require("./bounty");
 const { DPS_TIERS, ROLES, SCROLL } = require("./data/bounty");
 const { weekLabelId } = require("./bountyBoard");
@@ -76,6 +81,17 @@ async function buildPanel(ownerId) {
   }
 
   if (!chars.length) lines.push("", "Belum ada karakter. Mulai dari **➕ Add Character**.");
+
+  // The invite waits HERE rather than arriving as a message. A DM can be closed
+  // and a public post would announce someone's second account to the guild —
+  // the one thing a second account is usually for.
+  for (const from of incomingLinks(ownerId))
+    lines.push("", `🔗 <@${from}> mengajak link akun. Roster kalian jadi satu.`);
+  if (bountyLinkRequests[ownerId])
+    lines.push("", `🔗 Menunggu persetujuan <@${bountyLinkRequests[ownerId]}>.`);
+
+  const group = linkedTo(ownerId).filter((id) => id !== ownerId);
+  if (group.length) lines.push("", `🔗 Ter-link: ${group.map((id) => `<@${id}>`).join(" · ")}`);
   const earned = renderTally(total);
   if (earned) lines.push("", `**Earned this week:** ${earned}`);
 
@@ -109,6 +125,28 @@ const BUTTON = (ownerId, action, label, style, disabled) =>
 
 // Everything except "add" needs a character to act on, so an empty roster
 // leaves exactly one thing to press.
+// The link row only exists when there is something to decide, so the panel does
+// not carry a button for a once-in-a-lifetime action every day of the year.
+function linkRow(ownerId) {
+  const pending = incomingLinks(ownerId);
+  if (pending.length)
+    return new ActionRowBuilder().addComponents(
+      BUTTON(ownerId, `approve:${pending[0]}`, "✅ Accept link", ButtonStyle.Success),
+      BUTTON(ownerId, `decline:${pending[0]}`, "✖️ Decline", ButtonStyle.Secondary),
+    );
+  if (bountyLinkRequests[ownerId])
+    return new ActionRowBuilder().addComponents(
+      BUTTON(ownerId, "cancel", "🔗 Cancel invite", ButtonStyle.Secondary),
+    );
+  if (linkedTo(ownerId).length > 1)
+    return new ActionRowBuilder().addComponents(
+      BUTTON(ownerId, "unlink", "🔓 Unlink account", ButtonStyle.Danger),
+    );
+  return new ActionRowBuilder().addComponents(
+    BUTTON(ownerId, "link", "🔗 Link account", ButtonStyle.Secondary),
+  );
+}
+
 const panelRows = (ownerId, hasChars) => [
   new ActionRowBuilder().addComponents(
     BUTTON(ownerId, "add", "➕ Add Character", ButtonStyle.Success),
@@ -120,6 +158,7 @@ const panelRows = (ownerId, hasChars) => [
     BUTTON(ownerId, "replace", "♻️ Edit quest", ButtonStyle.Secondary, !hasChars),
     BUTTON(ownerId, "refresh", "🔄 Refresh Panel", ButtonStyle.Secondary),
   ),
+  linkRow(ownerId),
 ];
 
 // ── Modals ───────────────────────────────────────────────────────────────────
@@ -189,6 +228,17 @@ const editModal = (ownerId, chars) =>
     pick("dps", "New DPS tier", dpsOpts(), false),
     ...accountFields(accountsOf(chars)));
 
+const linkModal = (ownerId) =>
+  new ModalBuilder()
+    .setCustomId(`${PREFIX}link:${ownerId}`)
+    .setTitle("Link account")
+    .setLabelComponents(
+      new LabelBuilder()
+        .setLabel("Your other Discord account")
+        .setDescription("Mereka yang memutuskan — undangannya menunggu di panel mereka.")
+        .setUserSelectMenuComponent(new UserSelectMenuBuilder().setCustomId("who")),
+    );
+
 const removeModal = (ownerId, chars) =>
   modal(ownerId, "remove", "Remove Character", pick("char", "Character", charOpts(chars)));
 
@@ -199,9 +249,16 @@ const removeModal = (ownerId, chars) =>
 // "Tambah karakter" on someone else's panel would write to their OWN roster
 // while the panel redrew the other person's — nothing leaks, and nothing makes
 // sense either.
+// The owner is the LAST segment, never the second: some actions carry an
+// argument ("approve:<whoever asked>"), and reading position 2 would have made
+// the guard compare against the wrong person entirely.
 function owner(interaction) {
-  const [, action, ownerId] = interaction.customId.split(":");
-  return { action, ownerId, mine: interaction.user.id === ownerId };
+  const parts = interaction.customId.split(":");
+  return {
+    action: parts.slice(1, -1).join(":"),
+    ownerId: parts[parts.length - 1],
+    mine: interaction.user.id === parts[parts.length - 1],
+  };
 }
 
 async function handlePanelButton(interaction) {
@@ -213,6 +270,19 @@ async function handlePanelButton(interaction) {
   await require("./bountyThread").wake(interaction.channel);
 
   if (action === "refresh") return interaction.update(await buildPanel(ownerId));
+
+  // Linking. Approving is the ONLY one that needs the other person, and it is
+  // the invited account pressing it — which is the whole consent story.
+  const [verb, arg] = action.split(":");
+  if (verb === "link") return interaction.showModal(linkModal(ownerId));
+  if (verb === "cancel" || verb === "unlink" || verb === "decline" || verb === "approve") {
+    if (verb === "cancel") cancelLink(ownerId);
+    else if (verb === "unlink") unlink(ownerId);
+    else if (verb === "decline") cancelLink(arg);
+    else approveLink(arg, ownerId);
+    return interaction.update(await buildPanel(ownerId));
+  }
+
   if (action === "quest" || action === "replace")
     return require("./handlers/commands/bountyQuest").openQuestModal(interaction, action === "replace");
 
@@ -256,6 +326,23 @@ async function handlePanelModal(interaction) {
   const { action, ownerId, mine } = owner(interaction);
   if (!mine) return ephemeral(interaction, "Ini panel orang lain.");
   await require("./bountyThread").wake(interaction.channel);
+
+  if (action === "link") {
+    const to = interaction.fields.getSelectedUsers("who")[0];
+    const problem = to ? requestLink(ownerId, to.id) : "Belum pilih akun.";
+    await interaction.update(await buildPanel(ownerId));
+    if (problem) return interaction.followUp({ content: `❌ ${problem}`, flags: MessageFlags.Ephemeral });
+    // Best effort only. The invite already waits on their panel, so a closed DM
+    // costs a notification and nothing else.
+    await to
+      .send(`🔗 <@${ownerId}> mengajak link akun bounty. Buka panelmu (\`/bounty-me\`) buat setuju atau tolak.`)
+      .catch(() => {});
+    return interaction.followUp({
+      content: `🔗 Undangan menunggu di panel <@${to.id}>.`,
+      flags: MessageFlags.Ephemeral,
+      allowedMentions: { parse: [] },
+    });
+  }
 
   const { saveChar, removeChar } = require("./handlers/commands/bountyChar");
   const proxy = capture(interaction);

@@ -10,7 +10,7 @@
 // invisible to it. Asserting more than that would make the reminder wrong for
 // exactly the people who are most on top of things.
 const config = require("./config");
-const { getBountyWeekAll, getBountyReminderLastSent, setBountyReminderLastSent } = require("./state");
+const { getBountyWeekAll, getBountyReminderLastSent, setBountyReminderLastSent, primaryOf } = require("./state");
 const { weekKey } = require("./bounty");
 const { MIN_WORTH_RANK, rankOf } = require("./data/bounty");
 
@@ -29,15 +29,17 @@ const isReminderWindow = (now = Date.now()) => {
 // threshold, so today this excludes nothing — it is here so that adding a lesser
 // rarity later cannot quietly pad the reminder with things nobody intends to do.
 function holders(weekDocs) {
-  const out = [];
+  // Linked accounts are one person, so their counts add up under one mention
+  // rather than pinging the same human twice.
+  const byUser = new Map();
   for (const doc of weekDocs) {
-    const userId = doc.owners?.[0] || String(doc._id).split(":")[0];
+    const userId = primaryOf(doc.owners?.[0] || String(doc._id).split(":")[0]);
     let n = 0;
     for (const charWeek of Object.values(doc.chars || {}))
       for (const q of charWeek.board || []) if (!q.runId && rankOf(q) >= MIN_WORTH_RANK) n++;
-    if (n) out.push({ userId, n });
+    if (n) byUser.set(userId, (byUser.get(userId) || 0) + n);
   }
-  return out.sort((a, b) => b.n - a.n);
+  return [...byUser].map(([userId, n]) => ({ userId, n })).sort((a, b) => b.n - a.n);
 }
 
 function buildReminder(weekDocs, now = new Date()) {

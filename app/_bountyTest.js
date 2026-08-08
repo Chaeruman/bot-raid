@@ -705,12 +705,16 @@ pending.push((async () => {
   check("33. and never pings the owner it names", empty.allowedMentions.parse.length === 0);
 
   const rows = empty.components.map((r) => r.toJSON().components).flat();
-  eq("33. six buttons", rows.length, 6);
+  // The link row is only there when something can be decided, so the count is
+  // not the invariant — the actions are.
+  eq("33. the actions on offer",
+    rows.map((b) => b.custom_id.split(":").slice(1, -1).join(":")).join(","),
+    "add,edit,remove,quest,replace,refresh,link");
   check("33. every button carries its owner", rows.every((b) => b.custom_id.endsWith(":u1")));
   // Add and refresh are the only two that can do anything without a character.
   eq("33. the rest are disabled while the roster is empty",
     rows.filter((b) => !b.disabled).map((b) => b.custom_id.split(":")[1]).sort().join(","),
-    "add,refresh");
+    "add,link,refresh");
 
   // The guard is the whole reason moderators being able to see these threads is
   // harmless: they can read the panel, but a press writes nothing.
@@ -753,7 +757,7 @@ pending.push((async () => {
     .flatMap((r) => r.toJSON().components)
     .map((b) => b.custom_id);
 
-  eq("34. the panel has buttons to check", ids.length, 6);
+  check("34. the panel has buttons to check", ids.length >= 6, `${ids.length}`);
   check("34. every one of them reaches its handler", ids.every(routerLetsThrough), ids.find((i) => !routerLetsThrough(i)));
   // The event-scoped default is what protects the raid panels, so it has to
   // still say no to everything else.
@@ -1022,6 +1026,115 @@ check("40. and the name survives a colon in it",
 // Discord takes five action rows; a sixth would be rejected at send time.
 check("40. never more menus than a message can hold",
   buildPickers("x", errs(Array(8).fill("hc u wep").join("\n"))).length <= 5);
+
+
+// 41. Linked Discord accounts. Nothing is ever moved between documents: reads
+//     return the union and writes go back where each row came from, so leaving
+//     a group costs nothing and no two rosters ever have to be reconciled.
+const {
+  linkedTo, primaryOf, requestLink, approveLink, unlink, cancelLink,
+  incomingLinks, bountyLinkRequests: reqs,
+} = require("./state");
+
+const g = (id) => linkedTo(id).sort().join(",");
+
+eq("41. an unlinked account is a group of one", g("ol"), "ol");
+eq("41. inviting yourself is refused", requestLink("ol", "ol"), "Itu akun yang sama.");
+
+eq("41. an invite is accepted", requestLink("ol", "chae1"), null);
+// Delivery is not the mechanism: the invite is state, waiting on their panel.
+eq("41. and waits on the target", incomingLinks("chae1").join(","), "ol");
+eq("41. the group only forms on approval", g("ol"), "ol");
+
+approveLink("ol", "chae1");
+eq("41. both sides see the same group", g("ol"), "chae1,ol");
+eq("41. and it is gone from the queue", incomingLinks("chae1").length, 0);
+// One person, one mention — the board and the reminder both key off this.
+eq("41. one account represents the group", primaryOf("chae1"), "ol");
+
+requestLink("ol", "chae2");
+approveLink("ol", "chae2");
+eq("41. a third joins the same group", g("chae2"), "chae1,chae2,ol");
+eq("41. an account already in a group is refused",
+  requestLink("someone", "chae2"), "Akun itu sudah ter-link ke grup lain.");
+
+// Leaving takes nothing from the people who stay.
+unlink("chae1");
+eq("41. one leaves", g("chae1"), "chae1");
+eq("41. the rest stay linked", g("ol"), "chae2,ol");
+unlink("chae2");
+eq("41. and the last pair dissolves cleanly", g("ol"), "ol");
+eq("41. leaving nothing behind", g("chae2"), "chae2");
+
+// The button carries who asked, so the owner is the LAST segment. Reading
+// position 2 would have compared the guard against the wrong person.
+reqs["asker41"] = "u41";
+pending.push((async () => {
+  const p = await buildPanel("u41");
+  check("41. the invite shows on the invited panel",
+    p.embeds[0].data.description.includes("<@asker41> mengajak link"));
+  const link = p.components[2].toJSON().components;
+  eq("41. with accept and decline", link.map((b) => b.label).join(","), "✅ Accept link,✖️ Decline");
+  eq("41. and the owner is still the last segment",
+    link[0].custom_id.split(":").pop(), "u41");
+  delete reqs["asker41"];
+})());
+
+
+// 42. Reading a group as one roster, and writing it back42 where it came from.
+//     Nothing is moved between documents, so this pair is the whole feature —
+//     and a mistake here loses or duplicates a character in silence.
+const { mergeChars, splitChars, mergeWeek, splitWeek } = require("./state");
+
+const rows42 = mergeChars([
+  { _id: "ol", chars: [{ name: "Chelssea" }, { name: "ZouZ" }] },
+  { _id: "chae1", chars: [{ name: "Bolabola" }] },
+]);
+eq("42. a group reads as one roster", rows42.map((c) => c.name).join(","), "Chelssea,ZouZ,Bolabola");
+eq("42. each row remembers where it lives", rows42.find((c) => c.name === "Bolabola")._owner, "chae1");
+
+// Add one while acting as ol, drop ZouZ, and every document is rewritten — a
+// removal has to disappear from the document it actually lived in.
+const back42 = splitChars(["ol", "chae1"], [rows42[0], rows42[2], { name: "New" }], "ol");
+eq("42. rows42 go home", back42.get("chae1").map((c) => c.name).join(","), "Bolabola");
+eq("42. and a new one belongs to whoever added it", back42.get("ol").map((c) => c.name).join(","), "Chelssea,New");
+check("42. the tag is never stored", !JSON.stringify([...back42.values()]).includes("_owner"));
+eq("42. every member is written, so removals stick", [...back42.keys()].join(","), "ol,chae1");
+
+// Same trick for the week, plus the case that only exists because links came
+// later: one character name registered on BOTH accounts before they linked.
+const wq = (p) => ({ poolKey: p, rarity: "unique", scroll: "weapon", box: false, runId: null });
+const merged42 = mergeWeek([
+  { _id: "ol:w", owners: ["ol"], chars: { Chelssea: { board: [wq("gdn:hc")], shares: [] } } },
+  { _id: "chae1:w", owners: ["chae1"], chars: {
+      Chelssea: { board: [wq("gdn:hc"), wq("sdn:hc")], shares: [] },
+      // A character of chae1's own, so the split below has somewhere to send a
+      // row that is NOT the acting account — without it, sending everything to
+      // the actor would look identical and the check could not fail.
+      Bolabola: { board: [wq("ddn:hc")], shares: [] } } },
+]);
+eq("42. a shared name merges rather than picking", merged42.Chelssea.board.length, 2);
+eq("42. dropping the duplicate", merged42.Chelssea.board.map((q) => q.poolKey).join(","), "gdn:hc,sdn:hc");
+// It converges into one document, which is what keeps the six-quest cap honest.
+eq("42. and converges to one document",
+  [...splitWeek(["ol", "chae1"], merged42, "ol")].map(([id, c]) => `${id}:${Object.keys(c).join("+") || "-"}`).join(" "),
+  "ol:Chelssea chae1:Bolabola");
+
+// 42b. The guard reads the owner off the END of the customId. Actions that
+//      carry an argument ("approve:<whoever asked>") would otherwise compare it
+//      against the asker and refuse the very person invited.
+pending.push((async () => {
+  const acc = panelInt("approve:asker", "u42");
+  acc.customId = `${PREFIX}approve:asker:u42`;
+  await handlePanelButton(acc);
+  check("42b. the invited account may accept", !acc.seen.reply, acc.seen.reply);
+  check("42b. and the panel is redrawn", !!acc.seen.update?.embeds?.length);
+
+  const other = panelInt("approve:asker", "u42", "someone-else");
+  other.customId = `${PREFIX}approve:asker:u42`;
+  await handlePanelButton(other);
+  check("42b. but nobody else can", /panel orang lain/.test(other.seen.reply || ""));
+})());
 
 
 // A throw inside an async block would reject Promise.all and take the summary
