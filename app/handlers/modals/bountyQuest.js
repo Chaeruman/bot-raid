@@ -95,6 +95,8 @@ async function handleBountyQuestModal(interaction) {
     });
   }
 
+  if (saved.length) require("../../bountyBoard").syncBoard(interaction.client).catch(() => {});
+
   const chars = await getChars(userId);
   const select = buildCharSelect(chars);
 

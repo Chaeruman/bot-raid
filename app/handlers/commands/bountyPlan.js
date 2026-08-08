@@ -7,10 +7,11 @@ const {
   fillerCandidates,
   stackSummary,
   renderPlanRow,
+  rewardText,
   VARIANT_LIST,
   BY_POOL_KEY,
 } = require("../../bounty");
-const { DPS_TIERS, RARITY, SCROLL } = require("../../data/bounty");
+const { DPS_TIERS } = require("../../data/bounty");
 
 // The plan is 2 lines per row and variants outnumber nests several-fold, so the
 // list is capped rather than trusted to fit a 4096-char embed. /bounty-need is
@@ -95,9 +96,7 @@ async function handleBountyNeed(interaction) {
     }
     for (const quests of byChar.values()) {
       const q = quests[0];
-      const what = quests
-        .map((x) => `${RARITY[x.rarity]?.label || x.rarity}${x.box ? " + card box" : ""} · ${SCROLL[x.scroll]?.label || x.scroll}`)
-        .join(" | ");
+      const what = quests.map(rewardText).join(" | ");
       lines.push(
         `• **${q.charName}** <@${q.userId}>${quests.length > 1 ? ` (${quests.length} quest)` : ""} — ` +
           `${what}${q.role ? ` · ${q.role}` : ""}${q.dpsTier === "high" ? " · high DPS" : ""}`,

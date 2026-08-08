@@ -393,6 +393,145 @@ fillSeats([], bench1, 2);
 eq("14. promoted members leave the bench", bench1.length, 1);
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// 15. The weekly board — groups by nest then by character, ordered by how many
+//     quests sit behind each nest, so the first section is "Most Wanted".
+const { groupByVariant, weekLabelId, buildBoardEmbed } = require("./bountyBoard");
+
+const bq = (poolKey, rarity, scroll, box) => ({ poolKey, rarity, scroll, box: !!box, runId: null });
+const boardDocs = [
+  { _id: "ol:w", owners: ["ol"], weekKey: "w", chars: {
+      Chelssea: { board: [bq("gdn:classic", "rare_legendary", "weapon", true),
+                          bq("gdn:classic", "legendary", "weapon")], shares: [] },
+      Santeterz: { board: [bq("pkn:hell", "unique", "weapon")], shares: [] } } },
+  { _id: "royal:w", owners: ["royal"], weekKey: "w", chars: {
+      arcroyal: { board: [bq("gdn:classic", "unique", "weapon"),
+                          bq("gdn:classic", "unique", "wtd")], shares: [] } } },
+  // Claimed quests and disabled nests never reach the board.
+  { _id: "x:w", owners: ["x"], weekKey: "w", chars: {
+      Ghost: { board: [{ ...bq("gdn:classic", "unique", "weapon"), runId: "done" },
+                       bq("abyssal_mire:mutant", "unique", "weapon")], shares: [] } } },
+];
+
+const groups = groupByVariant(boardDocs);
+eq("15. two nests have quests", groups.length, 2);
+eq("15. most wanted is first", groups[0].variant.poolKey, "gdn:classic");
+eq("15. total counts quests, not people", groups[0].total, 4);
+eq("15. and only two characters hold them", groups[0].entries.length, 2);
+eq("15. the 2-quest character leads", groups[0].entries[0].charName, "Chelssea");
+eq("15. disabled nests are excluded",
+  groups.filter((g) => g.variant.nestKey === "abyssal_mire").length, 0);
+
+const boardDesc = buildBoardEmbed(boardDocs, new Date("2026-08-10T05:00:00Z")).data.description;
+check("15. one line per character, not per quest",
+  (boardDesc.match(/Chelssea/g) || []).length === 1);
+check("15. multi-quest is marked", boardDesc.includes("(2 quest)"));
+check("15. both its quests are listed",
+  boardDesc.includes("Rare Legendary + card box") && boardDesc.includes("Legendary · Weapon"));
+check("15. sections are labelled",
+  boardDesc.includes("Most Wanted") && boardDesc.includes("Lainnya"));
+eq("15. Indonesian week label",
+  weekLabelId(new Date("2026-08-10T05:00:00Z")), "minggu ke-2 Agustus 2026");
+check("15. an empty week says so", buildBoardEmbed([]).data.description.includes("Belum ada"));
+
+// 16. Party request — the board's one action. The ✅ line must only ever move
+//     for someone actually tagged, and only once.
+const { buildBoardComponents, renderRequest } = require("./bountyBoard");
+
+const comps = buildBoardComponents(groups);
+if (comps.length) {
+  const menu = comps[0].toJSON().components[0];
+  eq("16. one option per nest with quests", menu.options.length, groups.length);
+  eq("16. option value is the pool key", menu.options[0].value, "gdn:classic");
+}
+eq("16. no menu when nobody has quests", buildBoardComponents([]).length, 0);
+
+const req = {
+  poolKey: "gdn:classic", weekKey: "w", byUserId: "asker",
+  members: [{ userId: "ol", charName: "Chelssea", quests: 2 }, { userId: "royal", charName: "arcroyal", quests: 1 }],
+  confirmed: [],
+};
+check("16. everyone starts unconfirmed", !renderRequest(req).includes("✅ <@"));
+check("16. multi-quest is marked", renderRequest(req).includes("(2 quest)"));
+eq("16. counter starts at zero", renderRequest(req).includes("0/2 siap"), true);
+req.confirmed.push(ckey("ol", "Chelssea"));
+const done = renderRequest(req);
+check("16. only the confirmed line gets a tick", done.includes("✅ <@ol>") && done.includes("▫️ <@royal>"));
+eq("16. counter follows", done.includes("1/2 siap"), true);
+
+
+// 17. Create party — seats the quest holders into the raid panel's own roles.
+const { partyShape, seatHolders } = require("./bountyBoard");
+const tpl = require("./templates");
+
+eq("17. an 8-cap variant uses raid roles", partyShape(BY_POOL_KEY.get("gdn:hc")).roles, tpl.gdn_cl.roles);
+eq("17. a 4-cap variant uses the nest roles", partyShape(BY_POOL_KEY.get("tkn:hell")).roles, tpl.tkn_hell.roles);
+eq("17. Memoria uses the memo shape", partyShape(BY_POOL_KEY.get("ddn:i")).roles, tpl.memo.roles);
+check("17. and memo carries job buttons", !!partyShape(BY_POOL_KEY.get("ddn:i")).jobs);
+check("17. raid shape has none", !partyShape(BY_POOL_KEY.get("gdn:hc")).jobs);
+
+const mkParty = (shape, maxSlot) => {
+  const roles = {};
+  for (const [k, r] of Object.entries(shape.roles)) roles[k] = { ...r, users: [] };
+  return { roles, users: {}, maxSlot };
+};
+const ent = (userId, charName) => ({ userId, charName });
+
+// Raid shape: each holder lands in the slot their character sheet names.
+const raidShape = partyShape(BY_POOL_KEY.get("gdn:hc"));
+const raidEv = mkParty(raidShape, 8);
+const roleMap = new Map([
+  [ckey("u1", "A"), "Healer"], [ckey("u2", "B"), "MT"],
+  [ckey("u3", "C"), "Healer"], [ckey("u4", "D"), "Bard"],
+]);
+const { skipped: skip } = seatHolders(raidEv, raidShape, [ent("u1","A"), ent("u2","B"), ent("u3","C"), ent("u4","D")], roleMap);
+eq("17. healer takes the healer slot", raidEv.roles.HEALER.users[0], "u1");
+eq("17. MT takes the MT slot", raidEv.roles.MT.users[0], "u2");
+eq("17. a second healer has nowhere to sit", skip.map((e) => e.charName).includes("C"), true);
+eq("17. an unknown role is skipped too", skip.map((e) => e.charName).includes("D"), true);
+
+// One seat per PLAYER — a second character of the same person cannot take one.
+const dupEv = mkParty(raidShape, 8);
+seatHolders(dupEv, raidShape, [ent("u1","A"), ent("u1","A2")], new Map([[ckey("u1","A"),"MT"],[ckey("u1","A2"),"Healer"]]));
+eq("17. same player seats once", Object.keys(dupEv.users).length, 1);
+// The second character is reported, not silently dropped — it needs its own run.
+const dupEv2 = mkParty(raidShape, 8);
+const dupOut = seatHolders(dupEv2, raidShape, [ent("u1","A"), ent("u1","A2")],
+  new Map([[ckey("u1","A"),"MT"],[ckey("u1","A2"),"Healer"]]));
+eq("17. and the other is flagged for a separate run", dupOut.separate.map((e) => e.charName).join(), "A2");
+eq("17. it is not counted as a role problem", dupOut.skipped.length, 0);
+
+// Memo shape fills P1..P4 in order, role becomes the label.
+const memoShape = partyShape(BY_POOL_KEY.get("ddn:i"));
+const memoEv = mkParty(memoShape, 4);
+seatHolders(memoEv, memoShape, [ent("m1","X"), ent("m2","Y")], new Map([[ckey("m1","X"),"FU"],[ckey("m2","Y"),"Healer"]]));
+eq("17. first holder takes P1", memoEv.roles.P1.users[0], "m1");
+eq("17. second takes P2", memoEv.roles.P2.users[0], "m2");
+eq("17. job rides along as the label", memoEv.users.m1.subRole, "FU");
+
+// Capacity is the hard stop.
+const fullEv = mkParty(memoShape, 4);
+const { skipped: over } = seatHolders(fullEv, memoShape,
+  ["a","b","c","d","e"].map((n) => ent(n, n.toUpperCase())),
+  new Map(["a","b","c","d","e"].map((n) => [ckey(n, n.toUpperCase()), "FU"])));
+eq("17. capacity caps seating", Object.keys(fullEv.users).length, 4);
+eq("17. the rest are reported", over.length, 1);
+
+
+// 18. "Buat party sekarang" — locked until someone actually says they can come.
+const { requestButtons } = require("./bountyBoard");
+const btns = (confirmed) =>
+  requestButtons({ members: [{ userId: "a" }, { userId: "b" }], confirmed })
+    .toJSON().components;
+
+eq("18. locked with nobody confirmed", btns([])[1].disabled, true);
+eq("18. unlocked on the first tick", btns(["a"])[1].disabled, false);
+eq("18. the tick button is never locked", btns([])[0].disabled, undefined);
+check("18. the note says only ✅ get seated",
+  renderRequest({ poolKey: "gdn:hc", byUserId: "z", members: [{ userId: "a", charName: "A", quests: 1 }], confirmed: [] })
+    .includes("yang ✅ saja yang didudukkan"));
+
+
 console.log(`\n${pass} passed, ${fails.length} failed`);
 if (fails.length) {
   console.log("\nFailures:");

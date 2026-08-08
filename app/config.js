@@ -21,6 +21,10 @@ module.exports = {
   digestChannelId: process.env.DIGEST_CHANNEL_ID,
   top5ChannelId: process.env.TOP5_CHANNEL_ID,
   lzChannelId: process.env.LZ_CHANNEL_ID,
+  bountyBoardChannelId: process.env.BOUNTY_BOARD_CHANNEL_ID,
+  bountyRequestChannelId: process.env.BOUNTY_REQUEST_CHANNEL_ID,
+  publicRaidChannelId: process.env.PUBLIC_RAID_CHANNEL_ID,
+  publicNestChannelId: process.env.PUBLIC_NEST_CHANNEL_ID,
   tim1RoleId: process.env.TIM1_ROLE_ID,
   tim2RoleId: process.env.TIM2_ROLE_ID,
 };

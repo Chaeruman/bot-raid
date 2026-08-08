@@ -30,6 +30,15 @@ async function handleButton(interaction) {
     return handleGabMarkPaidRec(interaction);
   }
 
+  // Bounty request messages are their own state, not activeEvents, and the
+  // handler replies itself — so no deferUpdate first.
+  if (interaction.customId === "bounty-req:ok") {
+    return require("../../bountyBoard").handleRequestButton(interaction);
+  }
+  if (interaction.customId === "bounty-req:go") {
+    return require("../../bountyBoard").handleRequestGo(interaction);
+  }
+
   const userId = interaction.user.id;
   const event = activeEvents[interaction.message.id];
   const onCooldown = checkCooldown(userId);

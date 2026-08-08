@@ -133,10 +133,10 @@ const NESTS = [
       //
       // "memo 1" is unique guild-wide, so typing it alone identifies the nest
       // too — no "ddn" needed on the line.
-      i:   { minHighDps: 2, capacity: 4, label: "Memoria 1", aliases: ["memo 1", "memo1", "memoria 1"] },
-      ii:  { minHighDps: 2, capacity: 4, label: "Memoria 2", aliases: ["memo 2", "memo2", "memoria 2"] },
-      iii: { minHighDps: 2, capacity: 4, label: "Memoria 3", aliases: ["memo 3", "memo3", "memoria 3"] },
-      iv:  { minHighDps: 2, capacity: 4, label: "Memoria 4", aliases: ["memo 4", "memo4", "memoria 4"] },
+      i:   { minHighDps: 2, capacity: 4, party: "memo", label: "Memoria 1", aliases: ["memo 1", "memo1", "memoria 1"] },
+      ii:  { minHighDps: 2, capacity: 4, party: "memo", label: "Memoria 2", aliases: ["memo 2", "memo2", "memoria 2"] },
+      iii: { minHighDps: 2, capacity: 4, party: "memo", label: "Memoria 3", aliases: ["memo 3", "memo3", "memoria 3"] },
+      iv:  { minHighDps: 2, capacity: 4, party: "memo", label: "Memoria 4", aliases: ["memo 4", "memo4", "memoria 4"] },
     },
     enabled: true,
   },

@@ -75,6 +75,7 @@ function flattenVariants(nests = NESTS) {
         name: `${nest.name} ${label}`,
         capacity: v.capacity ?? nest.capacity,
         minHighDps: v.minHighDps,
+        party: v.party || null, // "memo" = P1-P4 job buttons instead of raid roles
         nestAliases: (nest.aliases || []).map(lc),
         variantAliases: [...vocab.slice(1), ...(v.aliases || [])].map(lc),
       });
@@ -312,16 +313,17 @@ function claimsUsed(charWeek) {
 
 const claimsLeft = (charWeek) => Math.max(0, WEEKLY_CLAIMS - claimsUsed(charWeek));
 
-// One quest as a line of text. Pure, so both the modal reply and /bounty-me
-// render identically without either owning the format.
+// What one quest pays, as text. Single source: the board, /bounty-need and
+// /bounty-me all print this, and having three copies meant a wording change
+// touched three files.
+const rewardText = (quest) =>
+  `${RARITY[quest.rarity]?.label || quest.rarity}${quest.box ? " + card box" : ""} · ` +
+  `${SCROLL[quest.scroll]?.label || quest.scroll}`;
+
+// The same, prefixed with which nest it's for.
 function questLabel(quest) {
   const variant = BY_POOL_KEY.get(quest.poolKey);
-  const rarity = RARITY[quest.rarity];
-  return (
-    `${variant ? variant.name : quest.poolKey} — ` +
-    `${rarity ? rarity.label : quest.rarity}${quest.box ? " + card box" : ""} · ` +
-    `${SCROLL[quest.scroll]?.label || quest.scroll}`
-  );
+  return `${variant ? variant.name : quest.poolKey} — ${rewardText(quest)}`;
 }
 
 // What a character has actually banked this week. Claimed board quests and
@@ -655,6 +657,7 @@ module.exports = {
   claimsUsed,
   claimsLeft,
   questLabel,
+  rewardText,
   tally,
   buildStacks,
   buildPlan,

@@ -11,6 +11,7 @@ const { version } = require("./version");
 const keepAlive = require("./utils/keepAlive");
 const { startWeeklyDigest } = require("./digest");
 const { startLzDigest } = require("./lzDigest");
+const { startBoard } = require("./bountyBoard");
 
 const client = new Client({
   intents: [
@@ -37,6 +38,7 @@ client.on("interactionCreate", async (interaction) => {
     if (interaction.isButton()) {
       const isEventScoped =
         !interaction.customId.startsWith("loot-btn:") &&
+        !interaction.customId.startsWith("bounty-req:") &&
         !interaction.customId.startsWith("gab-budget:") &&
         !interaction.customId.startsWith("gab-paid-rec:");
       if (isEventScoped && !activeEvents[interaction.message.id]) {
@@ -127,4 +129,5 @@ process.on("unhandledRejection", console.error);
   await client.login(config.token);
   startWeeklyDigest(client);
   startLzDigest(client);
+  startBoard(client);
 })();
