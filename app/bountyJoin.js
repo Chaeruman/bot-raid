@@ -20,12 +20,17 @@ const stackCap = (event) => Math.min(event.maxSlot, MAX_SHARE_STACK);
 // the WEEKLY CLAIM limit, and a marathon's two clears spend from that same
 // budget — so GDN HC and GDN CL share the 6 rather than getting one each.
 const stackedNow = (event) =>
-  Object.values(event.users || {}).reduce((n, u) => n + (u.bountyQuests || 0), 0);
+  Object.values(event.users || {}).reduce((n, u) => n + (u.bountyQuests?.length || 0), 0);
 
-// How many of a character's quests actually fit. Quests past the cap were
-// shared with nobody, so they must not be marked done later.
+// WHICH of a character's quests actually fit, not how many. The panel prints
+// each stacked quest's reward, so the seat has to keep the quests themselves —
+// a count renders as nothing and reads as "you have no bounty here".
+//
+// Quests past the cap were shared with nobody, so they must not be marked done
+// later. Best-first: myQuestsHere already sorted by rank, so a partial stack
+// keeps the valuable ones.
 const fitToStack = (event, quests) =>
-  Math.max(0, Math.min(quests.length, stackCap(event) - stackedNow(event)));
+  quests.slice(0, Math.max(0, stackCap(event) - stackedNow(event)));
 
 const PICK = "bounty-fin:pick"; // + :<eventMessageId>:<slotKey>
 const JOIN = "bounty-join"; // closed-to-bounty panels: one button instead of roles
@@ -324,7 +329,7 @@ async function markPartyDone(client, event) {
 }
 
 module.exports = {
-  askBeforeSeat, myQuestsHere, questLines, takenRole, slotForRole,
+  askBeforeSeat, myQuestsHere, questLines, takenRole, slotForRole, fitToStack,
   handleCharPick, handleBountyJoin, handleToggleBounty, markPartyDone,
   PICK, JOIN, TOGGLE,
 };

@@ -540,6 +540,39 @@ pending.push((async () => {
 })());
 
 
+// 30. What fitToStack WRITES is what the panel READS. It once returned a count
+//     while the panel expected the quests: `5?.length` is undefined, so the
+//     seat was filtered out and a full stack rendered as "Stack 0/6" with the
+//     joiner told they were "numpang". Both sides are checked against one
+//     value here, because either alone passes while the pair is broken.
+const { fitToStack } = require("./bountyJoin");
+const { buildSignupEmbed } = require("./builders/content");
+
+const q30 = (poolKey, rarity) => ({ poolKey, rarity, scroll: "wep" });
+const marathon = () => {
+  const roles = {};
+  for (const [k, r] of Object.entries(tpls.gdn_cl.roles)) roles[k] = { ...r, users: [] };
+  return { messageId: "m", hostId: "h", maxSlot: 8, locked: false, roles, users: {},
+           poolKeys: ["gdn:hc", "gdn:classic"], closedToBounty: true, stackRoles: true };
+};
+
+const ev30 = marathon();
+const fitted = fitToStack(ev30, [q30("gdn:hc", "unique"), q30("gdn:classic", "legendary")]);
+check("30. fitToStack returns the quests, not a count", Array.isArray(fitted));
+eq("30. both fit under the cap", fitted.length, 2);
+
+ev30.users.u1 = { slot: "ACRO", bountyChar: "ChelseaQT", bountyQuests: fitted };
+const d30 = buildSignupEmbed(ev30).data.description;
+check("30. the panel counts them", d30.includes("Stack 2/6"));
+check("30. and names the holder", d30.includes("ChelseaQT"));
+
+// The cap is one budget for the whole run, so a second seat fills what is left.
+ev30.users.u2 = { slot: "FU", bountyChar: "Bolabola",
+                  bountyQuests: fitToStack(ev30, Array.from({ length: 6 }, () => q30("gdn:hc", "unique"))) };
+eq("30. the cap is shared, not per variant", ev30.users.u2.bountyQuests.length, 4);
+check("30. and the panel stops at 6", buildSignupEmbed(ev30).data.description.includes("Stack 6/6"));
+
+
 Promise.all(pending).then(() => {
   console.log(`\n${pass} passed, ${fails.length} failed`);
   if (fails.length) {
