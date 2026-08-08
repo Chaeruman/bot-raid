@@ -6,7 +6,6 @@ Semua ini juga ada tombolnya di thread pribadimu — command cuma cadangan.
 |---|---|
 | `/bounty-char add` | Daftar char baru. `account` opsional. |
 | `/bounty-char edit` | Ubah char yang udah ada. Isi yang mau diganti aja. |
-| `/bounty-char list` | Lihat char kamu. |
 | `/bounty-char remove` | Hapus char. |
 | `/bounty-char apply` | Ajukan role Bounty Hunter ke admin (kalau server-nya ngunci fitur ini). |
 | `/bounty` | Catat quest minggu ini. Char-nya dipilih di dalam form. Tambah `replace:true` kalau mau ulang dari nol. |

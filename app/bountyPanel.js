@@ -1,6 +1,6 @@
 // The bounty panel: one message that shows a player everything the bot knows
 // about them, with every action as a button. It replaces reading `/bounty-me`
-// and `/bounty-char list` and then typing a third command to change anything.
+// and a roster listing and then typing a third command to change anything.
 //
 // It has NO opinion about where it lives. `buildPanel` returns a message
 // payload, so the same panel works as an ephemeral reply today and as a pinned

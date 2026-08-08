@@ -16,9 +16,9 @@ Panduan lengkap untuk host, seller, dan member.
 | `/loot-action id:<panelId> action:<…>` | Jalankan aksi loot panel lewat command |
 | `/state` | (Co-Leader) lihat event & loot panel aktif |
 | `/clear id:<…>` | (Co-Leader) hapus event/panel dari state |
-| `/bounty-char add\|edit\|list\|remove\|apply` | Roster karakter bounty |
+| `/bounty-char add\|edit\|remove\|apply` | Roster karakter bounty |
 | `/bounty [replace]` | Catat bounty quest minggu ini |
-| `/bounty-me` | Quest, sisa claim, reward kamu minggu ini |
+| `/bounty-me` | Panel kamu — karakter, quest, reward. Semua aksinya tombol. |
 
 > **Catatan:** `/start`, `/raid`, `/marathon`, `/nest`, `/memo` punya opsi
 > `closed_to_bounty` — lihat bagian 14.
@@ -298,7 +298,7 @@ ketiga-tiganya** — termasuk yang nggak punya quest di situ.
   kehitung 2 slot stack.
 - Marathon (GDN HC + CL) tetap **satu** batas 6, bukan 6 per varian.
 
-Cek punyamu sendiri: `/bounty-me`.
+Cek punyamu sendiri: `/bounty-me`, atau buka thread-mu di `#my-bounty`.
 
 ### Kalau fitur ini dikunci
 

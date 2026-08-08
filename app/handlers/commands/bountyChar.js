@@ -33,8 +33,6 @@ async function handleBountyChar(interaction) {
     case "edit":
       if (!isHunter(interaction)) return reply(interaction, notHunter);
       return saveChar(interaction, true);
-    case "list":
-      return listChars(interaction);
     case "remove":
       return removeChar(interaction);
   }
@@ -109,20 +107,6 @@ async function saveChar(interaction, mustExist, values = fromOptions(interaction
       // The account is optional now, and "akun null" is worse than no account.
       `${saved.account ? ` · akun ${saved.account}` : ""}${saved.job ? ` · ${saved.job}` : ""}`,
   );
-}
-
-async function listChars(interaction) {
-  const chars = await getChars(interaction.user.id);
-  if (!chars.length)
-    return reply(interaction, "Belum ada karakter. Bikin panel-mu dengan `/bounty-me`.");
-
-  const lines = chars.map(
-    (c) =>
-      `• **${c.name}** — ${c.role || "belum ada role"} · ` +
-      `${DPS_TIERS[c.dpsTier] || "belum ada tier"}` +
-      `${c.account ? ` · akun ${c.account}` : ""}${c.job ? ` · ${c.job}` : ""}`,
-  );
-  return reply(interaction, `**Karaktermu (${chars.length})**\n${lines.join("\n")}`);
 }
 
 // Same deal as saveChar: the panel's delete arrives from a select menu, not an

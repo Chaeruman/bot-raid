@@ -14,6 +14,54 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.18.0] — 2026-08-09
+
+### Added
+- **Reminder Kamis 20:00 WIB** di `BOUNTY_BOARD_CHANNEL_ID` — menyebut orangnya,
+  bukan quest-nya, karena board sudah mendaftar isinya. Kalimatnya "belum
+  tercatat", tidak pernah "belum selesai": bot cuma tahu quest selesai kalau
+  run-nya ditutup lewat panel signup, jadi yang clear di party dadakan tetap
+  ikut terdaftar. Digerbangi `BOUNTY_REMINDER_ENABLED=true`, saklarnya sendiri.
+  Sekaligus menjaga thread pribadi tidak ter-archive — dua sentuhan seminggu
+  (Kamis dan reset Sabtu) membuat jeda terpanjang ~4 hari.
+- **Dropdown di modal quest** — Character, Dungeon, Rarity, Scroll, plus kotak
+  "Type more quests". 14 dari 19 karakter cuma pegang 1 quest, jadi dropdown
+  menutup kasus umum dengan jumlah interaksi yang sama seperti mengetik, tanpa
+  sintaks dan tanpa kemungkinan salah parse. Card box digabung ke rarity supaya
+  muat di 5 kolom.
+- **Ambiguitas dijawab dropdown.** `hc u wep` yang cocok ke tiga nest sekarang
+  membalas dengan tiga kandidat; sekali klik selesai. Nilai opsinya adalah quest
+  yang sudah utuh, jadi tidak ada state yang disimpan sambil menunggu dipilih.
+  Baris yang tidak punya kandidat tetap pesan teks.
+- **Blok Marathon GDN** di board — jumlah per clear (`HC 0 · Classic 1`) plus
+  baris per karakter dengan role-nya. `HC 0` langsung memberi tahu marathon
+  minggu ini tidak jalan.
+
+### Changed
+- **Board dipisah** jadi dua embed dalam satu pesan: Raid (8 orang) dan Nest
+  (4 orang).
+- **Nama akun tidak lagi tampil di board.** Diganti huruf per orang (`akun A`,
+  `akun B`) yang konsisten di seluruh board — pembaca cuma perlu tahu dua
+  karakter bisa jalan bersamaan atau tidak.
+- **Nama nest disingkat** di board dan panel: `GDN HC`, `DDN Memoria 4`. Diambil
+  dari alias pertama, jadi tidak ada daftar kedua yang harus dijaga.
+- **Label panel jadi Inggris**, kalimat penjelas tetap Indonesia.
+- Pesan pinned di `#my-bounty` ditulis ulang dalam bahasa Inggris.
+
+### Removed
+- **Baris sisa claim di panel.** Ikut party 3-stack menghabiskan 3 claim bahkan
+  pada karakter yang tidak pegang quest, dan party di luar panel tidak pernah
+  terlapor — jadi angkanya selalu kelebihan, arah yang bikin orang
+  merencanakan run yang tidak bisa di-claim.
+- **`/bounty-char list`** — panel sudah menampilkan roster-nya.
+
+### Fixed
+- **Pesan pinned `#my-bounty` tidak pernah ditulis ulang.** `syncEntry` cuma
+  memastikan pesannya ada; teksnya tinggal di kode, jadi tiap perubahan tidak
+  pernah sampai. Sekarang di-edit tiap boot.
+- `rankOf` di-import dari modul yang salah pada reminder — boot tetap sukses,
+  dan crash-nya baru datang Kamis malam.
+
 ## [1.17.0] — 2026-08-09
 
 ### Added
