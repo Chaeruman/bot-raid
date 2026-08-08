@@ -14,6 +14,46 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.17.0] — 2026-08-09
+
+### Added
+- **Panel bounty** — satu pesan yang menampilkan roster, quest minggu ini, sisa
+  claim dan reward, dengan semua aksinya sebagai tombol. Menggantikan membaca
+  `/bounty-me` lalu `/bounty-char list` lalu mengetik command ketiga untuk
+  mengubah apa pun. Muncul dari `/bounty-me`, dan permanen di thread pribadi.
+- **Thread pribadi** — satu tombol di `BOUNTY_ME_CHANNEL_ID` membuat thread
+  privat per orang dengan panel ter-pin di dalamnya. Sekali pencet seumur hidup;
+  setelah itu thread-nya ada di sidebar dengan datanya sudah ter-render.
+  Butuh izin **Create Private Threads** + **Manage Threads**. Tidak diset =
+  fitur mati, sisanya normal.
+- Tombol panel membawa pemiliknya dan tiap penekanan dicek — Discord tidak
+  memberi izin per-tombol, dan moderator bisa melihat semua thread privat.
+
+### Changed
+- `/bounty` tidak lagi punya opsi `character`; pemilih karakternya ada di dalam
+  modal. Ini yang membuat tombol bisa membukanya.
+- **Akun game jadi opsional.** Dulu wajib diketik, padahal akun baru berarti
+  apa-apa setelah ada karakter kedua. Begitu akun sudah ada, kolomnya jadi
+  daftar pilihan — teks bebas adalah tempat typo lahir, dan dua ejaan berbeda
+  membuat bot mengira kedua karakter itu bisa jalan bersamaan.
+- Pesan yang muncul dari panel diterjemahkan ke Indonesia dan tidak lagi
+  menyuruh mengetik slash command yang panelnya justru menggantikan.
+
+### Fixed
+- **`Stack 0/6` pada party yang sudah terisi.** `fitToStack` mengembalikan
+  hitungan sementara panel membaca daftar quest-nya; `angka?.length` itu
+  `undefined`, jadi kursi tersaring keluar dan yang join diberi tahu dia cuma
+  numpang — padahal quest-nya tercatat benar sejak awal.
+- **Tombol panel tidak pernah sampai ke handler-nya.** Router menyimpan salinan
+  daftar prefix sendiri. Daftarnya sekarang diturunkan, bukan diduplikasi.
+- Toggle `khusus bounty` hanya membalik satu dari dua flag, meninggalkan panel
+  setengah jadi: tombol role hilang, batas per-role masih hidup.
+- Kegagalan pencatatan bounty saat join tidak lagi ditelan diam-diam.
+
+### Removed
+- `buildCharSelect`, `handleBountyCharSelect`, autocomplete `/bounty`, dan
+  scaffolding `bountyWeekThreads` yang tidak pernah terpakai.
+
 ## [1.16.0] — 2026-08-08
 
 ### Added
