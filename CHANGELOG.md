@@ -14,6 +14,41 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.16.0] — 2026-08-08
+
+### Added
+- **Group Bounty** — pencatatan bounty quest mingguan, papan pengumuman, dan
+  party signup yang sadar bounty.
+  - `/bounty-char add|edit|list|remove|apply` — roster karakter (nama, role,
+    DPS tier, akun game). `add` untuk baru, `edit` untuk mengubah sebagian.
+  - `/bounty character:<nama>` — catat quest minggu ini lewat modal, satu baris
+    per quest: `ddn hc u wep`. Urutan token bebas, frasa seperti `memo 1` dan
+    `rare legendary` dikenali, salah ketik nest dikasih lima tebakan terdekat.
+  - `/bounty-me` — quest, sisa claim, dan reward yang sudah didapat.
+  - **Bounty board** di `BOUNTY_BOARD_CHANNEL_ID` — satu pesan per minggu,
+    dikirim saat reset Sabtu 08:00 WIB, di-edit tiap ada data baru, dihapus dan
+    diganti minggu berikutnya. Dikelompokkan per nest → per orang → per
+    karakter. Read-only, tanpa tombol.
+  - **`closed_to_bounty`** di `/start`, `/raid`, `/marathon`, `/memo`, `/nest` —
+    sembilan tombol role jadi satu tombol Join, batas per-role dimatikan, dan
+    hanya yang punya data bounty minggu ini yang bisa masuk. Ada toggle
+    host-only untuk membuka kembali ke semua orang.
+  - Klik role di signup mana pun sekarang menanyakan karakter mana yang kamu
+    bawa kalau kamu punya quest di lebih dari satu. **Tekan Done = seluruh
+    party ditandai selesai** — satu-satunya tempat quest ditandai terpakai.
+  - Gerbang opsional `BOUNTY_HUNTER_ROLE_ID` + `/bounty-char apply` yang kirim
+    pengajuan ke `BOUNTY_ADMIN_CHANNEL_ID`. Role dipasang manual, bot tidak
+    butuh Manage Roles. **Kalau role-nya tidak diset, semua orang tetap bisa
+    pakai.**
+- **Pemisahan channel signup** — panel dikirim ke `PUBLIC_RAID_CHANNEL_ID` (8
+  slot) atau `PUBLIC_NEST_CHANNEL_ID` (4 slot), dengan preview hidup + link di
+  channel tempat command diketik. **Env var kosong = panel tetap di tempat
+  command diketik**, jadi tidak ada yang berubah sebelum channel-nya siap.
+
+### Changed
+- **Daftar role di panel signup** jadi kolom rata (`` `Ice Stacker` @user ``),
+  lebar mengikuti role event itu sendiri. `*(empty)*` jadi `—`.
+
 ## [1.15.9] — 2026-08-05
 
 ### Fixed
