@@ -22,9 +22,16 @@ const ephemeral = (interaction, content) =>
 // ── The pinned entry point ───────────────────────────────────────────────────
 
 const entryMessage = () => ({
-  content:
-    "🎯 **Bounty**\nPencet buat bikin thread pribadimu — isinya karakter, quest minggu ini, " +
-    "dan semua tombolnya. Cukup sekali; setelah itu thread-nya nongol di daftar kiri.",
+  content: [
+    "**Personal Bounty**",
+    "Create your personal bounty thread.",
+    "",
+    "- Your character list",
+    "- This week's quests and what you earned",
+    "- Add and edit, all as buttons",
+    "",
+    "Press once. After that it stays in your sidebar.",
+  ].join("\n"),
   components: [
     new ActionRowBuilder().addComponents(
       new ButtonBuilder().setCustomId(NEW).setLabel("🎯 Create My Thread").setStyle(ButtonStyle.Success),
@@ -42,9 +49,12 @@ async function syncEntry(client) {
   const channel = await client.channels.fetch(config.bountyMeChannelId).catch(() => null);
   if (!channel) return console.error("❌ BOUNTY_ME_CHANNEL_ID tidak ditemukan");
 
+  // Edit, don't just check it exists. Skipping the edit meant any change to the
+  // wording or the button silently never reached the message already pinned —
+  // the text lives in this file, so this is the only thing that makes it true.
   if (bountyEntry.messageId) {
     const msg = await channel.messages.fetch(bountyEntry.messageId).catch(() => null);
-    if (msg) return;
+    if (msg) return msg.edit(entryMessage()).catch(() => {});
   }
 
   const msg = await channel.send(entryMessage());

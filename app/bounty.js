@@ -314,7 +314,7 @@ const rewardText = (quest) =>
 // The same, prefixed with which nest it's for.
 function questLabel(quest) {
   const variant = BY_POOL_KEY.get(quest.poolKey);
-  return `${variant ? variant.name : quest.poolKey} — ${rewardText(quest)}`;
+  return `${variant ? variant.short : quest.poolKey} — ${rewardText(quest)}`;
 }
 
 // What a character has actually banked this week. Claimed board quests and

@@ -183,10 +183,10 @@ eq("3d. differing scroll is not a repeat",
 
 // 3e. Display.
 eq("3e. quest label", questLabel({ poolKey: "ddn:i", rarity: "unique", scroll: "weapon" }),
-  "Desert Dragon Nest Memoria 1 — Unique · Weapon");
+  "DDN Memoria 1 — Unique · Weapon");
 eq("3e. card box shows in the label",
   questLabel({ poolKey: "gdn:hc", rarity: "legendary", scroll: "accessory", box: true }),
-  "Green Dragon Nest HC — Legendary + card box · Accessory");
+  "GDN HC — Legendary + card box · Accessory");
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. Pool keys never mix variants, and flattening resolves the right fields.
@@ -868,6 +868,50 @@ eq("37. at 08:00 WIB", wib.getUTCHours(), 8);
 // On reset morning the answer is the NEXT one, not the one happening now.
 check("37. reset day rolls to the following Saturday",
   nextReset(new Date("2026-08-08T02:00:00Z")) > new Date("2026-08-08T02:00:00Z"));
+
+
+// 38. The pinned entry message is EDITED on boot, not merely checked. Its text
+//     lives in bountyThread.js, so a wording change that never reaches the
+//     message already pinned leaves the file and the channel disagreeing with
+//     nobody the wiser — the failure is invisible from the code side.
+const { syncEntry } = require("./bountyThread");
+const { bountyEntry } = require("./state");
+const cfg38 = require("./config");
+
+pending.push((async () => {
+  const edits = [];
+  const sends = [];
+  const client = (existing) => ({
+    channels: {
+      fetch: async () => ({
+        messages: { fetch: async () => existing },
+        send: async (p) => {
+          sends.push(p);
+          return { id: "new", pin: async () => {} };
+        },
+      }),
+    },
+  });
+
+  const was = cfg38.bountyMeChannelId;
+  cfg38.bountyMeChannelId = "chan";
+
+  bountyEntry.messageId = "m1";
+  await syncEntry(client({ edit: async (p) => edits.push(p) }));
+  eq("38. an existing message is rewritten", edits.length, 1);
+  check("38. with the current text", edits[0].content.includes("stays in your sidebar"));
+  check("38. and the current button",
+    edits[0].components[0].toJSON().components[0].label.includes("Create My Thread"));
+  eq("38. and nothing is posted twice", sends.length, 0);
+
+  // Deleted by hand → post a fresh one rather than editing nothing forever.
+  bountyEntry.messageId = "gone";
+  await syncEntry(client(null));
+  eq("38. a deleted message is replaced", sends.length, 1);
+
+  cfg38.bountyMeChannelId = was;
+  delete bountyEntry.messageId;
+})());
 
 
 // A throw inside an async block would reject Promise.all and take the summary
