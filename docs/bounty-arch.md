@@ -319,10 +319,11 @@ Resolved at join time, in a `handlers/bounty/resolveChar.js` reached from a sing
 The result lands on the event as `event.users[userId] = { slot, subRole, charName,
 questId }`, where `questId` is the quest they contributed, or null.
 
-One player can only field one character per run, which falls out for free —
-`event.users` is keyed by user id. That is also a hard constraint on the grouper
-(§6.3): a player holding the same quest on three characters cannot stack them
-together and genuinely needs three runs.
+Exclusivity is per **game account**, not per Discord user: you can only be logged
+into one character at a time, so two characters on the same account cannot share
+a party. Two characters on *different* accounts can, even when one person owns
+both — someone else may be fielding the second. Characters with no `account`
+recorded all count as one account, the conservative reading.
 
 ### 2.8 Two thread surfaces, both lazy
 
@@ -593,8 +594,14 @@ is `nest:variant`, so `gdn:cl` and `gdn:hc` are separate pools that never mix:
 pool["gdn:hc"] = [{ userId, charName, questId, rank, rarity, scroll, box, dpsTier }]
 ```
 
-**Step 2 — build stacks.** Greedy, highest rank first, one character per player
-per run (§2.7). Quests that don't fit spill into the next run for that variant:
+**Step 2 — build stacks.** A stack is measured in **quests, not people**. Two
+separate rules, and conflating them is what the first version got wrong:
+
+- **One character's quests for a variant all go in the same run.** Clearing once
+  completes every one of them, so splitting them wastes free claims.
+- **At most one character per game account per run** (§2.7).
+
+Greedy, deepest contributor first. Quests that don't fit spill into the next run:
 
 ```js
 function buildStacks(pool, variant) {

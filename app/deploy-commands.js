@@ -244,6 +244,12 @@ const commands = [
             ),
         )
         .addStringOption((o) =>
+          o
+            .setName("account")
+            .setDescription("Akun game — karakter satu akun tidak bisa satu party (default: sama semua)")
+            .setMaxLength(16),
+        )
+        .addStringOption((o) =>
           o.setName("job").setDescription("In-game class (optional)").setMaxLength(32),
         ),
     )
@@ -259,7 +265,7 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
-    .setName("bounty-quest")
+    .setName("bounty")
     .setDescription("Record this week's bounty quests for one character")
     .addStringOption((o) =>
       o

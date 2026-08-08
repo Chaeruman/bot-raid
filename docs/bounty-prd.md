@@ -44,8 +44,8 @@ Three things stop it from happening today:
 
 1. **Nobody knows who holds what.** Good quests are rare — a player holds roughly
    3 unique+ across their whole roster in a given week. Finding others holding the
-   *same dungeon's* quest is guesswork in chat, and a player's own characters
-   can't stack together because one person fields one character per party.
+   *same dungeon's* quest is guesswork in chat, and two characters on the same
+   game account can't stack together — you're only logged into one at a time.
 2. **Stacks stay shallow.** Without knowing who else is holding, runs happen at
    1–2 deep when 4 was available — the same rewards for four times the clears.
 3. **Claims expire.** Saturday 08:00 WIB, anything unspent is gone. Most people
@@ -107,8 +107,10 @@ helps each player ration their 6 claims toward the best quests on offer.
 Everything else in this document is bookkeeping in service of that.
 
 **Realistically stacks will be 2–4 deep, not 6.** At 25 players holding ~3 good
-quests each, spread across ~20 dungeons, and with one character per player per
-party, a full 6-stack is a jackpot rather than a target. A 3-stack is a good week.
+quests each, spread across ~20 dungeons, and with one character per game account
+per party, a full 6-stack is a jackpot rather than a target — though a character
+holding two quests for the same variant now contributes both. A 3-stack is a good
+week.
 The bot is judged on turning 1-deep runs into 3-deep ones, not on hitting the cap.
 
 ## 5. v1 scope

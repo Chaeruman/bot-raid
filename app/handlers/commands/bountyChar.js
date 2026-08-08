@@ -30,6 +30,7 @@ async function handleBountyChar(interaction) {
 async function addChar(interaction) {
   const name = norm(interaction.options.getString("name"));
   const role = interaction.options.getString("role");
+  const account = norm(interaction.options.getString("account")) || null;
   const job = norm(interaction.options.getString("job"));
   const dpsTier = interaction.options.getString("dps");
 
@@ -46,10 +47,11 @@ async function addChar(interaction) {
     existing.name = name;
     existing.role = role;
     existing.dpsTier = dpsTier;
+    if (account) existing.account = account;
     if (job) existing.job = job; // optional — don't wipe the planner's class on edit
   } else {
     if (chars.length >= MAX_CHARS) return reply(interaction, `❌ Roster is full (${MAX_CHARS}).`);
-    chars.push({ name, role, dpsTier, ...(job ? { job } : {}) });
+    chars.push({ name, role, dpsTier, ...(account ? { account } : {}), ...(job ? { job } : {}) });
   }
 
   if (!(await saveChars(interaction.user.id, chars)))
@@ -58,7 +60,8 @@ async function addChar(interaction) {
   const verb = existing ? "✏️ Updated" : "✅ Added";
   return reply(
     interaction,
-    `${verb} **${name}** — ${role} · ${DPS_TIERS[dpsTier]}${job ? ` · ${job}` : ""}`,
+    `${verb} **${name}** — ${role} · ${DPS_TIERS[dpsTier]}` +
+      `${account ? ` · akun ${account}` : ""}${job ? ` · ${job}` : ""}`,
   );
 }
 
@@ -70,7 +73,8 @@ async function listChars(interaction) {
   const lines = chars.map(
     (c) =>
       `• **${c.name}** — ${c.role || "no role set"} · ` +
-      `${DPS_TIERS[c.dpsTier] || "no DPS tier set"}${c.job ? ` · ${c.job}` : ""}`,
+      `${DPS_TIERS[c.dpsTier] || "no DPS tier set"}` +
+      `${c.account ? ` · akun ${c.account}` : ""}${c.job ? ` · ${c.job}` : ""}`,
   );
   return reply(interaction, `**Your characters (${chars.length})**\n${lines.join("\n")}`);
 }

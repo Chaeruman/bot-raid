@@ -34,7 +34,7 @@ const commandHandlers = {
   "lz-now": handleLzNow,
   "soundboard-list": handleSoundboardList,
   "bounty-char": handleBountyChar,
-  "bounty-quest": handleBountyQuest,
+  bounty: handleBountyQuest,
   "bounty-me": handleBountyMe,
   "bounty-plan": handleBountyPlan,
   "bounty-need": handleBountyNeed,

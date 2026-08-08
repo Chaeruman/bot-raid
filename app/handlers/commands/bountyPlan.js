@@ -34,7 +34,7 @@ async function handleBountyPlan(interaction) {
     lines.push(
       "",
       "Nobody has recorded a unique+ quest yet this week.",
-      "Add yours with `/bounty-quest`.",
+      "Add yours with `/bounty`.",
     );
   } else {
     lines.push("");
@@ -42,8 +42,8 @@ async function handleBountyPlan(interaction) {
     if (rows.length > MAX_ROWS) lines.push("", `…and ${rows.length - MAX_ROWS} more.`);
     lines.push(
       "",
-      `**${charsWithClaims}** characters still have claims (**${spareClaims}** total).`,
-      "`/bounty-need` to see who · `/bounty-run` to open a party.",
+      `**${charsWithClaims}** characters are free to come along.`,
+      "`/bounty-need` to see who.",
     );
   }
 
@@ -68,9 +68,9 @@ async function handleBountyNeed(interaction) {
     const free = fillerCandidates({ stack: [], cost: 1 }, charDocs, committed);
     lines.push(
       "",
-      "Nobody has an unclaimed quest here this week.",
+      "Nobody has a quest here this week.",
       "",
-      `**${free.length}** characters have a claim spare if someone finds one.`,
+      `**${free.length}** characters are free to come along if someone finds one.`,
     );
     return interaction.editReply(lines.join("\n").slice(0, 2000));
   }
@@ -80,31 +80,40 @@ async function handleBountyNeed(interaction) {
       row.totalRuns > 1 ? `Run ${row.runIndex} of ${row.totalRuns}` : "Stack";
     lines.push(
       "",
-      `**${heading}** — ${row.cost} quest${row.cost === 1 ? "" : "s"} · ` +
-        `costs ${row.cost} claim${row.cost === 1 ? "" : "s"} · ` +
-        `${row.seatsOpen} seat${row.seatsOpen === 1 ? "" : "s"} open` +
+      `**${heading}** — ${row.cost} quest${row.cost === 1 ? "" : "s"} from ` +
+        `${row.members} character${row.members === 1 ? "" : "s"} · ` +
+        `${row.members} of ${row.variant.capacity} in the party` +
         (row.highDpsGap > 0 ? ` · needs ${row.highDpsGap} more high DPS` : ""),
     );
+    // One line per CHARACTER, not per quest — two quests on one character read
+    // as two people otherwise, which is the same confusion the stack fix removed.
+    const byChar = new Map();
     for (const q of row.stack) {
+      const k = `${q.userId}:${q.charName}`;
+      if (!byChar.has(k)) byChar.set(k, []);
+      byChar.get(k).push(q);
+    }
+    for (const quests of byChar.values()) {
+      const q = quests[0];
+      const what = quests
+        .map((x) => `${RARITY[x.rarity]?.label || x.rarity}${x.box ? " + card box" : ""} · ${SCROLL[x.scroll]?.label || x.scroll}`)
+        .join(" | ");
       lines.push(
-        `• **${q.charName}** <@${q.userId}> — ${RARITY[q.rarity]?.label || q.rarity}` +
-          `${q.box ? " + card box" : ""} · ${SCROLL[q.scroll]?.label || q.scroll}` +
-          `${q.role ? ` · ${q.role}` : ""}${q.dpsTier === "high" ? " · high DPS" : ""}`,
+        `• **${q.charName}** <@${q.userId}>${quests.length > 1 ? ` (${quests.length} quest)` : ""} — ` +
+          `${what}${q.role ? ` · ${q.role}` : ""}${q.dpsTier === "high" ? " · high DPS" : ""}`,
       );
     }
 
     const fillers = fillerCandidates(row, charDocs, committed);
     if (fillers.length) {
-      lines.push("", `**Can fill a seat** (${row.cost}+ claims left):`);
+      lines.push("", "**Free to come along:**");
       fillers.slice(0, MAX_NAMES).forEach((f) =>
         lines.push(
           `• **${f.charName}** <@${f.userId}> — ${f.role || "no role"} · ` +
-            `${DPS_TIERS[f.dpsTier] || "no tier"} · ${f.claimsLeft} claims left`,
+            `${DPS_TIERS[f.dpsTier] || "no tier"}`,
         ),
       );
       if (fillers.length > MAX_NAMES) lines.push(`…and ${fillers.length - MAX_NAMES} more.`);
-    } else {
-      lines.push("", `_Nobody outside the stack has ${row.cost} claims spare._`);
     }
   }
 

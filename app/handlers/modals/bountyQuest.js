@@ -85,7 +85,7 @@ async function handleBountyQuestModal(interaction) {
     lines.push(
       "",
       `⚠️ Board is full at ${WEEKLY_CLAIMS} — ${overflow.length} line(s) dropped. ` +
-        "Use `/bounty-quest replace:true` to redo them.",
+        "Use `/bounty replace:true` to redo them.",
     );
 
   if (errors.length) {

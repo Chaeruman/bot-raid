@@ -255,13 +255,40 @@ const cand = (userId, charName, rank, dpsTier) => ({ userId, charName, rank, dps
 const ddnHc = BY_POOL_KEY.get("ddn:hc");   // 8 capacity → stacks of 6
 const memo1 = BY_POOL_KEY.get("ddn:i");    // 4 capacity → stacks of 4
 
-// 8. One character per PLAYER per run — a person can only be in a party once, so
-//    three characters of one player holding the same quest need three runs.
+// 8. Two separate rules, and mixing them up is what the old version got wrong.
+//
+// 8a. One character's quests for a variant ALL land in the same run — clearing
+//     once completes every one of them.
+const twoQuests = buildStacks(
+  [cand("u1", "A", 5), cand("u1", "A", 3)], ddnHc,
+);
+eq("8a. one character with 2 quests makes ONE run", twoQuests.length, 1);
+eq("8a. and the run counts both quests", twoQuests[0].length, 2);
+eq("8a. best quest first", twoQuests[0][0].rank, 5);
+
+// 8b. One character per GAME ACCOUNT — characters with no account recorded all
+//     count as one, which keeps the old, conservative behaviour.
 const solo = buildStacks(
   [cand("u1", "A", 3), cand("u1", "B", 3), cand("u1", "C", 3)], ddnHc,
 );
-eq("8. same player never stacks with themselves", solo.length, 3);
-check("8. each run holds exactly one of them", solo.every((s) => s.length === 1));
+eq("8b. same account never stacks with itself", solo.length, 3);
+check("8b. each run holds exactly one of them", solo.every((s) => s.length === 1));
+
+// 8c. …but different accounts may share a party, because someone else can be
+//     fielding that character.
+const acct = (userId, charName, account) => ({ ...cand(userId, charName, 3), account });
+const twoAccounts = buildStacks(
+  [acct("u1", "A", "1"), acct("u1", "B", "2")], ddnHc,
+);
+eq("8c. different accounts share one run", twoAccounts.length, 1);
+eq("8c. both quests count", twoAccounts[0].length, 2);
+// A character whose quests would overflow the cap waits for the next run.
+const bigThenSmall = buildStacks(
+  [acct("u1", "A", "1"), acct("u1", "A", "1"), acct("u1", "A", "1"), acct("u1", "A", "1"),
+   acct("u2", "B", "1"), acct("u2", "B", "1"), acct("u2", "B", "1")], memo1,
+);
+eq("8c. a 4-quest character fills a 4-cap run alone", bigThenSmall[0].length, 4);
+eq("8c. the rest spill", bigThenSmall[1].length, 3);
 
 // 9. Spill — 14 candidates from 14 different players at an 8-capacity nest.
 const many = buildStacks(
@@ -310,11 +337,11 @@ const gdnRow = plan.rows.find((r) => r.variant.poolKey === "gdn:hc");
 
 eq("10. 4-stack of uniques is worth 12", ddnRow.value, 12);
 eq("10. it costs 4 claims", ddnRow.cost, 4);
-eq("10. quality is 3 per claim", ddnRow.quality, 3);
+eq("10. four quests from four characters", ddnRow.members, 4);
 eq("10. 2-stack of legendary+box is worth 8", gdnRow.value, 8);
-eq("10. it costs 2 claims", gdnRow.quality, 4);
+eq("10. the 2-stack costs 2 claims", gdnRow.cost, 2);
 check("10. the 4-stack ranks first on value", plan.rows[0].variant.poolKey === "ddn:hc");
-check("10. but the 2-stack is better per claim", gdnRow.quality > ddnRow.quality);
+check("10. the 4-stack outranks it on value", ddnRow.value > gdnRow.value);
 
 eq("10. seats open on an 8-cap nest", ddnRow.seatsOpen, 4);
 // ddn:hc wants 6 high DPS and the stack has 2.
@@ -394,7 +421,7 @@ if (fails.length) {
     `\n   ${plan.charsWithClaims} characters still have claims (${plan.spareClaims} total).`,
   );
   console.log(`\n── sample /bounty-need ddn:hc ──────────────────────────────`);
-  console.log(`   Stack — ${ddnRow.cost} quests · ${ddnRow.seatsOpen} seats open · needs ${ddnRow.highDpsGap} more high DPS`);
+  console.log(`   ${ddnRow.cost} quests · ${ddnRow.members}/${ddnRow.variant.capacity} slots · needs ${ddnRow.highDpsGap} more high DPS`);
   ddnRow.stack.forEach((q) => console.log(`   • ${q.charName} — ${q.rarity} · ${q.scroll}`));
   fillerCandidates(ddnRow, charDocs, plan.committed).forEach((f) =>
     console.log(`   + ${f.charName} can fill — ${f.dpsTier} · ${f.claimsLeft} claims left`),

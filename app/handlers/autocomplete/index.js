@@ -8,7 +8,7 @@ const { autocompleteVariant } = require("../commands/bountyPlan");
 // user "no options" instead of a stuck menu.
 const autocompleteHandlers = {
   "bounty-char": autocompleteBountyChar,
-  "bounty-quest": autocompleteBountyQuest,
+  bounty: autocompleteBountyQuest,
   "bounty-need": autocompleteVariant,
   "bounty-run": autocompleteVariant,
 };

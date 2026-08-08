@@ -51,7 +51,7 @@ async function handleBountyMe(interaction) {
   if (!anyQuests) {
     lines.push(
       "",
-      "No quests recorded this week. Add them with `/bounty-quest`.",
+      "No quests recorded this week. Add them with `/bounty`.",
       `You have ${chars.length} character(s), each with ${WEEKLY_CLAIMS} claims to spend.`,
     );
   } else {
