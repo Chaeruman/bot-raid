@@ -278,15 +278,31 @@ check("15. one line per character, not per quest",
 check("15. multi-quest is marked", boardDesc.includes("(2 quest)"));
 check("15. both its quests are listed",
   boardDesc.includes("Rare Legendary + card box") && boardDesc.includes("Legendary · Weapon"));
-check("15. sections are labelled",
-  boardDesc.includes("Most Wanted") && boardDesc.includes("Lainnya"));
+// One line per character, mention on it — a header line per player doubled the
+// board's height for nothing.
+check("15. no separate mention line", !/^<@\w+>$/m.test(boardDesc));
+check("15. mention sits on the character line", /<@ol> \*\*Chelssea\*\*/.test(boardDesc));
 eq("15. Indonesian week label",
   weekLabelId(new Date("2026-08-10T05:00:00Z")), "minggu ke-2 Agustus 2026");
 check("15. an empty week says so", buildBoardEmbed([]).data.description.includes("Belum ada"));
-// The bot can't act on the account, but a reader can: same account = two runs.
-check("15. the game account is shown", boardDesc.includes("akun 1"));
-check("15. a character with no account recorded shows none",
-  !buildBoardEmbed(boardDocs, [], new Date()).data.description.includes("akun"));
+// The account only earns its place when one player has TWO characters in the
+// SAME nest — that is the only time it tells you anything. In boardDocs above,
+// ol's two characters are in different nests, so it stays hidden.
+check("15. hidden when their characters are in different nests", !boardDesc.includes("akun"));
+const twoHere = buildBoardEmbed(
+  [{ _id: "ol:w", owners: ["ol"], weekKey: "w", chars: {
+      Chelssea: { board: [bq("gdn:hc", "unique", "weapon")], shares: [] },
+      Bolabola: { board: [bq("gdn:hc", "unique", "wtd")], shares: [] } } }],
+  [{ _id: "ol", chars: [{ name: "Chelssea", account: "1" }, { name: "Bolabola", account: "2" }] }],
+).data.description;
+check("15. shown when both are in the same nest",
+  twoHere.includes("akun 1") && twoHere.includes("akun 2"));
+check("15. hidden when they have only one",
+  !buildBoardEmbed(
+    [{ _id: "solo:w", owners: ["solo"], weekKey: "w",
+       chars: { Only: { board: [bq("gdn:hc", "unique", "weapon")], shares: [] } } }],
+    [{ _id: "solo", chars: [{ name: "Only", account: "1" }] }],
+  ).data.description.includes("akun"));
 
 // 19. Raid integration — the only place a quest ever gets marked done.
 const tpls = require("./templates");

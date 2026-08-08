@@ -77,18 +77,25 @@ function groupByVariant(weekDocs, charDocs = []) {
     .sort((a, b) => b.total - a.total || a.variant.name.localeCompare(b.variant.name));
 }
 
-// A character with two quests for one nest is ONE line — clearing once completes
-// both, so two lines would read as two characters.
+// One line per character, mention included. A header line per player doubled
+// the height of the board for nothing — almost everyone has exactly one
+// character in a given nest.
+//
+// The account only shows when this player has TWO characters here, which is the
+// only case it disambiguates: same account means two separate runs.
+//
+// A character with two quests for one nest is still ONE line — clearing once
+// completes both, so two lines would read as two characters.
 const renderPlayer = (e) =>
-  [
-    `<@${e.userId}>`,
-    ...e.chars.map(
+  e.chars
+    .map(
       (c) =>
-        `　• **${c.charName}**${c.quests.length > 1 ? ` (${c.quests.length} quest)` : ""}` +
-        `${c.account ? ` · akun ${c.account}` : ""} — ` +
-        c.quests.map(rewardText).join(" | "),
-    ),
-  ].join("\n");
+        `<@${e.userId}> **${c.charName}**` +
+        `${c.quests.length > 1 ? ` (${c.quests.length} quest)` : ""}` +
+        `${e.chars.length > 1 && c.account ? ` · akun ${c.account}` : ""}` +
+        ` — ${c.quests.map(rewardText).join(" | ")}`,
+    )
+    .join("\n");
 
 function buildBoardEmbed(weekDocs, charDocs = [], now = new Date()) {
   const groups = groupByVariant(weekDocs, charDocs);
@@ -103,11 +110,13 @@ function buildBoardEmbed(weekDocs, charDocs = [], now = new Date()) {
   }
 
   const section = (g) =>
-    [`**${g.variant.name}** — ${g.total} bounty`, ...g.entries.map(renderPlayer)].join("\n");
+    [`**${g.variant.name}** — ${g.total}`, ...g.entries.map(renderPlayer)].join("\n");
 
+  // A blank line between nests. Without it the sections run together and a bold
+  // nest name is the only thing separating two lists of names.
   const [first, ...rest] = groups;
-  const lines = ["**Most Wanted Dungeon**", section(first)];
-  if (rest.length) lines.push("", "**Dungeon Lainnya**", ...rest.map(section));
+  const lines = [section(first)];
+  if (rest.length) lines.push("", ...rest.flatMap((g) => [section(g), ""]));
 
   embed.setDescription(lines.join("\n").slice(0, 4000));
   return embed;
