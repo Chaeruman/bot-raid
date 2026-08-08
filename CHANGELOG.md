@@ -14,6 +14,24 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.19.0] — 2026-08-09
+
+### Added
+- **Link akun Discord** — satu orang, beberapa akun, satu roster. Tombol
+  `🔗 Link account` di panel; akun utama mengundang, **akun yang diundang yang
+  memutuskan**, karena panelnya yang berubah.
+  - Undangannya **data, bukan kiriman**: menunggu di panel akun yang diundang.
+    DM tetap dikirim sebagai pemberitahuan saja — DM bisa tertutup, dan
+    pengganti yang biasa dipakai (pesan publik) justru mengumumkan akun kedua
+    seseorang ke seluruh guild.
+  - Tidak ada data yang dipindah antar dokumen. Baca mengembalikan gabungan,
+    tulis kembali ke dokumen asal tiap baris — jadi `🔓 Unlink` gratis dan tidak
+    ada roster yang perlu diadu.
+  - Board dan reminder menyebut satu mention per orang, bukan per akun.
+  - Karakter bernama sama yang terdaftar di dua akun sebelum di-link digabung,
+    lalu menyatu ke satu dokumen — kalau tidak, batas 6 quest dihitung dari
+    pandangan sebagian dan bisa terlampaui.
+
 ## [1.18.0] — 2026-08-09
 
 ### Added
