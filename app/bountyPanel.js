@@ -152,12 +152,30 @@ const charOpts = (chars) =>
 const modal = (ownerId, action, title, ...labels) =>
   new ModalBuilder().setCustomId(`${PREFIX}${action}:${ownerId}`).setTitle(title).setLabelComponents(...labels);
 
-const addModal = (ownerId) =>
+// The account only tells characters apart once there are two of them, so on a
+// first character it is pure friction — a required free-text field that nothing
+// can yet be inconsistent with. It is optional everywhere.
+//
+// Once accounts exist it becomes a picker, because that is where typos start
+// costing something: "chelssea" and "Chelsea" are two accounts to the bot, and
+// two accounts means the bot thinks those characters can run at the same time.
+// Typing is still how a NEW account is made — the same rule the slash
+// command's autocomplete had, since autocomplete was never a whitelist.
+const accountFields = (accounts) => [
+  ...(accounts.length
+    ? [pick("account", "Akun game", accounts.map((a) => ({ label: a, value: a })), false)]
+    : []),
+  text("accountNew", accounts.length ? "…atau ketik akun baru" : "Akun game (boleh kosong)", false, "misal: 1, 2, alt"),
+];
+
+const accountsOf = (chars) => [...new Set(chars.map((c) => c.account).filter(Boolean))];
+
+const addModal = (ownerId, chars) =>
   modal(ownerId, "add", "Tambah karakter",
     text("name", "Nama karakter", true, "ChelseaQT"),
-    text("account", "Akun game", true, "misal: 1, 2, alt"),
     pick("role", "Role", roleOpts()),
-    pick("dps", "DPS tier", dpsOpts()));
+    pick("dps", "DPS tier", dpsOpts()),
+    ...accountFields(accountsOf(chars)));
 
 // Every field but the character is optional: leaving one alone keeps its old
 // value, which is what makes this an edit rather than a re-entry.
@@ -166,7 +184,7 @@ const editModal = (ownerId, chars) =>
     pick("char", "Karakter", charOpts(chars)),
     pick("role", "Role baru", roleOpts(), false),
     pick("dps", "DPS tier baru", dpsOpts(), false),
-    text("account", "Akun baru", false, "kosongkan kalau tidak diubah"));
+    ...accountFields(accountsOf(chars)));
 
 const removeModal = (ownerId, chars) =>
   modal(ownerId, "remove", "Hapus karakter", pick("char", "Karakter", charOpts(chars)));
@@ -188,13 +206,15 @@ async function handlePanelButton(interaction) {
   if (!mine) return ephemeral(interaction, "Ini panel orang lain — bikin punyamu sendiri dengan `/bounty-me`.");
 
   if (action === "refresh") return interaction.update(await buildPanel(ownerId));
-  if (action === "add") return interaction.showModal(addModal(ownerId));
   if (action === "quest" || action === "replace")
     return require("./handlers/commands/bountyQuest").openQuestModal(interaction, action === "replace");
 
+  // Add needs the roster too, for the account picker.
+  const chars = await getChars(ownerId);
+  if (action === "add") return interaction.showModal(addModal(ownerId, chars));
+
   // A select with zero options throws, and a panel drawn before the last
   // character was deleted still has these enabled.
-  const chars = await getChars(ownerId);
   if (!chars.length) return ephemeral(interaction, "Belum ada karakter.");
   return interaction.showModal(
     action === "edit" ? editModal(ownerId, chars) : removeModal(ownerId, chars),
@@ -214,7 +234,16 @@ const capture = (interaction) => ({
   },
 });
 
-const one = (interaction, id) => interaction.fields.getStringSelectValues(id)[0] || null;
+// The modal's shape depends on the roster — the account picker only exists once
+// there is an account to pick — so asking for a field has to be allowed to come
+// back empty instead of throwing.
+const one = (interaction, id) => {
+  try {
+    return interaction.fields.getStringSelectValues(id)[0] || null;
+  } catch {
+    return null;
+  }
+};
 
 async function handlePanelModal(interaction) {
   const { action, ownerId, mine } = owner(interaction);
@@ -229,7 +258,9 @@ async function handlePanelModal(interaction) {
       name: action === "edit" ? one(interaction, "char") : interaction.fields.getTextInputValue("name"),
       role: one(interaction, "role"),
       dpsTier: one(interaction, "dps"),
-      account: interaction.fields.getTextInputValue("account"),
+      // Typed wins over picked: typing is how a new account is made, so doing
+      // both can only mean the new one.
+      account: interaction.fields.getTextInputValue("accountNew") || one(interaction, "account"),
     });
 
   await interaction.update(await buildPanel(ownerId));
@@ -237,4 +268,9 @@ async function handlePanelModal(interaction) {
     return interaction.followUp({ content: proxy.box.content, flags: MessageFlags.Ephemeral });
 }
 
-module.exports = { buildPanel, handlePanelButton, handlePanelModal, PREFIX };
+module.exports = {
+  buildPanel, handlePanelButton, handlePanelModal, PREFIX,
+  // Pure functions of (ownerId, roster) — the modal shape depends on the
+  // roster, so that relationship is worth checking directly.
+  addModal, editModal,
+};

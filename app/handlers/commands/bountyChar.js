@@ -105,7 +105,9 @@ async function saveChar(interaction, mustExist, values = fromOptions(interaction
   return reply(
     interaction,
     `${mustExist ? "✏️ Diubah" : "✅ Ditambah"} **${saved.name}** — ${saved.role} · ` +
-      `${DPS_TIERS[saved.dpsTier]} · akun ${saved.account}${saved.job ? ` · ${saved.job}` : ""}`,
+      `${DPS_TIERS[saved.dpsTier]}` +
+      // The account is optional now, and "akun null" is worse than no account.
+      `${saved.account ? ` · akun ${saved.account}` : ""}${saved.job ? ` · ${saved.job}` : ""}`,
   );
 }
 

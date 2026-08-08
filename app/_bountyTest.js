@@ -663,9 +663,8 @@ pending.push((async () => {
 
   const add = panelInt("add", "u1");
   await handlePanelButton(add);
-  eq("33. add opens a 4-field modal", add.seen.modal.components.length, 4);
-  eq("33. asking name, account, role, dps",
-    add.seen.modal.components.map((c) => c.component.custom_id).join(","), "name,account,role,dps");
+  eq("33. add opens a modal, no command typed",
+    add.seen.modal.components.map((c) => c.component.custom_id).join(","), "name,role,dps,accountNew");
 
   // Guarding on the click is not enough: a panel drawn before the last
   // character was deleted still has these buttons live.
@@ -702,6 +701,40 @@ pending.push((async () => {
   // still say no to everything else.
   check("34. and a raid button is still event-scoped", !routerLetsThrough("role_FU"));
 })());
+
+
+// 35. The account field. Requiring it blocked adding a character over a detail
+//     that means nothing yet: an account only tells characters apart once there
+//     are two of them. And free text is where the typo lives — "chelssea" and
+//     "Chelsea" are two accounts to the bot, which then believes those two
+//     characters can run at the same time.
+const { addModal, editModal } = require("./bountyPanel");
+const fieldIds = (m) => m.toJSON().components.map((c) => c.component.custom_id);
+const optional = (m) =>
+  m.toJSON().components.filter((c) => c.component.required === false).map((c) => c.component.custom_id);
+
+const noAcc = [{ name: "A", role: "FU", dpsTier: "high" }];
+const twoAcc = [
+  { name: "A", role: "FU", dpsTier: "high", account: "1" },
+  { name: "B", role: "Healer", dpsTier: "low", account: "2" },
+  { name: "C", role: "FU", dpsTier: "high", account: "1" },
+];
+
+eq("35. with no account yet there is nothing to pick from", fieldIds(addModal("u", noAcc)).join(","), "name,role,dps,accountNew");
+eq("35. once accounts exist they become a list", fieldIds(addModal("u", twoAcc)).join(","), "name,role,dps,account,accountNew");
+eq("35. and the list is deduped", addModal("u", twoAcc).toJSON().components[3].component.options.length, 2);
+
+// A required select with zero options is unopenable, so "no accounts yet" has
+// to mean no select at all rather than an empty one.
+check("35. neither account field is ever required",
+  ["account", "accountNew"].every((f) => !fieldIds(addModal("u", twoAcc)).includes(f) || optional(addModal("u", twoAcc)).includes(f)));
+check("35. same on edit", ["account", "accountNew"].every((f) => optional(editModal("u", twoAcc)).includes(f)));
+
+// Discord caps a modal at 5 fields and the builder does NOT enforce it — it
+// would be accepted here and rejected at showModal, where only the user sees it.
+check("35. every modal stays within 5 fields",
+  [addModal("u", noAcc), addModal("u", twoAcc), editModal("u", twoAcc)].every(
+    (m) => m.toJSON().components.length <= 5));
 
 
 // A throw inside an async block would reject Promise.all and take the summary
