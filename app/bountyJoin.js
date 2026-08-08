@@ -249,6 +249,10 @@ async function handleBountyJoin(interaction, event) {
 // lock — it changes who may join.
 async function handleToggleBounty(interaction, event) {
   event.closedToBounty = !event.closedToBounty;
+  // stackRoles rides with it. A bounty party seats you by your character's
+  // role, so a per-role cap would turn away a quest holder for "FU is full" —
+  // flipping only one of the two left the panel half-converted.
+  event.stackRoles = event.closedToBounty;
   saveState();
   return require("./builders/content").updateMessage(interaction.message, event);
 }

@@ -31,9 +31,15 @@ async function handleRoleSelect(interaction, event) {
   // ROLE, and when the joiner holds quests on more than one character the bot
   // must not seat them under a name it guessed. The picker seats them instead.
   if (event.poolKeys?.length) {
+    // Never swallow this. A failure here seats the player with no bounty
+    // recorded, which reads as "you have no quest for this nest" — a wrong
+    // answer that looks like a correct one.
     const asked = await require("../../bountyJoin")
       .askBeforeSeat(interaction, event, slotKey)
-      .catch(() => false);
+      .catch((err) => {
+        console.error(`❌ askBeforeSeat (${interaction.user.id} → ${slotKey}):`, err);
+        return false;
+      });
     if (asked) return;
   }
 

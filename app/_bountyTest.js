@@ -29,6 +29,9 @@ const { WEEKLY_CLAIMS, MAX_SHARE_STACK, ROLES, rankOf, rewardOf } = require("./d
 
 let pass = 0;
 const fails = [];
+// Async checks must be awaited before the summary prints, or they run after it
+// and their results are silently dropped — a test that cannot fail.
+const pending = [];
 function check(name, cond, detail) {
   if (cond) pass++;
   else fails.push(`${name}${detail ? ` — ${detail}` : ""}`);
@@ -484,7 +487,7 @@ check("27. preview has one", pEmbed(pv({ panelUrl: "http://x" }), true).data.des
 check("27. no link when the panel was not moved", !pEmbed(pv({}), true).data.description.includes("Join di sini"));
 
 // A missing preview must never take the panel down with it.
-(async () => {
+pending.push((async () => {
   const ev = pv({ previewMessageId: "gone", previewChannelId: "c" });
   const msg = { client: { channels: { fetch: async () => { throw new Error("no access"); } } } };
   await updatePreview(msg, ev);
@@ -492,7 +495,7 @@ check("27. no link when the panel was not moved", !pEmbed(pv({}), true).data.des
   const ev2 = pv({ previewMessageId: "gone", previewChannelId: "c" });
   await closePreview(msg, ev2, "done");
   check("27. closing a lost preview is silent too", ev2.previewMessageId === null);
-})();
+})());
 
 
 // 28. add and edit are one write with opposite expectations, and the SCHEMA
@@ -517,23 +520,46 @@ eq("28. edit requires only the name",
 check("28. edit offers autocomplete on the name", editBlock.includes("setAutocomplete(true)"));
 
 
-console.log(`\n${pass} passed, ${fails.length} failed`);
-if (fails.length) {
-  console.log("\nFailures:");
-  fails.forEach((f) => console.log(`  ✗ ${f}`));
-  process.exitCode = 1;
-} else {
-  const enabled = NESTS.filter((n) => n.enabled !== false);
-  console.log(
-    `\n✅ ${enabled.length} nests, ${VARIANT_LIST.length} variants, ` +
-      `${NEST_INFERENCE.size} nest-inferring aliases`,
-  );
-  console.log(`   this week: ${weekLabel()}  (${weekKey()})\n`);
-  for (const v of VARIANT_LIST) {
+// 29. The bounty toggle flips BOTH flags. Flipping only closedToBounty left a
+//     panel half-converted: no role buttons, but the per-role caps still on.
+const { handleToggleBounty } = require("./bountyJoin");
+const togglePanel = () => {
+  const roles = {};
+  for (const [k, r] of Object.entries(tpls.gdn_cl.roles)) roles[k] = { ...r, users: [] };
+  return { messageId: "m", hostId: "h", maxSlot: 8, locked: false, roles, users: {},
+           poolKeys: tpls.gdn_cl.poolKeys };
+};
+const noop = { message: { edit: async () => {} } };
+
+pending.push((async () => {
+  const ev = togglePanel();
+  await handleToggleBounty(noop, ev);
+  check("29. toggling on sets both", ev.closedToBounty === true && ev.stackRoles === true);
+  await handleToggleBounty(noop, ev);
+  check("29. toggling off clears both", ev.closedToBounty === false && ev.stackRoles === false);
+})());
+
+
+Promise.all(pending).then(() => {
+  console.log(`\n${pass} passed, ${fails.length} failed`);
+  if (fails.length) {
+    console.log("\nFailures:");
+    fails.forEach((f) => console.log(`  ✗ ${f}`));
+    process.exitCode = 1;
+  } else {
+    const enabled = NESTS.filter((n) => n.enabled !== false);
     console.log(
-      `   ${v.poolKey.padEnd(18)} ${v.name.padEnd(34)} ` +
-        `${v.capacity}p · needs ${v.minHighDps} high DPS`,
+      `\n✅ ${enabled.length} nests, ${VARIANT_LIST.length} variants, ` +
+        `${NEST_INFERENCE.size} nest-inferring aliases`,
     );
+    console.log(`   this week: ${weekLabel()}  (${weekKey()})\n`);
+    for (const v of VARIANT_LIST) {
+      console.log(
+        `   ${v.poolKey.padEnd(18)} ${v.name.padEnd(34)} ` +
+          `${v.capacity}p · needs ${v.minHighDps} high DPS`,
+      );
+    }
+    console.log();
   }
-  console.log();
-}
+
+});
