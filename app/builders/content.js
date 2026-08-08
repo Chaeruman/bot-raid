@@ -1,6 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const { createButtons } = require("./buttons");
 const { MAX_SHARE_STACK } = require("../data/bounty");
+const { rewardText } = require("../bounty");
 
 // Roles are printed as a padded code-span column so the names line up down the
 // panel — with nine roles, a ragged left edge is what makes it hard to read.
@@ -48,11 +49,17 @@ function buildSignupEmbed(event, isPreview = false) {
     // whole run — the 6 is a weekly claim budget, and a marathon's two clears
     // spend from the same one.
     const cap = Math.min(event.maxSlot, MAX_SHARE_STACK);
-    const stacked = Object.values(event.users).reduce((n, u) => n + (u.bountyQuests || 0), 0);
+    const seats = Object.entries(event.users).filter(([, u]) => u.bountyQuests?.length);
+    const stacked = seats.reduce((n, [, u]) => n + u.bountyQuests.length, 0);
+
     desc.push(
       `🎯 **Stack ${Math.min(stacked, cap)}/${cap}**` +
         (event.closedToBounty ? " · khusus bounty" : ""),
     );
+    // Name what is actually in the stack. Everyone in the party receives all of
+    // it, so "what do I get for joining" should not need a second command.
+    for (const [uid, u] of seats)
+      desc.push(`　<@${uid}> **${u.bountyChar}** — ${u.bountyQuests.map(rewardText).join(" | ")}`);
   }
   if (event.locked) desc.push(`🔒 **Party is LOCKED**`);
   else if (totalUsers >= event.maxSlot) desc.push(`✅ **Party FULL**`);

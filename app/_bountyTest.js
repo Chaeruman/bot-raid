@@ -410,7 +410,8 @@ const stackPanel = (maxSlot, per, pools = ["gdn:classic"]) => ({
   poolKeys: pools, roles: {},
   users: Object.fromEntries(per.map((n, i) => [`u${i}`, { slot: "FU", bountyQuests: n }])),
 });
-const q1 = (n) => n;
+// seat.bountyQuests holds the quests themselves, so the panel can name them.
+const q1 = (n) => Array.from({ length: n }, () => ({ poolKey: "gdn:classic", rarity: "unique", scroll: "weapon" }));
 const stackLine = (ev) => sEmbed(ev).data.description.split("\n").find((l) => l.includes("Stack"));
 
 check("24. counts quests, not people", stackLine(stackPanel(8, [q1(2), q1(1)])).includes("3/6"));
@@ -418,9 +419,20 @@ check("24. caps at 6 on an 8-player raid", stackLine(stackPanel(8, [q1(2), q1(2)
 // A 4-player nest can never stack 6 — only 4 people are there to share.
 check("24. a 4-player nest caps at 4", stackLine(stackPanel(4, [q1(2), q1(2), q1(2)])).includes("4/4"));
 check("24. empty party shows an empty stack", stackLine(stackPanel(8, [])).includes("0/6"));
+// The panel names what is in the stack — "what do I get for joining" should not
+// need a second command.
+const named = sEmbed({
+  ...stackPanel(8, []),
+  users: { u1: { slot: "FU", bountyChar: "Chelssea", bountyQuests: q1(2) } },
+}).data.description;
+check("24. the holder is named", named.includes("Chelssea"));
+check("24. and both their quests listed", (named.match(/Unique · Weapon/g) || []).length === 2);
+check("24. seats with nothing stacked are not listed",
+  !sEmbed({ ...stackPanel(8, []), users: { u1: { slot: "FU", bountyChar: "Kosong", bountyQuests: [] } } })
+    .data.description.includes("Kosong"));
 // A marathon clears two variants but spends ONE weekly claim budget, so both
 // count against the same 6 — showing 6 per variant would read as 12 available.
-const mPanel = stackPanel(8, [2, 1], tpls.marathon_gdn.poolKeys);
+const mPanel = stackPanel(8, [q1(2), q1(1)], tpls.marathon_gdn.poolKeys);
 check("24. marathon shares one cap, not one per variant", stackLine(mPanel).includes("3/6"));
 check("24. and never shows two caps", !stackLine(mPanel).includes("/6 ·"));
 check("24. a non-bounty panel has no stack line",

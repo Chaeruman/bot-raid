@@ -176,7 +176,7 @@ async function handleCharPick(interaction) {
   const msg = await interaction.channel.messages.fetch(messageId).catch(() => null);
   if (msg) await require("./builders/content").updateMessage(msg, event);
 
-  const fitted = seat.bountyQuests;
+  const fitted = seat.bountyQuests.length;
   const wasted = (mine?.quests.length || 0) - fitted;
   return interaction.update({
     content:
