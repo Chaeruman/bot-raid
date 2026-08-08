@@ -40,16 +40,29 @@ async function handleBountyChar(interaction) {
   }
 }
 
+// A slash command reads options; a modal reads fields. Both hand `saveChar` the
+// same plain object, so the write below never learns which one it came from.
+const fromOptions = (interaction) => ({
+  name: interaction.options.getString("name"),
+  role: interaction.options.getString("role"),
+  account: interaction.options.getString("account"),
+  job: interaction.options.getString("job"),
+  dpsTier: interaction.options.getString("dps"),
+});
+
 // `add` and `edit` are the same write with opposite expectations about whether
 // the name already exists. Two subcommands rather than one upsert because
 // nobody discovers "add an existing name to change it" from a command list —
 // and it lets the SCHEMA say which fields are required, instead of the handler.
-async function saveChar(interaction, mustExist) {
-  const name = norm(interaction.options.getString("name"));
-  const role = interaction.options.getString("role");
-  const accountTyped = norm(interaction.options.getString("account"));
-  const job = norm(interaction.options.getString("job"));
-  const dpsTier = interaction.options.getString("dps");
+//
+// `values` defaults to the slash reader, so the command path is unchanged and a
+// caller that has its own values just passes them.
+async function saveChar(interaction, mustExist, values = fromOptions(interaction)) {
+  const name = norm(values.name);
+  const role = values.role;
+  const accountTyped = norm(values.account);
+  const job = norm(values.job);
+  const dpsTier = values.dpsTier;
 
   if (!name) return reply(interaction, "❌ Name cannot be empty.");
   if (name.length > MAX_NAME) return reply(interaction, `❌ Name is too long (max ${MAX_NAME}).`);
@@ -110,8 +123,10 @@ async function listChars(interaction) {
   return reply(interaction, `**Your characters (${chars.length})**\n${lines.join("\n")}`);
 }
 
-async function removeChar(interaction) {
-  const name = norm(interaction.options.getString("name"));
+// Same deal as saveChar: the panel's delete arrives from a select menu, not an
+// option, so the name is a parameter with the slash reader as its default.
+async function removeChar(interaction, rawName = interaction.options.getString("name")) {
+  const name = norm(rawName);
   const chars = await getChars(interaction.user.id);
   const idx = chars.findIndex((c) => same(c.name, name));
 
@@ -178,4 +193,8 @@ async function autocompleteBountyChar(interaction) {
   );
 }
 
-module.exports = { handleBountyChar, autocompleteBountyChar, isHunter, notHunter };
+module.exports = {
+  handleBountyChar, autocompleteBountyChar, isHunter, notHunter,
+  // For the panel, which drives the same two writes from buttons.
+  saveChar, removeChar,
+};

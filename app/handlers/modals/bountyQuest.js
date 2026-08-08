@@ -2,14 +2,15 @@ const { MessageFlags } = require("discord.js");
 const { getChars, getBountyWeek, saveBountyWeek } = require("../../state");
 const { parseQuestLines, weekKey, weekLabel, questLabel, claimsLeft } = require("../../bounty");
 const { WEEKLY_CLAIMS } = require("../../data/bounty");
-const { buildCharSelect, MODAL_PREFIX } = require("../commands/bountyQuest");
+const { MODAL_PREFIX } = require("../commands/bountyQuest");
 
 const sig = (q) => `${q.poolKey}|${q.rarity}|${q.scroll}|${q.box ? 1 : 0}`;
 
 async function handleBountyQuestModal(interaction) {
-  const rest = interaction.customId.slice(MODAL_PREFIX.length);
-  const replace = rest.startsWith("r:");
-  const charName = rest.slice(2); // names may contain ":" — take everything after the mode
+  const replace = interaction.customId.slice(MODAL_PREFIX.length) === "r";
+  // The character comes from the modal's own select, so no name is ever carried
+  // in the customId — which also ends the "names may contain ':'" problem.
+  const charName = interaction.fields.getStringSelectValues("char")[0];
 
   const { added, errors, duplicates } = parseQuestLines(
     interaction.fields.getTextInputValue("lines"),
@@ -97,14 +98,15 @@ async function handleBountyQuestModal(interaction) {
 
   if (saved.length) require("../../bountyBoard").syncBoard(interaction.client).catch(() => {});
 
-  const chars = await getChars(userId);
-  const select = buildCharSelect(chars);
+  const payload = { content: lines.join("\n").slice(0, 2000), flags: MessageFlags.Ephemeral };
 
-  return interaction.reply({
-    content: lines.join("\n").slice(0, 2000),
-    components: select ? [select] : [],
-    flags: MessageFlags.Ephemeral,
-  });
+  // Opened from the panel: redraw it so the new quests show, and put the parse
+  // result underneath. From the slash command there is no panel to redraw.
+  if (interaction.isFromMessage()) {
+    await interaction.update(await require("../../bountyPanel").buildPanel(userId));
+    return interaction.followUp(payload);
+  }
+  return interaction.reply(payload);
 }
 
 module.exports = { handleBountyQuestModal };

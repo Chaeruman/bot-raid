@@ -17,7 +17,7 @@ Panduan lengkap untuk host, seller, dan member.
 | `/state` | (Co-Leader) lihat event & loot panel aktif |
 | `/clear id:<…>` | (Co-Leader) hapus event/panel dari state |
 | `/bounty-char add\|edit\|list\|remove\|apply` | Roster karakter bounty |
-| `/bounty character:<…> [replace]` | Catat bounty quest minggu ini |
+| `/bounty [replace]` | Catat bounty quest minggu ini |
 | `/bounty-me` | Quest, sisa claim, reward kamu minggu ini |
 
 > **Catatan:** `/start`, `/raid`, `/marathon`, `/nest`, `/memo` punya opsi
@@ -230,9 +230,9 @@ Bounty quest mingguan. Reset tiap **Sabtu 08:00 WIB** bareng reset in-game.
 Mau ubah? `/bounty-char edit name:Chelssea dps:good` — isi yang mau diganti aja,
 sisanya nggak kesentuh. `add` khusus char baru.
 
-### Catat quest — `/bounty character:<nama>`
+### Catat quest — `/bounty`
 
-Modal kebuka, **1 baris = 1 quest**:
+Modal kebuka. Pilih char-nya di dropdown paling atas, terus **1 baris = 1 quest**:
 
 ```
 ddn hc u wep

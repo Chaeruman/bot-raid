@@ -328,14 +328,7 @@ const commands = [
 
   new SlashCommandBuilder()
     .setName("bounty")
-    .setDescription("Record this week's bounty quests for one character")
-    .addStringOption((o) =>
-      o
-        .setName("character")
-        .setDescription("Which character these quests belong to")
-        .setRequired(true)
-        .setAutocomplete(true),
-    )
+    .setDescription("Record this week's bounty quests — pick the character in the form")
     .addBooleanOption((o) =>
       o
         .setName("replace")

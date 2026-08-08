@@ -7,7 +7,7 @@
 | `/bounty-char list` | Lihat char kamu. |
 | `/bounty-char remove` | Hapus char. |
 | `/bounty-char apply` | Ajukan role Bounty Hunter ke admin (kalau server-nya ngunci fitur ini). |
-| `/bounty character:X` | Catat quest minggu ini buat char X. Tambah `replace:true` kalau mau ulang dari nol. |
+| `/bounty` | Catat quest minggu ini. Char-nya dipilih di dalam form. Tambah `replace:true` kalau mau ulang dari nol. |
 | `/bounty-me` | Quest kamu, sisa claim, reward yang udah dapet. |
 | `closed_to_bounty:true` | Option di `/raid` `/start` `/marathon` `/memo` `/nest`. Bikin party khusus bounty. |
 

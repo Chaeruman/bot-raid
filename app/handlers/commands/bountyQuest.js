@@ -1,64 +1,58 @@
 const {
   MessageFlags,
   ModalBuilder,
+  LabelBuilder,
   TextInputBuilder,
   TextInputStyle,
-  ActionRowBuilder,
   StringSelectMenuBuilder,
 } = require("discord.js");
 const { getChars } = require("../../state");
 const { DPS_TIERS } = require("../../data/bounty");
 
 const MODAL_PREFIX = "bounty-modal:quest:";
-const CHAR_SELECT_ID = "bounty-sel:quest-char";
 
-// The character is chosen before anything is typed, so quest lines never carry a
-// name — the picker already answered that, from a real roster rather than from
-// something the user typed and could misspell.
+// The character is a select INSIDE the modal, so picking it and typing the
+// quests is one step. It used to be a slash option with autocomplete, plus a
+// second select on the confirmation to reach the next character — three
+// surfaces for one question, none of which a button could open.
 //
-// Mode rides in the customId because a modal cannot see the slash options that
-// opened it: "a" appends, "r" replaces.
-function buildQuestModal(charName, replace = false) {
+// Mode rides in the customId because a modal cannot see what opened it: "a"
+// appends, "r" replaces.
+function buildQuestModal(chars, replace = false) {
   return new ModalBuilder()
-    .setCustomId(`${MODAL_PREFIX}${replace ? "r" : "a"}:${charName}`)
-    .setTitle(`${replace ? "Ganti" : "Catat"} bounty — ${charName}`.slice(0, 45))
-    .addComponents(
-      new ActionRowBuilder().addComponents(
-        new TextInputBuilder()
-          .setCustomId("lines")
-          .setLabel("nest varian rarity scroll — 1 baris 1 quest")
-          // Label and placeholder are the only instructions anyone sees at the
-          // moment they type, so between them they carry the whole format.
-          .setPlaceholder(
-            ["ddn hc u wep", "gdn cl leg acc box", "memo 1 rl wtd", "", "u / leg / rl · wep wtd acc arm · box"].join("\n"),
-          )
-          .setStyle(TextInputStyle.Paragraph)
-          .setRequired(true)
-          .setMaxLength(600),
+    .setCustomId(`${MODAL_PREFIX}${replace ? "r" : "a"}`)
+    .setTitle(replace ? "Ganti bounty" : "Catat bounty")
+    .setLabelComponents(
+      new LabelBuilder().setLabel("Karakter").setStringSelectMenuComponent(
+        new StringSelectMenuBuilder().setCustomId("char").addOptions(
+          // A roster over 25 loses its tail here. MAX_CHARS is 40, but the
+          // biggest real roster is ~15, and Discord allows no more.
+          chars.slice(0, 25).map((c) => ({
+            label: c.name.slice(0, 100),
+            value: c.name.slice(0, 100),
+            description: `${c.role || "?"} · ${DPS_TIERS[c.dpsTier] || "?"}`.slice(0, 100),
+          })),
+        ),
       ),
+      new LabelBuilder()
+        .setLabel("Quest — 1 baris 1 quest")
+        // The only instructions anyone sees at the moment they type, so between
+        // them the label and placeholder carry the whole format.
+        .setDescription("u / leg / rl · wep wtd acc arm · box")
+        .setTextInputComponent(
+          new TextInputBuilder()
+            .setCustomId("lines")
+            .setPlaceholder(["ddn hc u wep", "gdn cl leg acc box", "memo 1 rl wtd"].join("\n"))
+            .setStyle(TextInputStyle.Paragraph)
+            .setRequired(true)
+            .setMaxLength(600),
+        ),
     );
 }
 
-// Shown on every confirmation so the second and third character are one click
-// rather than a retyped command. It stays on the ephemeral message, so it can be
-// used again for each remaining character without re-running anything.
-function buildCharSelect(chars) {
-  if (!chars.length) return null;
-  return new ActionRowBuilder().addComponents(
-    new StringSelectMenuBuilder()
-      .setCustomId(CHAR_SELECT_ID)
-      .setPlaceholder("➕ Add quests for another character")
-      .addOptions(
-        chars.slice(0, 25).map((c) => ({
-          label: c.name.slice(0, 100),
-          value: c.name.slice(0, 100),
-          description: `${c.job || "?"} · ${DPS_TIERS[c.dpsTier] || "?"}`.slice(0, 100),
-        })),
-      ),
-  );
-}
-
-async function handleBountyQuest(interaction) {
+// Shared by the slash command and, later, the panel button: both need the same
+// roster check before there is anything to put in the select.
+async function openQuestModal(interaction, replace = false) {
   const { isHunter, notHunter } = require("./bountyChar");
   if (!isHunter(interaction))
     return interaction.reply({ content: notHunter, flags: MessageFlags.Ephemeral });
@@ -66,54 +60,14 @@ async function handleBountyQuest(interaction) {
   const chars = await getChars(interaction.user.id);
   if (!chars.length)
     return interaction.reply({
-      content: "You have no characters yet. Add one with `/bounty-char add` first.",
+      content: "Belum ada karakter. Daftarkan dulu dengan `/bounty-char add`.",
       flags: MessageFlags.Ephemeral,
     });
 
-  const typed = (interaction.options.getString("character") || "").trim();
-  const char = chars.find((c) => c.name.toLowerCase() === typed.toLowerCase());
-  if (!char)
-    return interaction.reply({
-      content: `No character named **${typed}**. Pick one from the list, or add it with \`/bounty-char add\`.`,
-      flags: MessageFlags.Ephemeral,
-    });
-
-  return interaction.showModal(
-    buildQuestModal(char.name, interaction.options.getBoolean("replace") || false),
-  );
+  return interaction.showModal(buildQuestModal(chars, replace));
 }
 
-async function autocompleteBountyQuest(interaction) {
-  const focused = interaction.options.getFocused().toLowerCase();
-  const chars = await getChars(interaction.user.id);
-  return interaction.respond(
-    chars
-      .filter((c) => c.name.toLowerCase().includes(focused))
-      .slice(0, 25)
-      .map((c) => ({ name: c.name, value: c.name })),
-  );
-}
+const handleBountyQuest = (interaction) =>
+  openQuestModal(interaction, interaction.options.getBoolean("replace") || false);
 
-// Picking from the select always appends — replacing is a deliberate act and
-// stays on the slash command where the flag is visible before you commit.
-async function handleBountyCharSelect(interaction) {
-  const name = interaction.values[0];
-  const chars = await getChars(interaction.user.id);
-  const char = chars.find((c) => c.name === name);
-  if (!char)
-    return interaction.reply({
-      content: `**${name}** is no longer on your roster.`,
-      flags: MessageFlags.Ephemeral,
-    });
-  return interaction.showModal(buildQuestModal(char.name));
-}
-
-module.exports = {
-  handleBountyQuest,
-  autocompleteBountyQuest,
-  handleBountyCharSelect,
-  buildQuestModal,
-  buildCharSelect,
-  MODAL_PREFIX,
-  CHAR_SELECT_ID,
-};
+module.exports = { handleBountyQuest, openQuestModal, buildQuestModal, MODAL_PREFIX };

@@ -573,7 +573,120 @@ eq("30. the cap is shared, not per variant", ev30.users.u2.bountyQuests.length, 
 check("30. and the panel stops at 6", buildSignupEmbed(ev30).data.description.includes("Stack 6/6"));
 
 
-Promise.all(pending).then(() => {
+// 31. The writes take their values as an argument, so a modal or a select can
+//     drive them. The fake interaction below has NO `options` property at all —
+//     if either function still reaches for a slash option it throws rather than
+//     quietly reading undefined, which is the whole point of checking it here.
+const { saveChar, removeChar } = require("./handlers/commands/bountyChar");
+const fakeInt = () => {
+  const seen = {};
+  return { seen, user: { id: "test-user" }, reply: async (o) => { seen.content = o.content; } };
+};
+
+pending.push((async () => {
+  const empty = fakeInt();
+  await saveChar(empty, false, { name: "  ", role: "Acro", dpsTier: "a", account: "1" });
+  check("31. saveChar validates the name it was handed", empty.seen.content.includes("cannot be empty"));
+
+  // Mongo is not connected here, so a valid write lands on the storage guard —
+  // reaching it at all proves the supplied values passed every check above it.
+  const good = fakeInt();
+  await saveChar(good, false, { name: "ChelseaQT", role: "Acro", dpsTier: "a", account: "1" });
+  check("31. saveChar reads values, not options", good.seen.content.includes("MongoDB is not configured"));
+
+  const rm = fakeInt();
+  await removeChar(rm, "ChelseaQT");
+  check("31. removeChar reads the name it was handed", rm.seen.content.includes("ChelseaQT"));
+})());
+
+
+// 32. The quest modal carries its own character picker. That is what lets a
+//     button open it — a slash option cannot be reached from a button, which is
+//     why the option, its autocomplete and the follow-up select all went away.
+const { buildQuestModal, MODAL_PREFIX } = require("./handlers/commands/bountyQuest");
+const roster = (n) =>
+  Array.from({ length: n }, (_, i) => ({ name: `Char${i}`, role: "FU", dpsTier: "high" }));
+
+const m32 = buildQuestModal(roster(2)).toJSON();
+eq("32. the character is a select inside the modal", m32.components[0].component.type, 3);
+eq("32. and the quests are a text input", m32.components[1].component.type, 4);
+
+// No name in the customId — that is what ended the "names may contain ':'"
+// parsing, so a character called "a:b" can no longer confuse the handler.
+eq("32. append mode carries only the mode", m32.custom_id, `${MODAL_PREFIX}a`);
+eq("32. replace mode too", buildQuestModal(roster(1), true).toJSON().custom_id, `${MODAL_PREFIX}r`);
+
+// Discord rejects a select with more than 25 options, and MAX_CHARS is 40 — so
+// a big roster has to be clamped here or the modal fails to open at all.
+eq("32. an oversized roster is clamped", buildQuestModal(roster(40)).toJSON().components[0].component.options.length, 25);
+check("32. labels fit Discord's 45 chars", m32.components.every((c) => c.label.length <= 45));
+
+
+// 33. The panel. Mongo is not connected here, so every roster reads empty —
+//     which is exactly the state worth pinning, because it is the one where a
+//     button that looks pressable would open a select with zero options and
+//     throw.
+const { buildPanel, handlePanelButton, PREFIX } = require("./bountyPanel");
+
+const panelInt = (action, ownerId, clickerId = ownerId) => {
+  const seen = {};
+  return {
+    seen,
+    customId: `${PREFIX}${action}:${ownerId}`,
+    user: { id: clickerId },
+    reply: async (o) => { seen.reply = o.content; },
+    update: async (o) => { seen.update = o; },
+    showModal: async (m) => { seen.modal = m.toJSON(); },
+  };
+};
+
+pending.push((async () => {
+  const empty = await buildPanel("u1");
+  const desc = (p) => p.embeds[0].data.description;
+  check("33. an empty roster still renders", desc(empty).includes("Belum ada karakter"));
+  check("33. and never pings the owner it names", empty.allowedMentions.parse.length === 0);
+
+  const rows = empty.components.map((r) => r.toJSON().components).flat();
+  eq("33. six buttons", rows.length, 6);
+  check("33. every button carries its owner", rows.every((b) => b.custom_id.endsWith(":u1")));
+  // Add and refresh are the only two that can do anything without a character.
+  eq("33. the rest are disabled while the roster is empty",
+    rows.filter((b) => !b.disabled).map((b) => b.custom_id.split(":")[1]).sort().join(","),
+    "add,refresh");
+
+  // The guard is the whole reason moderators being able to see these threads is
+  // harmless: they can read the panel, but a press writes nothing.
+  const stranger = panelInt("add", "u1", "moderator");
+  await handlePanelButton(stranger);
+  check("33. a stranger's press is refused", /panel orang lain/.test(stranger.seen.reply || ""));
+  check("33. and opens no modal", !stranger.seen.modal);
+
+  const add = panelInt("add", "u1");
+  await handlePanelButton(add);
+  eq("33. add opens a 4-field modal", add.seen.modal.components.length, 4);
+  eq("33. asking name, account, role, dps",
+    add.seen.modal.components.map((c) => c.component.custom_id).join(","), "name,account,role,dps");
+
+  // Guarding on the click is not enough: a panel drawn before the last
+  // character was deleted still has these buttons live.
+  const edit = panelInt("edit", "u1");
+  await handlePanelButton(edit);
+  check("33. edit on an empty roster refuses instead of throwing", !!edit.seen.reply && !edit.seen.modal);
+
+  const refresh = panelInt("refresh", "u1");
+  await handlePanelButton(refresh);
+  check("33. refresh redraws in place", !!refresh.seen.update?.embeds?.length);
+
+  // 15 characters with quests overflows a 2000-char message, and a silently
+  // dropped character is the whole failure this embed exists to prevent.
+  check("33. the description has room for a full roster", desc(empty).length < 4096);
+})());
+
+
+// A throw inside an async block would reject Promise.all and take the summary
+// with it — no count, no failure list, just a stack trace. Turn it into a
+// failure like any other.
+Promise.all(pending.map((p) => p.catch((e) => fails.push(`async check threw — ${e.message}`)))).then(() => {
   console.log(`\n${pass} passed, ${fails.length} failed`);
   if (fails.length) {
     console.log("\nFailures:");

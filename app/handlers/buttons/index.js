@@ -22,6 +22,9 @@ async function handleButton(interaction) {
   if (interaction.customId.startsWith("loot-btn:")) {
     return handleLootButton(interaction);
   }
+  if (interaction.customId.startsWith("bounty-panel:")) {
+    return require("../../bountyPanel").handlePanelButton(interaction);
+  }
   if (interaction.customId.startsWith("gab-budget:")) {
     return handleGabBudgetButton(interaction);
   }

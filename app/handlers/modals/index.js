@@ -13,6 +13,9 @@ async function handleModal(interaction) {
   if (interaction.customId.startsWith("bounty-modal:quest:")) {
     return handleBountyQuestModal(interaction);
   }
+  if (interaction.customId.startsWith("bounty-panel:")) {
+    return require("../../bountyPanel").handlePanelModal(interaction);
+  }
   if (interaction.customId.startsWith("gab-budget-modal:")) {
     return handleGabBudgetModal(interaction);
   }
