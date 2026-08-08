@@ -48,6 +48,7 @@ async function createEvent(interaction, templateKey, labelOverride = null) {
     forumTagKey: template.forumTagKey || null,
     hcGoldSplit: template.hcGoldSplit !== undefined ? template.hcGoldSplit : false,
     subruns: template.subruns || null,
+    poolKeys: template.poolKeys || null, // bounty variants this run clears
     jobs: template.jobs || null,
     roles,
     users: {},

@@ -12,9 +12,13 @@ const GDN_ROLES = {
 
 const MEMO_JOBS = ["SM/DA", "FU", "Healer", "MC", "MT", "Ice Stacker", "Acro", "Support", "DPS"];
 
+// `poolKeys` links a signup to the bounty variants clearing it completes.
+// Marathon and memo cover several; a template without it is simply not
+// bounty-aware.
 module.exports = {
   // ── Raid events ───────────────────────────────────────────────
   ddn_cl: {
+    poolKeys: ["ddn:classic"],
     label: "DDN Classic",
     maxSlot: 8,
     hcGoldSplit: false,
@@ -22,6 +26,7 @@ module.exports = {
     roles: { ...GDN_ROLES },
   },
   ddn_hc: {
+    poolKeys: ["ddn:hc"],
     label: "DDN HC",
     maxSlot: 8,
     hcGoldSplit: true,
@@ -29,6 +34,7 @@ module.exports = {
     roles: { ...GDN_ROLES },
   },
   gdn_hc: {
+    poolKeys: ["gdn:hc"],
     label: "GDN HC",
     maxSlot: 8,
     hcGoldSplit: true,
@@ -36,6 +42,7 @@ module.exports = {
     roles: { ...GDN_ROLES },
   },
   gdn_cl: {
+    poolKeys: ["gdn:classic"],
     label: "GDN Classic",
     maxSlot: 8,
     hcGoldSplit: false,
@@ -45,6 +52,7 @@ module.exports = {
 
   // ── Other events ──────────────────────────────────────────────
   tkn_hell: {
+    poolKeys: ["tkn:hell"],
     label: "TKN Hell",
     maxSlot: 4,
     hcGoldSplit: false,
@@ -61,6 +69,7 @@ module.exports = {
   // Fixed 4-slot party (P1-P4); job buttons just label whoever takes the
   // next open slot, unlike raid roles which cap per-role.
   memo: {
+    poolKeys: ["ddn:i", "ddn:ii", "ddn:iii", "ddn:iv"],
     label: "DDN Memo",
     maxSlot: 4,
     noThread: true,
@@ -75,6 +84,7 @@ module.exports = {
 
   // ── Marathon events ───────────────────────────────────────────
   marathon_gdn: {
+    poolKeys: ["gdn:hc", "gdn:classic"],
     label: "Marathon GDN",
     maxSlot: 8,
     hcGoldSplit: "mixed",
@@ -83,6 +93,7 @@ module.exports = {
     roles: { ...GDN_ROLES },
   },
   marathon_ddn: {
+    poolKeys: ["ddn:classic", "gdn:hc", "gdn:classic"],
     label: "Marathon DDN",
     maxSlot: 8,
     hcGoldSplit: "mixed",

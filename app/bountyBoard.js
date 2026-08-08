@@ -265,6 +265,7 @@ async function createParty(interaction, poolKey, onlyChars = null) {
     hcGoldSplit: false,
     subruns: null,
     jobs: shape.jobs,
+    poolKeys: [poolKey],
     roles,
     users: {},
     locked: false,

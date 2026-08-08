@@ -532,6 +532,45 @@ check("18. the note says only ✅ get seated",
     .includes("yang ✅ saja yang didudukkan"));
 
 
+// 19. Raid integration — the only place a quest ever gets marked done.
+const tpls = require("./templates");
+const { questLines } = require("./bountyJoin");
+
+// Every signup that can clear a bounty must say which variants it clears.
+check("19. raid templates carry poolKeys",
+  ["ddn_cl","ddn_hc","gdn_cl","gdn_hc","tkn_hell","memo","marathon_gdn","marathon_ddn"]
+    .every((k) => Array.isArray(tpls[k].poolKeys) && tpls[k].poolKeys.length));
+// …and every one of those keys has to be a real variant, or the check silently
+// never fires for that run.
+const badPool = Object.entries(tpls)
+  .flatMap(([k, t]) => (t.poolKeys || []).map((p) => [k, p]))
+  .filter(([, p]) => !BY_POOL_KEY.has(p));
+check("19. every poolKey resolves to a variant", badPool.length === 0, JSON.stringify(badPool));
+eq("19. marathon covers both its subruns", tpls.marathon_gdn.poolKeys.length, 2);
+eq("19. memo covers all four Memoria", tpls.memo.poolKeys.length, 4);
+
+const lines19 = questLines([{ charName: "Chelssea", role: "FU", matches: true, quests: [
+  { poolKey: "gdn:classic", rarity: "unique", scroll: "weapon" },
+  { poolKey: "gdn:classic", rarity: "legendary", scroll: "accessory", box: true },
+]}]);
+eq("19. one line per character", lines19.length, 1);
+check("19. both quests listed", lines19[0].includes("Unique") && lines19[0].includes("card box"));
+check("19. shows the role", lines19[0].includes("FU"));
+// The variant is noise on a single-variant run, and needed on a marathon.
+check("19. no variant name by default", !lines19[0].includes("Green Dragon Nest Classic"));
+check("19. named when the run clears several",
+  questLines([{ charName: "X", role: "FU", quests: [{ poolKey: "gdn:hc", rarity: "unique", scroll: "weapon" }] }], true)[0]
+    .includes("Green Dragon Nest HC"));
+
+// takenRole reads a raid slot's label, and a memo seat's job.
+const { takenRole } = require("./bountyJoin");
+eq("19. raid slot resolves to its label",
+  takenRole({ users: { u: { slot: "ICE" } }, roles: { ICE: { label: "Ice Stacker" } } }, "u"), "Ice Stacker");
+eq("19. memo seat uses the job it picked",
+  takenRole({ users: { u: { slot: "P1", subRole: "FU" } }, roles: { P1: { label: "P1" } } }, "u"), "FU");
+eq("19. nobody seated means no role", takenRole({ users: {}, roles: {} }, "u"), null);
+
+
 console.log(`\n${pass} passed, ${fails.length} failed`);
 if (fails.length) {
   console.log("\nFailures:");

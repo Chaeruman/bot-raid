@@ -11,6 +11,9 @@ async function handleSelectMenu(interaction) {
   if (interaction.customId === "bounty-req:new") {
     return require("../../bountyBoard").handleCreateSelect(interaction);
   }
+  if (interaction.customId.startsWith("bounty-fin:pick:")) {
+    return require("../../bountyJoin").handleDoneSelect(interaction);
+  }
   if (interaction.customId.startsWith("bounty-req:char:")) {
     return require("../../bountyBoard").handleRequestPick(interaction);
   }

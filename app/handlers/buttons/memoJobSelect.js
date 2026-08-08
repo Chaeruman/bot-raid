@@ -22,7 +22,11 @@ async function handleMemoJobSelect(interaction, event) {
   }
 
   saveState();
-  return updateMessage(interaction.message, event);
+  await updateMessage(interaction.message, event);
+  // Tell the joiner if this run clears a bounty they hold, and give them the
+  // one button that marks it done.
+  if (event.poolKeys?.length)
+    await require("../../bountyJoin").onJoin(interaction, event).catch(() => {});
 }
 
 module.exports = { handleMemoJobSelect };
