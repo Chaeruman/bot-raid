@@ -27,7 +27,7 @@ const entryMessage = () => ({
     "dan semua tombolnya. Cukup sekali; setelah itu thread-nya nongol di daftar kiri.",
   components: [
     new ActionRowBuilder().addComponents(
-      new ButtonBuilder().setCustomId(NEW).setLabel("🎯 Buat thread bounty-ku").setStyle(ButtonStyle.Success),
+      new ButtonBuilder().setCustomId(NEW).setLabel("🎯 Create My Thread").setStyle(ButtonStyle.Success),
     ),
   ],
 });
@@ -136,4 +136,20 @@ async function refreshThread(client, userId, skipMessageId = null) {
   await msg.edit(await buildPanel(userId)).catch((err) => console.error(`❌ refresh thread (${userId}):`, err.message));
 }
 
-module.exports = { syncEntry, handleCreateThread, refreshThread, wake, liveThread, NEW };
+// Every panel at once. Called from the weekly reminder and at reset — the edit
+// is what stops these threads archiving, quite apart from the data being fresh.
+// Sequential on purpose: this is a handful of edits once or twice a week, and
+// there is nothing to gain from racing Discord's rate limiter for it.
+async function refreshAll(client) {
+  let n = 0;
+  for (const userId of Object.keys(bountyThreads)) {
+    await refreshThread(client, userId).catch((err) =>
+      console.error(`❌ refreshAll (${userId}):`, err.message),
+    );
+    n++;
+  }
+  if (n) console.log(`🎯 ${n} panel bounty digambar ulang`);
+  return n;
+}
+
+module.exports = { syncEntry, handleCreateThread, refreshThread, refreshAll, wake, liveThread, NEW };

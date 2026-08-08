@@ -8,6 +8,7 @@ const { EmbedBuilder } = require("discord.js");
 const config = require("./config");
 const { bountyBoard, saveState, getBountyWeekAll, getAllChars } = require("./state");
 const { BY_POOL_KEY, weekKey, ckey, resetSaturday, weekOrdinal, rewardText } = require("./bounty");
+const { MAX_SHARE_STACK } = require("./data/bounty");
 
 const HOUR_MS = 60 * 60 * 1000;
 
@@ -77,49 +78,161 @@ function groupByVariant(weekDocs, charDocs = []) {
     .sort((a, b) => b.total - a.total || a.variant.name.localeCompare(b.variant.name));
 }
 
+// The real account name never reaches the board. A reader only ever asks one
+// thing of it — can these two characters go at the same time? — so a letter per
+// account answers it without publishing what anyone called theirs.
+//
+// Letters are assigned per player and stay put across the whole board, so "akun
+// A" in one nest is the same account as "akun A" in another.
+function accountLetters(charDocs = []) {
+  const of = new Map(); // ckey → "A" | "B" | …
+  for (const doc of charDocs) {
+    const seen = new Map();
+    for (const c of doc.chars || []) {
+      if (!c.account) continue;
+      if (!seen.has(c.account)) seen.set(c.account, String.fromCharCode(65 + seen.size));
+      of.set(ckey(doc._id, c.name), seen.get(c.account));
+    }
+  }
+  return of;
+}
+
 // One line per character, mention included. A header line per player doubled
 // the height of the board for nothing — almost everyone has exactly one
 // character in a given nest.
 //
-// The account only shows when this player has TWO characters here, which is the
-// only case it disambiguates: same account means two separate runs.
+// The letter only shows when this player has TWO characters here, which is the
+// only case it disambiguates: the same letter means two separate runs.
 //
 // A character with two quests for one nest is still ONE line — clearing once
 // completes both, so two lines would read as two characters.
-const renderPlayer = (e) =>
+const renderPlayer = (e, letters) =>
   e.chars
-    .map(
-      (c) =>
+    .map((c) => {
+      const letter = letters?.get(ckey(e.userId, c.charName));
+      return (
         `<@${e.userId}> **${c.charName}**` +
         `${c.quests.length > 1 ? ` (${c.quests.length} quest)` : ""}` +
-        `${e.chars.length > 1 && c.account ? ` · akun ${c.account}` : ""}` +
-        ` — ${c.quests.map(rewardText).join(" | ")}`,
-    )
+        `${e.chars.length > 1 && letter ? ` · akun ${letter}` : ""}` +
+        ` — ${c.quests.map(rewardText).join(" | ")}`
+      );
+    })
     .join("\n");
 
-function buildBoardEmbed(weekDocs, charDocs = [], now = new Date()) {
-  const groups = groupByVariant(weekDocs, charDocs);
-  const embed = new EmbedBuilder()
-    .setTitle("📋 BOUNTY BOARD")
-    .setColor(0xe67e22)
-    .setFooter({ text: weekLabelId(now) });
+// Marathon GDN is the run this guild actually forms, so the board answers "is
+// there anything in it this week" in one line, without anyone opening a panel.
+//
+// A summary, not a listing. It does not seat anybody — the bot has no idea who
+// is online, and a printed seating chart reads as a plan.
+function marathonBlock(weekDocs, charDocs = []) {
+  const pools = require("./templates").marathon_gdn.poolKeys;
+  const roleOf = new Map();
+  for (const doc of charDocs)
+    for (const c of doc.chars || []) roleOf.set(ckey(doc._id, c.name), c.role || null);
 
-  if (!groups.length) {
-    embed.setDescription("Belum ada yang mencatat bounty minggu ini.\nCatat punyamu dengan `/bounty`.");
-    return embed;
+  const perPool = new Map(pools.map((p) => [p, 0]));
+  const rows = [];
+
+  for (const doc of weekDocs) {
+    const userId = doc.owners?.[0] || String(doc._id).split(":")[0];
+    for (const [charName, charWeek] of Object.entries(doc.chars || {})) {
+      const mine = (charWeek.board || []).filter((q) => !q.runId && perPool.has(q.poolKey));
+      if (!mine.length) continue;
+      for (const q of mine) perPool.set(q.poolKey, perPool.get(q.poolKey) + 1);
+      rows.push({
+        name: charName,
+        role: roleOf.get(ckey(userId, charName)) || "?",
+        // Which of the two clears each quest is for. A marathon is two runs, and
+        // this is what says which one you are being asked to show up for.
+        bounty: mine
+          .map((q) => `${BY_POOL_KEY.get(q.poolKey)?.label || q.poolKey} · ${rewardText(q)}`)
+          .join(" | "),
+      });
+    }
   }
 
-  const section = (g) =>
-    [`**${g.variant.name}** — ${g.total}`, ...g.entries.map(renderPlayer)].join("\n");
+  const total = [...perPool.values()].reduce((a, b) => a + b, 0);
+  if (!total) return null;
 
-  // A blank line between nests. Without it the sections run together and a bold
-  // nest name is the only thing separating two lists of names.
+  // The split is the line that decides anything: HC 0 means no marathon this
+  // week, whatever the total says.
+  const split = pools.map((p) => `${BY_POOL_KEY.get(p)?.label || p} ${perPool.get(p)}`).join(" · ");
+  // Names in a padded code span so the roles line up in one column — the same
+  // trick the signup panel uses for its role list.
+  const width = Math.max(...rows.map((r) => r.name.length));
+
+  return [
+    `**🏃 Marathon GDN** — ${total} bounty quest · ${split}`,
+    ...rows
+      .sort((a, b) => a.name.localeCompare(b.name))
+      .map((r) => `\`${r.name.padEnd(width)}\` - ${r.role} (bounty ${r.bounty})`),
+  ].join("\n");
+}
+
+const section = (g, letters) =>
+  [`**${g.variant.short}** — ${g.total}`, ...g.entries.map((e) => renderPlayer(e, letters))].join("\n");
+
+// A blank line between nests. Without it the sections run together and a bold
+// nest name is the only thing separating two lists of names.
+const joinSections = (groups, letters) => {
   const [first, ...rest] = groups;
-  const lines = [section(first)];
-  if (rest.length) lines.push("", ...rest.flatMap((g) => [section(g), ""]));
+  const lines = [section(first, letters)];
+  if (rest.length) lines.push("", ...rest.flatMap((g) => [section(g, letters), ""]));
+  return lines.join("\n");
+};
 
-  embed.setDescription(lines.join("\n").slice(0, 4000));
-  return embed;
+// Two embeds in one message rather than two messages: one id to remember, one
+// delete at reset, and they stay next to each other so nobody scrolls past the
+// second one without seeing it.
+function buildBoardEmbeds(weekDocs, charDocs = [], now = new Date()) {
+  const groups = groupByVariant(weekDocs, charDocs);
+  const letters = accountLetters(charDocs);
+  const foot = { text: weekLabelId(now) };
+
+  if (!groups.length)
+    return [
+      new EmbedBuilder()
+        .setTitle("📋 BOUNTY BOARD")
+        .setColor(0xe67e22)
+        .setDescription("Belum ada yang mencatat bounty minggu ini.\nCatat punyamu lewat `/bounty-me`.")
+        .setFooter(foot),
+    ];
+
+  // The marathon block sits ABOVE the GDN sections, it does not replace them.
+  // Merging them cost the thing the board exists for — "GDN HC — 3" answers
+  // "who else has HC" in one glance, and a merged list makes you filter by eye.
+  // The duplication that merging was meant to fix is gone anyway: the summary
+  // names nobody twice because it carries no mentions, roles or rewards.
+  const marathon = marathonBlock(weekDocs, charDocs);
+  const raid = groups.filter((g) => g.variant.capacity === 8);
+  const nest = groups.filter((g) => g.variant.capacity !== 8);
+  const embeds = [];
+
+  if (raid.length || marathon)
+    embeds.push(
+      new EmbedBuilder()
+        .setTitle("📋 BOUNTY BOARD — Raid (8 orang)")
+        .setColor(0xe67e22)
+        .setDescription(
+          [marathon, raid.length ? joinSections(raid, letters) : null]
+            .filter(Boolean)
+            .join("\n\n")
+            .slice(0, 4000),
+        ),
+    );
+
+  if (nest.length)
+    embeds.push(
+      new EmbedBuilder()
+        .setTitle("📋 Nest (4 orang)")
+        .setColor(0xe67e22)
+        .setDescription(joinSections(nest, letters).slice(0, 4000)),
+    );
+
+  // The week belongs on the last one, where it reads as a footer for the whole
+  // message rather than a repeated stamp.
+  embeds[embeds.length - 1].setFooter(foot);
+  return embeds;
 }
 
 // Posts the board when the week has rolled over, edits it otherwise. Keyed by
@@ -134,10 +247,13 @@ async function syncBoard(client) {
   if (!channel) return;
 
   const [weekDocs, charDocs] = await Promise.all([getBountyWeekAll(wk), getAllChars()]);
-  const embed = buildBoardEmbed(weekDocs, charDocs);
+  const embeds = buildBoardEmbeds(weekDocs, charDocs);
 
   // Week rolled over — drop last week's board and start a fresh one.
   if (bountyBoard.weekKey && bountyBoard.weekKey !== wk) {
+    // A new week empties every panel of last week's quests. Redrawing them here
+    // is also the second of the two weekly touches that keep the threads awake.
+    require("./bountyThread").refreshAll(client).catch(() => {});
     await channel.messages
       .fetch(bountyBoard.messageId)
       .then((m) => m.delete())
@@ -147,11 +263,11 @@ async function syncBoard(client) {
 
   if (bountyBoard.messageId) {
     const msg = await channel.messages.fetch(bountyBoard.messageId).catch(() => null);
-    if (msg) return msg.edit({ embeds: [embed] });
+    if (msg) return msg.edit({ embeds });
     bountyBoard.messageId = null; // deleted by hand — repost below
   }
 
-  const msg = await channel.send({ embeds: [embed] });
+  const msg = await channel.send({ embeds });
   bountyBoard.messageId = msg.id;
   bountyBoard.weekKey = wk;
   saveState();
@@ -168,4 +284,4 @@ function startBoard(client) {
   console.log("📋 Bounty board aktif — dicek tiap jam, ganti pesan tiap reset Sabtu 08:00 WIB");
 }
 
-module.exports = { buildBoardEmbed, groupByVariant, weekLabelId, syncBoard, startBoard };
+module.exports = { buildBoardEmbeds, groupByVariant, accountLetters, marathonBlock, weekLabelId, syncBoard, startBoard };

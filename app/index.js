@@ -13,6 +13,7 @@ const { startWeeklyDigest } = require("./digest");
 const { startLzDigest } = require("./lzDigest");
 const { startBoard } = require("./bountyBoard");
 const { syncEntry } = require("./bountyThread");
+const { startBountyReminder } = require("./bountyReminder");
 
 const client = new Client({
   intents: [
@@ -128,4 +129,5 @@ process.on("unhandledRejection", console.error);
   startLzDigest(client);
   startBoard(client);
   syncEntry(client).catch((err) => console.error("❌ syncEntry:", err.message));
+  startBountyReminder(client);
 })();

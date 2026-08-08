@@ -65,6 +65,10 @@ function flattenVariants(nests = NESTS) {
         nestName: nest.name,
         label,
         name: `${nest.name} ${label}`,
+        // "GDN HC" for anywhere a full "Green Dragon Nest HC" is just a longer
+        // way to say the same thing. The first alias IS the short name people
+        // already type, so this stays correct without a second list to maintain.
+        short: `${(nest.aliases?.[0] || nest.key).toUpperCase()} ${label}`,
         capacity: v.capacity ?? nest.capacity,
         minHighDps: v.minHighDps,
         party: v.party || null, // "memo" = P1-P4 job buttons instead of raid roles

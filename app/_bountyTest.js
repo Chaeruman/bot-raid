@@ -241,20 +241,22 @@ eq("13. an empty week tallies to zero", tally(undefined).potion, 0);
 // ─────────────────────────────────────────────────────────────────────────────
 // 15. The weekly board — groups by nest then by character, ordered by how many
 //     quests sit behind each nest, so the first section is "Most Wanted".
-const { groupByVariant, weekLabelId, buildBoardEmbed } = require("./bountyBoard");
+const { groupByVariant, weekLabelId, buildBoardEmbeds } = require("./bountyBoard");
+// The board is a message of embeds now; these checks read them as one blob.
+const boardText = (...a) => buildBoardEmbeds(...a).map((e) => e.data.description).join("\n");
 
 const bq = (poolKey, rarity, scroll, box) => ({ poolKey, rarity, scroll, box: !!box, runId: null });
 const boardDocs = [
   { _id: "ol:w", owners: ["ol"], weekKey: "w", chars: {
-      Chelssea: { board: [bq("gdn:classic", "rare_legendary", "weapon", true),
-                          bq("gdn:classic", "legendary", "weapon")], shares: [] },
+      Chelssea: { board: [bq("sdn:classic", "rare_legendary", "weapon", true),
+                          bq("sdn:classic", "legendary", "weapon")], shares: [] },
       Santeterz: { board: [bq("pkn:hell", "unique", "weapon")], shares: [] } } },
   { _id: "royal:w", owners: ["royal"], weekKey: "w", chars: {
-      arcroyal: { board: [bq("gdn:classic", "unique", "weapon"),
-                          bq("gdn:classic", "unique", "wtd")], shares: [] } } },
+      arcroyal: { board: [bq("sdn:classic", "unique", "weapon"),
+                          bq("sdn:classic", "unique", "wtd")], shares: [] } } },
   // Claimed quests and disabled nests never reach the board.
   { _id: "x:w", owners: ["x"], weekKey: "w", chars: {
-      Ghost: { board: [{ ...bq("gdn:classic", "unique", "weapon"), runId: "done" },
+      Ghost: { board: [{ ...bq("sdn:classic", "unique", "weapon"), runId: "done" },
                        bq("abyssal_mire:mutant", "unique", "weapon")], shares: [] } } },
 ];
 
@@ -265,7 +267,7 @@ const boardChars = [
 ];
 const groups = groupByVariant(boardDocs, boardChars);
 eq("15. two nests have quests", groups.length, 2);
-eq("15. most wanted is first", groups[0].variant.poolKey, "gdn:classic");
+eq("15. most wanted is first", groups[0].variant.poolKey, "sdn:classic");
 eq("15. total counts quests, not people", groups[0].total, 4);
 // One block per PLAYER now, each holding that player's characters.
 eq("15. one block per player", groups[0].entries.length, 2);
@@ -275,9 +277,12 @@ eq("15. a player with two characters keeps both",
 eq("15. disabled nests are excluded",
   groups.filter((g) => g.variant.nestKey === "abyssal_mire").length, 0);
 
-const boardDesc = buildBoardEmbed(boardDocs, boardChars, new Date("2026-08-10T05:00:00Z")).data.description;
+const boardDesc = boardText(boardDocs, boardChars, new Date("2026-08-10T05:00:00Z"));
+// The nest listing gives a character ONE line however many quests they hold.
+// (The Marathon GDN summary above it names GDN holders a second time on
+// purpose — it is a summary of the two sections below it.)
 check("15. one line per character, not per quest",
-  (boardDesc.match(/Chelssea/g) || []).length === 1);
+  (boardDesc.match(/\*\*Chelssea\*\* \(2 quest\)/g) || []).length === 1);
 check("15. multi-quest is marked", boardDesc.includes("(2 quest)"));
 check("15. both its quests are listed",
   boardDesc.includes("Rare Legendary + card box") && boardDesc.includes("Legendary · Weapon"));
@@ -287,25 +292,64 @@ check("15. no separate mention line", !/^<@\w+>$/m.test(boardDesc));
 check("15. mention sits on the character line", /<@ol> \*\*Chelssea\*\*/.test(boardDesc));
 eq("15. Indonesian week label",
   weekLabelId(new Date("2026-08-10T05:00:00Z")), "minggu ke-2 Agustus 2026");
-check("15. an empty week says so", buildBoardEmbed([]).data.description.includes("Belum ada"));
+check("15. an empty week says so", boardText([]).includes("Belum ada"));
 // The account only earns its place when one player has TWO characters in the
 // SAME nest — that is the only time it tells you anything. In boardDocs above,
 // ol's two characters are in different nests, so it stays hidden.
 check("15. hidden when their characters are in different nests", !boardDesc.includes("akun"));
-const twoHere = buildBoardEmbed(
+const twoHere = boardText(
   [{ _id: "ol:w", owners: ["ol"], weekKey: "w", chars: {
-      Chelssea: { board: [bq("gdn:hc", "unique", "weapon")], shares: [] },
-      Bolabola: { board: [bq("gdn:hc", "unique", "wtd")], shares: [] } } }],
+      Chelssea: { board: [bq("sdn:hc", "unique", "weapon")], shares: [] },
+      Bolabola: { board: [bq("sdn:hc", "unique", "wtd")], shares: [] } } }],
   [{ _id: "ol", chars: [{ name: "Chelssea", account: "1" }, { name: "Bolabola", account: "2" }] }],
-).data.description;
+);
+// A letter, never the account name: the reader only asks whether these two can
+// go at once, and that needs nobody publishing what they called their account.
 check("15. shown when both are in the same nest",
-  twoHere.includes("akun 1") && twoHere.includes("akun 2"));
+  twoHere.includes("akun A") && twoHere.includes("akun B"));
+check("15. and the real account name never reaches the board", !/akun [12]/.test(twoHere));
 check("15. hidden when they have only one",
-  !buildBoardEmbed(
+  !boardText(
     [{ _id: "solo:w", owners: ["solo"], weekKey: "w",
-       chars: { Only: { board: [bq("gdn:hc", "unique", "weapon")], shares: [] } } }],
+       chars: { Only: { board: [bq("sdn:hc", "unique", "weapon")], shares: [] } } }],
     [{ _id: "solo", chars: [{ name: "Only", account: "1" }] }],
-  ).data.description.includes("akun"));
+  ).includes("akun"));
+
+// 15c. Marathon GDN gets a one-line summary ABOVE the GDN sections, never
+//      instead of them. Merging the two cost what the board is for: "GDN HC — 3"
+//      answers "who else has HC" at a glance, and a merged list makes you filter
+//      by eye. The duplication merging was meant to fix is gone anyway, because
+//      a summary carries no mentions, roles or rewards to repeat.
+const gdnWeek = [
+  { _id: "ol:w", owners: ["ol"], weekKey: "w", chars: {
+      Chelssea: { board: [bq("gdn:hc", "unique", "weapon"), bq("gdn:classic", "legendary", "armor")], shares: [] },
+      Bolabola: { board: [bq("gdn:classic", "unique", "wtd")], shares: [] } } },
+];
+const gdnChars = [{ _id: "ol", chars: [{ name: "Chelssea", role: "FU", account: "1" }] }];
+const gdnText = boardText(gdnWeek, gdnChars);
+
+check("15c. the summary appears", gdnText.includes("Marathon GDN"));
+check("15c. with the total across both clears", gdnText.includes("3 bounty quest"));
+// The split is the whole point: HC 0 means a marathon is not on this week.
+check("15c. and the split per clear", gdnText.includes("HC 1") && gdnText.includes("Classic 2"));
+// One row per character, the role lined up in a padded code span, and the clear
+// each bounty belongs to — a marathon is two runs, and "HC" or "Classic" is what
+// says which one someone is being asked to show up for.
+const mRows = gdnText.split("\n").slice(1, 3);
+eq("15c. one row per character, sorted",
+  mRows[0], "`Bolabola` - ? (bounty Classic · Unique · W/T/D)");
+eq("15c. two quests on one character stay on one row",
+  mRows[1], "`Chelssea` - FU (bounty HC · Unique · Weapon | Classic · Legendary · Armor)");
+// Mentions belong to the sections below; this block is about characters.
+check("15c. no mention in the block", !mRows.join("").includes("<@"));
+
+// The sections survive, which is what the merge got wrong.
+check("15c. GDN HC keeps its own section", /\*\*GDN HC\*\* — 1/.test(gdnText));
+check("15c. GDN Classic too", /\*\*GDN Classic\*\* — 2/.test(gdnText));
+
+// Nests are named the way people type them.
+check("15. nest headings are short",
+  boardDesc.includes("**SDN Classic**") && !boardDesc.includes("Sea Dragon Nest Classic"));
 
 // 19. Raid integration — the only place a quest ever gets marked done.
 const tpls = require("./templates");
@@ -783,6 +827,49 @@ pending.push((async () => {
 })());
 
 
+// 37. The Thursday reminder. Its whole risk is claiming to know more than it
+//     does: the bot only learns a quest is done when a run closes through the
+//     signup panel, so anyone who cleared with a party formed in chat is still
+//     listed. The wording has to survive that, every single week37.
+const { buildReminder, isReminderWindow, nextReset, holders } = require("./bountyReminder");
+
+const rq = (rarity, runId = null) => ({ poolKey: "gdn:hc", rarity, scroll: "weapon", box: false, runId });
+const week37 = [
+  { _id: "ol:w", owners: ["ol"], chars: { A: { board: [rq("unique"), rq("legendary"), rq("unique", "done")] } } },
+  { _id: "azka:w", owners: ["azka"], chars: { B: { board: [rq("rare_legendary")] }, C: { board: [rq("unique")] } } },
+  { _id: "quiet:w", owners: ["quiet"], chars: { D: { board: [rq("unique", "done")] } } },
+];
+
+const txt = buildReminder(week37, new Date("2026-08-06T13:00:00Z")); // Thursday 20:00 WIB
+check("37. the out is always offered", txt.includes("Leave it alone"));
+check("37. it never claims they have not cleared", !/(^|[^ ])Not cleared/.test(txt));
+check("37. it says what it actually knows", txt.includes("Not recorded as cleared"));
+eq("37. claimed quests are not counted", holders(week37).find((h) => h.userId === "ol").n, 2);
+check("37. and someone with nothing left is not named", !txt.includes("quiet"));
+check("37. the busiest person comes first", txt.indexOf("<@ol>") < txt.indexOf("<@azka>"));
+eq("37. it counts down to the reset", txt.includes("2 days left"), true);
+
+// Nothing to nag about means no message at all — a weekly "0 quest" post is how
+// a reminder becomes background noise.
+eq("37. an empty week37 posts nothing", buildReminder([]), null);
+eq("37. so does a week37 where everything is claimed",
+  buildReminder([{ _id: "x:w", owners: ["x"], chars: { A: { board: [rq("unique", "done")] } } }]), null);
+
+// The window is a fixed +7 offset, so it must land on Thursday 20:00 WIB and
+// nowhere else — an hour either side would fire on the wrong day of the week37.
+check("37. fires Thursday 20:00 WIB", isReminderWindow(Date.parse("2026-08-06T13:00:00Z")));
+check("37. not an hour early", !isReminderWindow(Date.parse("2026-08-06T12:00:00Z")));
+check("37. not on Friday", !isReminderWindow(Date.parse("2026-08-07T13:00:00Z")));
+
+const reset = nextReset(new Date("2026-08-06T13:00:00Z"));
+const wib = new Date(reset.getTime() + 7 * 60 * 60 * 1000);
+check("37. the reset it counts to is a Saturday", wib.getUTCDay() === 6);
+eq("37. at 08:00 WIB", wib.getUTCHours(), 8);
+// On reset morning the answer is the NEXT one, not the one happening now.
+check("37. reset day rolls to the following Saturday",
+  nextReset(new Date("2026-08-08T02:00:00Z")) > new Date("2026-08-08T02:00:00Z"));
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.
@@ -798,7 +885,7 @@ Promise.all(pending.map((p) => p.catch((e) => fails.push(`async check threw — 
       `\n✅ ${enabled.length} nests, ${VARIANT_LIST.length} variants, ` +
         `${NEST_INFERENCE.size} nest-inferring aliases`,
     );
-    console.log(`   this week: ${weekLabel()}  (${weekKey()})\n`);
+    console.log(`   this week37: ${weekLabel()}  (${weekKey()})\n`);
     for (const v of VARIANT_LIST) {
       console.log(
         `   ${v.poolKey.padEnd(18)} ${v.name.padEnd(34)} ` +

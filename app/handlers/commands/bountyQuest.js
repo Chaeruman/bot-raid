@@ -21,9 +21,9 @@ const MODAL_PREFIX = "bounty-modal:quest:";
 function buildQuestModal(chars, replace = false) {
   return new ModalBuilder()
     .setCustomId(`${MODAL_PREFIX}${replace ? "r" : "a"}`)
-    .setTitle(replace ? "Ganti bounty" : "Catat bounty")
+    .setTitle(replace ? "Edit quest" : "Add quest")
     .setLabelComponents(
-      new LabelBuilder().setLabel("Karakter").setStringSelectMenuComponent(
+      new LabelBuilder().setLabel("Character").setStringSelectMenuComponent(
         new StringSelectMenuBuilder().setCustomId("char").addOptions(
           // A roster over 25 loses its tail here. MAX_CHARS is 40, but the
           // biggest real roster is ~15, and Discord allows no more.
@@ -35,7 +35,7 @@ function buildQuestModal(chars, replace = false) {
         ),
       ),
       new LabelBuilder()
-        .setLabel("Quest — 1 baris 1 quest")
+        .setLabel("Quest — one per line")
         // The only instructions anyone sees at the moment they type, so between
         // them the label and placeholder carry the whole format.
         .setDescription("u / leg / rl · wep wtd acc arm · box")
@@ -60,7 +60,7 @@ async function openQuestModal(interaction, replace = false) {
   const chars = await getChars(interaction.user.id);
   if (!chars.length)
     return interaction.reply({
-      content: "Belum ada karakter. Daftarkan dulu dengan `/bounty-char add`.",
+      content: "Belum ada karakter. Bikin dulu lewat **➕ Add Character** di panel-mu (`/bounty-me`).",
       flags: MessageFlags.Ephemeral,
     });
 

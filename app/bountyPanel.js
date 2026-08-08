@@ -19,8 +19,8 @@ const {
   StringSelectMenuBuilder,
 } = require("discord.js");
 const { getChars, getBountyWeek } = require("./state");
-const { weekKey, questLabel, claimsLeft, tally } = require("./bounty");
-const { WEEKLY_CLAIMS, DPS_TIERS, ROLES, SCROLL } = require("./data/bounty");
+const { weekKey, questLabel, tally } = require("./bounty");
+const { DPS_TIERS, ROLES, SCROLL } = require("./data/bounty");
 const { weekLabelId } = require("./bountyBoard");
 
 const PREFIX = "bounty-panel:"; // + <action>:<ownerId>
@@ -57,14 +57,17 @@ async function buildPanel(ownerId) {
     const board = charWeek?.board || [];
     lines.push(
       "",
-      `**${c.name}** · ${c.role || "belum ada role"} · ${DPS_TIERS[c.dpsTier] || "belum ada tier"}` +
-        (c.account ? ` · akun ${c.account}` : ""),
+      `**${c.name}** · ${c.role || "no role"} · ${DPS_TIERS[c.dpsTier] || "no DPS tier"}` +
+        (c.account ? ` · account ${c.account}` : ""),
     );
 
-    if (!board.length) lines.push("_belum ada quest_");
+    if (!board.length) lines.push("_no quest_");
     else {
+      // No claim count. Joining a 3-stack spends 3 claims even on a character
+      // holding nothing, and a party formed outside the panel never tells the
+      // bot — so the number is always too high, which is the direction that
+      // makes someone plan a run they cannot claim.
       board.forEach((q) => lines.push(`${q.runId ? "✓" : "○"} ${questLabel(q)}`));
-      lines.push(`_sisa ${claimsLeft(charWeek)}/${WEEKLY_CLAIMS} claim_`);
       const t = tally(charWeek);
       total.potion += t.potion;
       total.box += t.box;
@@ -72,9 +75,9 @@ async function buildPanel(ownerId) {
     }
   }
 
-  if (!chars.length) lines.push("", "Belum ada karakter. Mulai dari **➕ Karakter**.");
+  if (!chars.length) lines.push("", "Belum ada karakter. Mulai dari **➕ Add Character**.");
   const earned = renderTally(total);
-  if (earned) lines.push("", `**Dapat minggu ini:** ${earned}`);
+  if (earned) lines.push("", `**Earned this week:** ${earned}`);
 
   // An embed, not message content: 15 characters with their quests runs past
   // the 2000-char message limit, and truncation here would silently drop a
@@ -108,14 +111,14 @@ const BUTTON = (ownerId, action, label, style, disabled) =>
 // leaves exactly one thing to press.
 const panelRows = (ownerId, hasChars) => [
   new ActionRowBuilder().addComponents(
-    BUTTON(ownerId, "add", "➕ Karakter", ButtonStyle.Success),
-    BUTTON(ownerId, "edit", "✏️ Ubah", ButtonStyle.Secondary, !hasChars),
-    BUTTON(ownerId, "remove", "🗑️ Hapus", ButtonStyle.Secondary, !hasChars),
+    BUTTON(ownerId, "add", "➕ Add Character", ButtonStyle.Success),
+    BUTTON(ownerId, "edit", "✏️ Edit", ButtonStyle.Secondary, !hasChars),
+    BUTTON(ownerId, "remove", "🗑️ Remove", ButtonStyle.Secondary, !hasChars),
   ),
   new ActionRowBuilder().addComponents(
-    BUTTON(ownerId, "quest", "🎯 Catat quest", ButtonStyle.Primary, !hasChars),
-    BUTTON(ownerId, "replace", "♻️ Ganti quest", ButtonStyle.Secondary, !hasChars),
-    BUTTON(ownerId, "refresh", "🔄 Refresh", ButtonStyle.Secondary),
+    BUTTON(ownerId, "quest", "🎯 Add quest", ButtonStyle.Primary, !hasChars),
+    BUTTON(ownerId, "replace", "♻️ Edit quest", ButtonStyle.Secondary, !hasChars),
+    BUTTON(ownerId, "refresh", "🔄 Refresh Panel", ButtonStyle.Secondary),
   ),
 ];
 
@@ -126,7 +129,7 @@ const pick = (id, label, options, required = true) =>
     new StringSelectMenuBuilder()
       .setCustomId(id)
       .setRequired(required)
-      .setPlaceholder(required ? "Pilih" : "Biarkan kosong kalau tidak diubah")
+      .setPlaceholder(required ? "Select" : "Optional")
       .addOptions(options.slice(0, MAX_OPTS)),
   );
 
@@ -163,16 +166,16 @@ const modal = (ownerId, action, title, ...labels) =>
 // command's autocomplete had, since autocomplete was never a whitelist.
 const accountFields = (accounts) => [
   ...(accounts.length
-    ? [pick("account", "Akun game", accounts.map((a) => ({ label: a, value: a })), false)]
+    ? [pick("account", "Game account", accounts.map((a) => ({ label: a, value: a })), false)]
     : []),
-  text("accountNew", accounts.length ? "…atau ketik akun baru" : "Akun game (boleh kosong)", false, "misal: 1, 2, alt"),
+  text("accountNew", accounts.length ? "…or type new account" : "Game account (optional)", false, "e.g. 1, 2, alt"),
 ];
 
 const accountsOf = (chars) => [...new Set(chars.map((c) => c.account).filter(Boolean))];
 
 const addModal = (ownerId, chars) =>
-  modal(ownerId, "add", "Tambah karakter",
-    text("name", "Nama karakter", true, "ChelseaQT"),
+  modal(ownerId, "add", "Add Character",
+    text("name", "Character name", true, "ChelseaQT"),
     pick("role", "Role", roleOpts()),
     pick("dps", "DPS tier", dpsOpts()),
     ...accountFields(accountsOf(chars)));
@@ -180,14 +183,14 @@ const addModal = (ownerId, chars) =>
 // Every field but the character is optional: leaving one alone keeps its old
 // value, which is what makes this an edit rather than a re-entry.
 const editModal = (ownerId, chars) =>
-  modal(ownerId, "edit", "Ubah karakter",
-    pick("char", "Karakter", charOpts(chars)),
-    pick("role", "Role baru", roleOpts(), false),
-    pick("dps", "DPS tier baru", dpsOpts(), false),
+  modal(ownerId, "edit", "Edit Character",
+    pick("char", "Character", charOpts(chars)),
+    pick("role", "New role", roleOpts(), false),
+    pick("dps", "New DPS tier", dpsOpts(), false),
     ...accountFields(accountsOf(chars)));
 
 const removeModal = (ownerId, chars) =>
-  modal(ownerId, "remove", "Hapus karakter", pick("char", "Karakter", charOpts(chars)));
+  modal(ownerId, "remove", "Remove Character", pick("char", "Character", charOpts(chars)));
 
 // ── Routing ──────────────────────────────────────────────────────────────────
 
