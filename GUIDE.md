@@ -16,7 +16,13 @@ Panduan lengkap untuk host, seller, dan member.
 | `/loot-action id:<panelId> action:<…>` | Jalankan aksi loot panel lewat command |
 | `/state` | (Co-Leader) lihat event & loot panel aktif |
 | `/clear id:<…>` | (Co-Leader) hapus event/panel dari state |
+| `/bounty-char add\|edit\|list\|remove\|apply` | Roster karakter bounty |
+| `/bounty character:<…> [replace]` | Catat bounty quest minggu ini |
+| `/bounty-me` | Quest, sisa claim, reward kamu minggu ini |
 
+> **Catatan:** `/start`, `/raid`, `/marathon`, `/nest`, `/memo` punya opsi
+> `closed_to_bounty` — lihat bagian 14.
+>
 > **Catatan:** `/loot` hanya bisa dipakai **di dalam salary thread**. Opsi `tim` mengisi member otomatis dari role tim (kamu harus punya role tim itu).
 
 ---
@@ -201,3 +207,101 @@ Kalau ada baris yang ambigu (rune tanpa junk/good, atau keyword named cocok ke b
 Gaji/orang = ( total item + gold÷8 − total stamp ) ÷ 8  +  ( gold÷7 ÷ 7 )
 ```
 Member yang dikecualikan dari gold ÷7 hanya dapat bagian `÷ 8`.
+
+---
+
+## 14. 🎯 Group Bounty
+
+Bounty quest mingguan. Reset tiap **Sabtu 08:00 WIB** bareng reset in-game.
+
+### Daftar karakter (sekali aja)
+
+```
+/bounty-char add name:Chelssea role:FU dps:high account:1
+```
+
+- `role` — sama persis dengan tombol di panel signup (SM/DA, FU, Healer, MC, MT,
+  Ice Stacker, Acro, Support, DPS). Ini yang nentuin slot kamu di party bounty.
+- `dps` — high / good / low. Buat ngecek party sanggup clear apa nggak.
+- `account` — akun game. **Char di akun yang sama nggak bisa jalan barengan**,
+  beda akun bisa (misal dimainin orang lain). Autocomplete, tapi ketik yang baru
+  juga langsung jadi.
+
+Mau ubah? `/bounty-char edit name:Chelssea dps:good` — isi yang mau diganti aja,
+sisanya nggak kesentuh. `add` khusus char baru.
+
+### Catat quest — `/bounty character:<nama>`
+
+Modal kebuka, **1 baris = 1 quest**:
+
+```
+ddn hc u wep
+gdn cl leg acc box
+memo 1 rl wtd
+sdn core rl acc
+tkn hell u arm
+```
+
+Formatnya: **nest + varian + rarity + scroll** (+ `box` kalau ada card box).
+
+| Bagian | Pilihan |
+|--------|---------|
+| Nest | `ddn` `gdn` `sdn` `tkn` `pkn` `abn` `gn` (atau nama panjangnya) |
+| Varian | `cl` `norm` `hc` `hell` `chal` `core` `1`–`4` |
+| Rarity | `u` (unique) · `leg` (legendary) · `rl` (rare legendary) |
+| Scroll | `wep` `wtd` `acc` `arm` |
+| Card box | `box` |
+
+- **Urutan bebas** — `u wep hc ddn` sama aja dengan `ddn hc u wep`.
+- **`memo 1` nggak usah ditulis nest-nya** — cuma DDN yang punya Memoria.
+- Salah ketik nest → bot kasih 5 tebakan terdekat.
+- Lupa nulis varian → bot nanya yang mana (`ddn u wep` → Classic? HC? Memoria?).
+- Mau ulang dari nol: tambah `replace:true`. Quest yang udah kelar tetap aman.
+
+### Board
+
+Muncul sendiri di channel bounty tiap Sabtu, ke-update tiap ada yang ngisi.
+Isinya siapa punya quest di nest apa, dikelompokkan per orang. Nggak ada tombol
+— cuma buat dilihat.
+
+### Party bounty
+
+```
+/raid event:gdn_cl closed_to_bounty:true
+```
+
+Sembilan tombol role jadi **satu tombol Join**, dan cuma yang punya data bounty
+minggu ini yang bisa masuk. Karakter yang kamu pilih nentuin slot-nya, jadi
+batas per-role dimatikan — nggak ada yang ditolak gara-gara "FU udah penuh".
+
+Host bisa bolak-balik lewat tombol **🎯 Khusus bounty** / **🔓 Buka untuk semua**.
+
+Pas klik join, kalau kamu punya quest di nest itu bot nanya bawa char mana.
+**Pilih dulu baru masuk party** — kalau menunya ditutup, kamu nggak jadi ikut.
+Punya satu char doang? Langsung duduk.
+
+### Selesai
+
+Host pencet **Done** → bounty satu party ditandai selesai sekalian, quest-nya
+hilang dari board. Nggak pencet Done = nggak ada yang ketandai (sama kayak loot
+panel).
+
+### Baca angka `Stack 3/6`
+
+3 quest ke-share di run itu. Tiap orang yang ikut **pakai 3 claim dan dapat
+ketiga-tiganya** — termasuk yang nggak punya quest di situ.
+
+- Maksimal 6, karena jatah claim seminggu per karakter emang 6.
+- Quest ke-7 **nggak masuk stack** — tetap di board buat run lain, nggak ditandai
+  selesai.
+- Satu char punya 2 quest di nest yang sama → dua-duanya kelar sekali clear,
+  kehitung 2 slot stack.
+- Marathon (GDN HC + CL) tetap **satu** batas 6, bukan 6 per varian.
+
+Cek punyamu sendiri: `/bounty-me`.
+
+### Kalau fitur ini dikunci
+
+`/bounty-char apply` → pengajuan masuk ke admin → nunggu role Bounty Hunter
+dipasang manual. Kalau server-nya nggak nyalain kunci, semua orang langsung bisa
+pakai.

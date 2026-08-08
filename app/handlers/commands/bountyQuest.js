@@ -21,13 +21,17 @@ const CHAR_SELECT_ID = "bounty-sel:quest-char";
 function buildQuestModal(charName, replace = false) {
   return new ModalBuilder()
     .setCustomId(`${MODAL_PREFIX}${replace ? "r" : "a"}:${charName}`)
-    .setTitle(`${replace ? "Replace" : "Add"} quests — ${charName}`.slice(0, 45))
+    .setTitle(`${replace ? "Ganti" : "Catat"} bounty — ${charName}`.slice(0, 45))
     .addComponents(
       new ActionRowBuilder().addComponents(
         new TextInputBuilder()
           .setCustomId("lines")
-          .setLabel("One quest per line")
-          .setPlaceholder("ddn hc u wep\ngdn cl leg acc box\nmemo 1 rl wtd")
+          .setLabel("nest varian rarity scroll — 1 baris 1 quest")
+          // Label and placeholder are the only instructions anyone sees at the
+          // moment they type, so between them they carry the whole format.
+          .setPlaceholder(
+            ["ddn hc u wep", "gdn cl leg acc box", "memo 1 rl wtd", "", "u / leg / rl · wep wtd acc arm · box"].join("\n"),
+          )
           .setStyle(TextInputStyle.Paragraph)
           .setRequired(true)
           .setMaxLength(600),
