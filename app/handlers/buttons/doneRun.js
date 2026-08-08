@@ -20,11 +20,17 @@ async function handleDoneRun(interaction, event) {
     return require("../commands/bountyRun").finishBountyRun(interaction, event);
   }
 
+  // Close out any bounty the party was carrying, and record what this run
+  // cleared so the per-person "sudah beres" button still works now that the
+  // event is gone — clear → Done → "oh, I forgot to tick" is the normal order.
+  const bountyNote = await require("../../bountyJoin")
+    .markPartyDone(interaction.client, event)
+    .catch(() => null);
+
+  const done = `✅ **${event.title}** completed!${bountyNote ? `\n${bountyNote}` : ""}`;
+
   if (event.noThread) {
-    return interaction.message.edit({
-      content: `✅ **${event.title}** completed!`,
-      components: [],
-    });
+    return interaction.message.edit({ content: done, components: [] });
   }
 
   const threadTitle = buildThreadTitle(event);
@@ -82,7 +88,7 @@ async function handleDoneRun(interaction, event) {
   completedEmbed.setDescription(`${completedEmbed.data.description}\n\nThread: <#${thread.id}>`);
 
   await interaction.message.edit({
-    content: `✅ **${event.title}** completed!`,
+    content: done,
     embeds: [completedEmbed],
     components: [
       new ActionRowBuilder().addComponents(

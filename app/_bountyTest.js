@@ -571,6 +571,21 @@ eq("19. memo seat uses the job it picked",
 eq("19. nobody seated means no role", takenRole({ users: {}, roles: {} }, "u"), null);
 
 
+
+// 21. Two characters of the SAME job both holding a quest here — the bot must
+//     not pre-tick either, or one click marks a quest that was never run.
+const preselect = (entries) => {
+  const sole = entries.filter((e) => e.matches).length === 1;
+  return entries.map((e) => sole && e.matches);
+};
+eq("21. one role match is pre-ticked",
+  preselect([{ matches: true }, { matches: false }]).join(), "true,false");
+eq("21. two same-job matches are not",
+  preselect([{ matches: true }, { matches: true }]).join(), "false,false");
+eq("21. no match, nothing pre-ticked",
+  preselect([{ matches: false }, { matches: false }]).join(), "false,false");
+
+
 console.log(`\n${pass} passed, ${fails.length} failed`);
 if (fails.length) {
   console.log("\nFailures:");

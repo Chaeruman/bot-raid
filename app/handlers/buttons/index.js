@@ -35,9 +35,6 @@ async function handleButton(interaction) {
   if (interaction.customId === "bounty-req:ok") {
     return require("../../bountyBoard").handleRequestButton(interaction);
   }
-  if (interaction.customId.startsWith("bounty-fin:one:")) {
-    return require("../../bountyJoin").handleDoneButton(interaction);
-  }
   if (interaction.customId === "bounty-req:go") {
     return require("../../bountyBoard").handleRequestGo(interaction);
   }
