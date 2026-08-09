@@ -1,6 +1,15 @@
 const { REST, Routes, SlashCommandBuilder } = require("discord.js");
 const config = require("./config");
 const { ROLES } = require("./data/bounty");
+const templates = require("./templates");
+
+// Generated, never a second hand-kept list. "SDN HC" survived in /start and
+// /raid for weeks after its template was gone, and picking it looked up nothing
+// at all — a menu entry cannot drift from the thing it opens if it IS the thing.
+const choicesFor = (...kinds) =>
+  Object.entries(templates)
+    .filter(([, t]) => kinds.includes(t.kind))
+    .map(([value, t]) => ({ name: t.label, value }));
 
 const commands = [
   new SlashCommandBuilder()
@@ -11,15 +20,7 @@ const commands = [
         .setName("event")
         .setDescription("Event to run")
         .setRequired(true)
-        .addChoices(
-          { name: "DDN Classic", value: "ddn_cl" },
-          { name: "DDN HC", value: "ddn_hc" },
-          { name: "GDN HC", value: "gdn_hc" },
-          { name: "GDN Classic", value: "gdn_cl" },
-          { name: "SDN HC", value: "sdn_hc" },
-          { name: "Marathon GDN", value: "marathon_gdn" },
-          { name: "Marathon DDN", value: "marathon_ddn" },
-        ),
+        .addChoices(...choicesFor("raid", "nest", "marathon")),
     )
     .addBooleanOption((o) =>
       o
@@ -36,13 +37,7 @@ const commands = [
         .setName("event")
         .setDescription("Raid to run")
         .setRequired(true)
-        .addChoices(
-          { name: "DDN HC", value: "ddn_hc" },
-          { name: "DDN Classic", value: "ddn_cl" },
-          { name: "GDN HC", value: "gdn_hc" },
-          { name: "GDN Classic", value: "gdn_cl" },
-          { name: "SDN HC", value: "sdn_hc" },
-        ),
+        .addChoices(...choicesFor("raid")),
     )
     .addBooleanOption((o) =>
       o
@@ -59,10 +54,7 @@ const commands = [
         .setName("event")
         .setDescription("Marathon to run")
         .setRequired(true)
-        .addChoices(
-          { name: "Marathon GDN", value: "marathon_gdn" },
-          { name: "Marathon DDN", value: "marathon_ddn" },
-        ),
+        .addChoices(...choicesFor("marathon")),
     )
     .addBooleanOption((o) =>
       o
@@ -125,7 +117,7 @@ const commands = [
         .setName("event")
         .setDescription("Raid to run")
         .setRequired(true)
-        .addChoices({ name: "TKN Hell", value: "tkn_hell" }),
+        .addChoices(...choicesFor("nest")),
     )
     .addBooleanOption((o) =>
       o

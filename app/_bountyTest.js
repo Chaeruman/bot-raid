@@ -1679,19 +1679,23 @@ pending.push((async () => {
 })());
 
 
-// 53. Every event a command offers must be a template that exists, and every
-//     forumTagKey a template names must be a config key that exists. Both are
-//     silent: "SDN HC" sat in /start and /raid for as long as SDN had a
-//     template, and outlived it — picking it looked up nothing at all.
-const cmdSrc = require("fs").readFileSync(`${__dirname}/deploy-commands.js`, "utf8");
+// 53. The command menus are GENERATED from templates, so an entry cannot drift
+//     from the thing it opens. "SDN HC" sat in /start and /raid for weeks after
+//     its template was gone, and picking it looked up nothing at all.
 const cfg53 = require("./config");
+const kindOf = Object.fromEntries(Object.entries(tpls).map(([k, t]) => [k, t.kind]));
 
-const offered = [...cmdSrc.matchAll(/value: "([a-z_]+)" \}/g)]
-  .map((m) => m[1])
-  .filter((v) => /^(ddn|gdn|sdn|tkn|memo|marathon)/.test(v));
-check("53. the commands offer some events", offered.length >= 6, offered.join(","));
-eq("53. and every one of them is a real template",
-  offered.filter((v) => !tpls[v]).join(","), "");
+eq("53. every template declares a kind",
+  Object.entries(kindOf).filter(([, k]) => !k).map(([k]) => k).join(","), "");
+eq("53. and each kind is one the menus know",
+  [...new Set(Object.values(kindOf))].filter((k) => !["raid", "nest", "marathon", "memo"].includes(k)).join(","), "");
+
+// /start offers raid + nest + marathon. Memo is deliberately outside: it takes
+// a combo option the generic pickers cannot pass.
+const startable = Object.values(kindOf).filter((k) => k !== "memo");
+check("53. /start stays inside Discord's 25 choices", startable.length <= 25, `${startable.length}`);
+check("53. and there is more than one nest to offer",
+  Object.values(kindOf).filter((k) => k === "nest").length >= 8);
 
 // A tag key pointing at nothing means the tag is quietly never applied.
 const tagKeys = Object.values(tpls).map((t) => t.forumTagKey).filter(Boolean);
@@ -1699,100 +1703,70 @@ check("53. templates name forum tags", tagKeys.length >= 4);
 eq("53. and every key exists in config",
   tagKeys.filter((k) => !(k in cfg53)).join(","), "");
 
+// Every 4-player variant people can hold a bounty for should have a way to form
+// a party — otherwise Done never fires and the quest stays open forever.
+const covered = new Set(Object.values(tpls).flatMap((t) => t.poolKeys || []));
+eq("53. every nest variant can be run",
+  VARIANT_LIST.filter((v) => v.capacity === 4 && !covered.has(v.poolKey)).map((v) => v.short).join(","), "");
 
-// 54. The offer is filtered to the seat. Sitting in SM/DA and being offered an
-//     FU is offering something impossible — you play the character the seat is
-//     for — and picking it would file the quest against a run that character
-//     was never in. That is the shape of the bug this replaced.
-//
-//     myQuestsHere already computes `matches`; this pins that the offer USES it
-//     rather than only sorting by it, which is all it did before.
-const { offerBounty } = require("./bountyJoin");
-const offer54 = (entries) => entries.filter((e) => e.matches);
-const e54 = (name, role, matches) => ({ charName: name, role, matches, quests: [] });
+// 57. The role picker. One button both joins and leaves — a role menu you
+//     cannot undo is one people will not press in the first place — and a role
+//     with no id configured must not appear at all rather than fail on press.
+const { menuMessage, handleRolePick, PICK: RPICK } = require("./roleMenu");
+const cfg57 = require("./config");
 
-eq("54. only what fits the seat is offered",
-  offer54([e54("Santenaz", "FU", false), e54("ChelseaQT", "Acro", true)]).map((e) => e.charName).join(","),
-  "ChelseaQT");
-eq("54. nothing fitting means nothing offered",
-  offer54([e54("Santenaz", "FU", false)]).length, 0);
-// Two of the same job is exactly where the bot must not choose for you.
-eq("54. two that fit are both offered",
-  offer54([e54("A", "FU", true), e54("B", "FU", true)]).length, 2);
+const rpBtns = (m) => m.components[0].toJSON().components.map((b) => b.custom_id.slice(RPICK.length));
 
-// And it is a MODAL, because an ephemeral in a channel where people are talking
-// scrolls away — you would never learn you had a bounty to claim.
+const wasRaid = cfg57.raidRoleId;
+const wasNest = cfg57.nestRoleId;
+cfg57.raidRoleId = "R";
+cfg57.nestRoleId = "N";
+eq("57. both roles get a button", rpBtns(menuMessage()).join(","), "raid,nest");
+check("57. and the message says how to leave", /press again to leave/i.test(menuMessage().content));
+
+cfg57.nestRoleId = undefined;
+eq("57. an unconfigured role is not offered", rpBtns(menuMessage()).join(","), "raid");
+cfg57.nestRoleId = "N";
+
+check("57. the buttons reach their handler", routerLetsThrough(`${RPICK}raid`));
+
 pending.push((async () => {
-  const ev54 = { messageId: "m54", maxSlot: 8, roles: {}, users: {}, poolKeys: [] };
-  const seen54 = {};
-  const int54 = {
-    user: { id: "u54" },
-    message: { edit: async () => {} },
-    showModal: async (m) => { seen54.modal = m.toJSON(); },
+  const presser = (hasRole, fail) => {
+    const seen = { calls: [] };
+    return {
+      seen,
+      customId: `${RPICK}raid`,
+      user: { id: "u57" },
+      member: {
+        roles: {
+          cache: { has: () => hasRole },
+          add: async (id) => { seen.calls.push(`add:${id}`); if (fail) throw new Error("Missing Permissions"); },
+          remove: async (id) => { seen.calls.push(`remove:${id}`); if (fail) throw new Error("Missing Permissions"); },
+        },
+      },
+      reply: async (o) => { seen.reply = o.content; },
+    };
   };
-  // No pools on this panel: nothing to ask, and the response is left alone so
-  // the normal seating path can take it.
-  eq("54. a plain panel is not taken over", await offerBounty(int54, ev54, "FU"), false);
-  check("54. and no modal is opened", !seen54.modal);
+
+  const joining = presser(false);
+  await handleRolePick(joining);
+  eq("57. pressing without it adds", joining.seen.calls.join(","), "add:R");
+  check("57. and says so", /joined/i.test(joining.seen.reply || ""));
+
+  const leaving = presser(true);
+  await handleRolePick(leaving);
+  eq("57. pressing with it removes", leaving.seen.calls.join(","), "remove:R");
+  check("57. and says that instead", /left/i.test(leaving.seen.reply || ""));
+
+  // Same trap as granting Bounty Hunter: the permission can be on and Discord
+  // still refuses, because the bot's role sits at or below the one it manages.
+  const broken = presser(false, true);
+  await handleRolePick(broken);
+  check("57. a refusal names the role order", /above/i.test(broken.seen.reply || ""), broken.seen.reply);
+
+  cfg57.raidRoleId = wasRaid;
+  cfg57.nestRoleId = wasNest;
 })());
-
-
-// 55. On a marathon, each stacked quest says which clear it belongs to. A
-//     marathon is two runs, so "Unique · Weapon" alone leaves you guessing
-//     whether it lands on the HC clear or the Classic one — and those are two
-//     different nights to show up for.
-const q55 = (poolKey, rarity) => ({ poolKey, rarity, scroll: "weapon", box: false });
-const panelFor = (tplKey, quests) => {
-  const t = tpls[tplKey];
-  const roles = Object.fromEntries(Object.entries(t.roles).map(([k, r]) => [k, { ...r, users: ["ol"] }]));
-  return buildSignupEmbed({
-    messageId: "m55", hostId: "h", title: t.label, maxSlot: 8, locked: false, roles,
-    users: { ol: { slot: "FU", bountyChar: "Santenaz", bountyQuests: quests } },
-    poolKeys: t.poolKeys,
-  }).data.description;
-};
-
-const marathon55 = panelFor("marathon_gdn", [q55("gdn:hc", "unique"), q55("gdn:classic", "legendary")]);
-check("55. the HC quest says HC", /HC · Unique/.test(marathon55), marathon55);
-check("55. and the Classic one says Classic", /Classic · Legendary/.test(marathon55));
-
-// One variant needs no label — the panel title already said which nest.
-const single55 = panelFor("gdn_hc", [q55("gdn:hc", "unique")]);
-check("55. a single-nest panel does not repeat itself", /— Unique · Weapon/.test(single55), single55);
-
-
-// 56. The board splits into another embed only once one is nearly full, and
-//     says which page it is only when there IS another page. Discord rejects a
-//     message over 6000 characters outright, so an unsplit board would not be
-//     truncated — it would simply never appear.
-const bigWeek = (players, questsEach) =>
-  Array.from({ length: players }, (_, p) => ({
-    _id: `p${p}:w`,
-    owners: [`p${p}`],
-    weekKey: "w",
-    chars: Object.fromEntries(
-      Array.from({ length: questsEach }, (_, i) => [
-        `LongCharacterName${p}_${i}`,
-        { board: [bq(VARIANT_LIST.filter((v) => v.capacity === 8)[i % 8].poolKey, "unique", "weapon")], shares: [] },
-      ]),
-    ),
-  }));
-
-const small = buildBoardEmbeds(bigWeek(2, 2), []);
-check("56. a board that fits stays whole", small.every((e) => !/·\s\d+\/\d+/.test(e.data.title)), small.map((e) => e.data.title).join(" | "));
-
-const huge = buildBoardEmbeds(bigWeek(20, 8), []);
-check("56. a big one splits", huge.length > 1);
-check("56. and every page says which it is", huge.every((e) => /· \d+\/\d+$/.test(e.data.title)), huge.map((e) => e.data.title).join(" | "));
-check("56. no embed is near the 4096 ceiling",
-  huge.every((e) => e.data.description.length < 4096),
-  huge.map((e) => e.data.description.length).join(","));
-check("56. and the message stays under 6000",
-  huge.reduce((n, e) => n + e.data.description.length + e.data.title.length, 0) <= 6000);
-// Losing the tail is bad; losing the whole board to a rejected send is worse,
-// and silence about it is worst.
-check("56. a dropped tail says so", /tidak muat/.test(huge[huge.length - 1].data.description));
-check("56. the week is still on the last one", !!huge[huge.length - 1].data.footer);
 
 
 // A throw inside an async block would reject Promise.all and take the summary

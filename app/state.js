@@ -30,6 +30,8 @@ const bountyLinkRequests = {}; // fromUserId → toUserId, waiting on the target
 const bountyApplications = {}; // userId → true, until the role arrives
 // The one pinned "make my thread" message: { messageId }
 const bountyEntry = {};
+// The one pinned role picker: { messageId }
+const rolePickMenu = {};
 // The one weekly board message: { messageId, channelId, weekKey }
 const bountyBoard = {};
 
@@ -61,6 +63,7 @@ async function loadState() {
     Object.assign(bountyLinkRequests, doc.bountyLinkRequests || {});
     Object.assign(bountyApplications, doc.bountyApplications || {});
     Object.assign(bountyEntry, doc.bountyEntry || {});
+    Object.assign(rolePickMenu, doc.rolePickMenu || {});
     Object.assign(bountyBoard, doc.bountyBoard || {});
     digestLastSent = doc.digestLastSent || 0;
     lzDigestLastSent = doc.lzDigestLastSent || 0;
@@ -86,6 +89,7 @@ function saveState() {
         bountyLinkRequests,
         bountyApplications,
         bountyEntry,
+        rolePickMenu,
         bountyBoard,
         digestLastSent,
         lzDigestLastSent,
@@ -418,6 +422,7 @@ module.exports = {
   setLzDigestLastSent,
   bountyThreads,
   bountyEntry,
+  rolePickMenu,
   bountyLinks,
   bountyLinkRequests,
   bountyApplications,

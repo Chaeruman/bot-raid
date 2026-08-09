@@ -13,6 +13,7 @@ const { startWeeklyDigest } = require("./digest");
 const { startLzDigest } = require("./lzDigest");
 const { startBoard } = require("./bountyBoard");
 const { syncEntry } = require("./bountyThread");
+const { syncRoleMenu } = require("./roleMenu");
 const { startBountyReminder } = require("./bountyReminder");
 
 const client = new Client({
@@ -134,5 +135,6 @@ process.on("unhandledRejection", console.error);
   startLzDigest(client);
   startBoard(client);
   syncEntry(client).catch((err) => console.error("❌ syncEntry:", err.message));
+  syncRoleMenu(client).catch((err) => console.error("❌ syncRoleMenu:", err.message));
   startBountyReminder(client);
 })();
