@@ -36,6 +36,8 @@ const rolePickMenu = {};
 const salaryMenus = {};
 // The one weekly board message: { messageId, channelId, weekKey }
 const bountyBoard = {};
+// The one market board message: { messageId }
+const marketBoard = {};
 
 // Connect to MongoDB and hydrate in-memory state. Call once before login.
 async function loadState() {
@@ -68,6 +70,7 @@ async function loadState() {
     Object.assign(rolePickMenu, doc.rolePickMenu || {});
     Object.assign(salaryMenus, doc.salaryMenus || {});
     Object.assign(bountyBoard, doc.bountyBoard || {});
+    Object.assign(marketBoard, doc.marketBoard || {});
     digestLastSent = doc.digestLastSent || 0;
     lzDigestLastSent = doc.lzDigestLastSent || 0;
     bountyReminderLastSent = doc.bountyReminderLastSent || 0;
@@ -95,6 +98,7 @@ function saveState() {
         rolePickMenu,
         salaryMenus,
         bountyBoard,
+        marketBoard,
         digestLastSent,
         lzDigestLastSent,
         bountyReminderLastSent,
@@ -443,6 +447,7 @@ module.exports = {
   unlink,
   incomingLinks,
   bountyBoard,
+  marketBoard,
   getBountyReminderLastSent,
   setBountyReminderLastSent,
   getChars,

@@ -14,6 +14,23 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+### Added
+- **Market board** — satu pesan di channel `MARKET_CHANNEL_ID` berisi item yang
+  masih dijual, supaya pembeli cukup baca satu channel. Mati kalau env var-nya
+  belum diset.
+  - Sumbernya item tanpa harga di loot panel yang masih terbuka — tidak ada data
+    baru yang disimpan. Item hilang begitu diberi harga, dan sisanya ikut hilang
+    saat panel ditutup, jadi tidak ada yang perlu dicoret manual.
+  - Hanya accessory + equipment (termasuk named equipment). Rune, fragment dan
+    research book barang bulk yang tidak pernah dicari lewat papan, dan justru
+    itu yang bikin daftarnya panjang.
+  - Satu baris per item, bukan per panel: tiga orang memegang ring yang sama
+    jadi satu baris dengan tiga nama.
+  - Seller ditulis sebagai IGN biasa tanpa mention, dan tanpa link thread —
+    keduanya mahal di budget 6000 karakter per pesan.
+  - Update saat ada perubahan loot panel (debounce 5 detik), plus tick tiap jam
+    sebagai jaring pengaman. Panel yang menganggur >14 hari tidak ditampilkan.
+
 ## [1.26.0] — 2026-08-09
 
 ### Added

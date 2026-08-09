@@ -23,6 +23,7 @@ module.exports = {
   publicRaidChannelId: process.env.PUBLIC_RAID_CHANNEL_ID,
   publicNestChannelId: process.env.PUBLIC_NEST_CHANNEL_ID,
   bountyBoardChannelId: process.env.BOUNTY_BOARD_CHANNEL_ID,
+  marketChannelId: process.env.MARKET_CHANNEL_ID,
   bountyMeChannelId: process.env.BOUNTY_ME_CHANNEL_ID,
   rolePickChannelId: process.env.ROLE_PICK_CHANNEL_ID,
   kirimGajiChannelId: process.env.KIRIM_GAJI_CHANNEL_ID,

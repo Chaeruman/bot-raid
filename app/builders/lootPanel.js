@@ -250,6 +250,9 @@ async function refreshLootPanel(client, panel) {
     components: buildLootComponents(panel),
   });
   await updateThreadTitle(channel, panel);
+  // Every loot mutation lands here, which makes this the one place the market
+  // board has to be told anything. Debounced inside — see app/market.js.
+  require("../market").queueMarketSync(client);
 }
 
 module.exports = {
