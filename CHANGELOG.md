@@ -14,6 +14,37 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.20.0] — 2026-08-09
+
+### Added
+- **Tombol `🎯 Create My Thread` sekarang sekaligus mengajukan.** Belum punya
+  role Bounty Hunter? Menekannya mengirim pengajuan, bukan menolak lalu
+  menyuruh mengetik `/bounty-char apply`. Command-nya tetap ada sebagai
+  cadangan — keduanya memanggil fungsi yang sama.
+  - Menekan lagi sambil menunggu **tidak** mengirim salinan kedua ke admin.
+    Catatannya hilang sendiri begitu role-nya terpasang.
+- **Tombol `✅ Approve` / `✖️ Decline`** di pesan pengajuan. Sekali tekan: role
+  terpasang, pengajuan tertutup, pesannya diganti jadi catatan siapa yang
+  menyetujui. Butuh izin **Manage Roles** di role bot, dan role bot harus
+  berada **di atas** Bounty Hunter — Discord menolak mengelola role yang
+  sederajat atau lebih tinggi dari role bot sendiri. Penolakan itu disebut apa
+  adanya, dan pengajuannya dibiarkan terbuka untuk dicoba lagi.
+  - Yang boleh memutuskan: siapa pun dengan izin Manage Roles. Diperiksa dari
+    **izinnya**, bukan nama role-nya, jadi tetap benar waktu daftar staf berubah
+    — dan channel staf bukan izin, siapa pun yang bisa melihat pesannya bisa
+    mengkliknya.
+
+### Fixed
+- **`🎯 Khusus bounty` host-only di handler, bukan cuma diabu-abukan.**
+  `setDisabled` menahan klik di sisi client; itu bukan izin, dan tombol ini
+  menentukan siapa yang boleh masuk party. Id-nya juga jadi satu konstanta —
+  sebelumnya ditulis literal di builder, router dan daftar host-only, sehingga
+  ganti nama di dua tempat akan membukanya untuk semua orang tanpa error.
+- **`/bounty-char apply` tidak membungkus `channel.send`.** Mengambil channel
+  tidak butuh izin, mengirim butuh — jadi bot yang bisa melihat channel admin
+  tapi tidak bisa memposting di situ sampai ke pengaju sebagai "Something went
+  wrong". Sekarang menyebut izin mana yang kurang.
+
 ## [1.19.0] — 2026-08-09
 
 ### Added
