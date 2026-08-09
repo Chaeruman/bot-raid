@@ -88,6 +88,13 @@ const fakeClient = { channels: { fetch: async () => ({ archived: false, locked: 
     ],
   );
 
+  // A blank line before every sub-block, or the next "[ ... ]" reads as one
+  // more member of the block above it.
+  assert.ok(
+    listPart.includes("98g\\_balance\n\n[ santenaz ]"),
+    `no blank line before the second sub-block:\n${listPart}`,
+  );
+
   // Member rows carry no count and no bracket any more — both moved up.
   const rows = listPart.split("\n").filter((l) => /^[•⭐]/.test(l));
   assert.strictEqual(rows.length, 4);

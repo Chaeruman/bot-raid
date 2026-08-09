@@ -181,17 +181,16 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
     return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g\\_balance`;
   };
 
-  // Blank line between counts only — the IGN sub-blocks inside one count stay
-  // packed, which is the whole point of splitting the header in two.
+  // A blank line before every IGN sub-block too, not just between counts —
+  // packed together, the next "[ ... ]" read as one more member of the block
+  // above it. The bold count header is what keeps the two levels apart.
   const list = [...byCount.entries()]
     .sort((a, b) => b[0] - a[0]) // heaviest debts first
     .map(([count, inner]) =>
-      [
-        `**${count} Panel**`,
-        ...[...inner.values()]
-          .sort((a, b) => a.igns.join().localeCompare(b.igns.join()))
-          .flatMap((g) => [`[ ${g.igns.join(" | ")} ]`, ...g.members.map(memberRow)]),
-      ].join("\n"),
+      `**${count} Panel**\n${[...inner.values()]
+        .sort((a, b) => a.igns.join().localeCompare(b.igns.join()))
+        .map((g) => [`[ ${g.igns.join(" | ")} ]`, ...g.members.map(memberRow)].join("\n"))
+        .join("\n\n")}`,
     )
     .join("\n\n");
 
