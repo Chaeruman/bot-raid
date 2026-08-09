@@ -1,5 +1,6 @@
 const { MessageFlags } = require("discord.js");
 const { activeLootPanels } = require("../../../state");
+const { refreshLootPanel } = require("../../../builders/lootPanel");
 const { handleSelectSeller } = require("./selectSeller");
 const { handleAddItem, handleBrowseItem } = require("./addItem");
 const { handleAddGold } = require("./addGold");
@@ -41,6 +42,12 @@ async function handleLootButton(interaction) {
     case "close":         return handleCloseLoot(interaction, panel);
     case "add_member":    return handleAddMember(interaction, panel);
     case "remove_member": return handleRemoveMember(interaction, panel);
+    // Redraw from stored state. Changes nothing, so it needs no gate — its one
+    // real use is after a deploy that changes the arithmetic, when the numbers
+    // on screen were computed by code that no longer exists.
+    case "refresh":
+      await interaction.deferUpdate();
+      return refreshLootPanel(interaction.client, panel);
     default:
       return interaction.reply({ content: "❌ Unknown loot action.", flags: MessageFlags.Ephemeral });
   }

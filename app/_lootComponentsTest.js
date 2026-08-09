@@ -9,13 +9,14 @@ function labels(rows) {
 
 const base = { lootMsgId: "p1", sellerId: null, sellerIgn: null, items: [], goldEntries: [], members: [], closed: false };
 
-// No seller, no members: only Set Seller (disabled) + Add Member.
+// No seller, no members: only Set Seller (disabled) + Add Member. Refresh is
+// always there — it redraws from stored state and needs nothing to exist.
 let l = labels(buildLootComponents({ ...base }));
-assert.deepStrictEqual(l, ["👤 Seller", "👥 Add Member"]);
+assert.deepStrictEqual(l, ["👤 Seller", "👥 Add Member", "🔄 Refresh"]);
 
 // No seller, has members: same buttons (Seller no longer disabled, but still just these two).
 l = labels(buildLootComponents({ ...base, members: ["u1"] }));
-assert.deepStrictEqual(l, ["👤 Seller", "👥 Add Member"]);
+assert.deepStrictEqual(l, ["👤 Seller", "👥 Add Member", "🔄 Refresh"]);
 
 // Seller set, no items/gold/members: full row1/row2 minus remove-*, row3 no
 // Remove Member, Close Panel present but Mark Paid hidden (nothing to pay yet).
@@ -60,3 +61,14 @@ l = labels(
 assert.ok(l.includes("✅ Mark Paid"));
 
 console.log("✅ loot panel button visibility rules OK");
+
+// Refresh survives every shape of panel: its only job is to redraw what is
+// already stored, so there is no state in which it should be missing.
+for (const p of [
+  { ...base },
+  { ...base, sellerId: "s1" },
+  { ...base, sellerId: "s1", items: [{ itemKey: "gdn_fragment", qty: 1, price: 800 }], members: ["u1"] },
+]) {
+  assert.ok(labels(buildLootComponents(p)).includes("🔄 Refresh"), "refresh is always offered");
+}
+console.log("✅ refresh button present on every panel shape");

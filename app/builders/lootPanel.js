@@ -220,6 +220,10 @@ function buildLootComponents(panel) {
 
   const row3 = [btn("add_member", "👥 Add Member", ButtonStyle.Secondary)];
   if (hasSeller && hasMembers) row3.push(btn("remove_member", "➖ Remove Member", ButtonStyle.Secondary));
+  // Redraws from the stored panel, changing nothing. Only useful after a deploy
+  // that changes the arithmetic: the numbers on screen were computed by the old
+  // code and the message will not update itself until someone touches it.
+  row3.push(btn("refresh", "🔄 Refresh", ButtonStyle.Secondary));
 
   const row4 = [];
   if (hasSeller) {
