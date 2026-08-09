@@ -9,7 +9,9 @@
 // with the answer already rendered: no channel to find, no button to press
 // first. It is also somewhere the bot can push to later, which an ephemeral
 // message can never be.
-const { MessageFlags, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const {
+  MessageFlags, ChannelType, ActionRowBuilder, ButtonBuilder, ButtonStyle, RESTJSONErrorCodes,
+} = require("discord.js");
 const config = require("./config");
 const { bountyThreads, bountyEntry, saveState } = require("./state");
 const { buildPanel } = require("./bountyPanel");
@@ -66,18 +68,30 @@ async function syncEntry(client) {
 
 // ── The thread ───────────────────────────────────────────────────────────────
 
-// Returns the live thread, or null once it is gone — a thread deleted by hand
-// is forgotten here rather than retried forever.
+// Returns the live thread, null once it is really gone, and THROWS when it
+// cannot tell.
+//
+// Only Unknown Channel means deleted. Swallowing every error as deletion made a
+// rate limit or a network blip look like a thread that had been removed — and
+// the next press would build a second one beside the one still sitting there,
+// leaving the old panel orphaned and never updated again.
 async function liveThread(client, userId) {
   const rec = bountyThreads[userId];
   if (!rec?.threadId) return null;
-  const thread = await client.channels.fetch(rec.threadId).catch(() => null);
-  if (!thread) {
-    delete bountyThreads[userId];
-    saveState();
+  try {
+    return await client.channels.fetch(rec.threadId);
+  } catch (err) {
+    if (err?.code !== RESTJSONErrorCodes.UnknownChannel) throw err;
+    forgetThread(userId);
     return null;
   }
-  return thread;
+}
+
+function forgetThread(userId) {
+  if (!bountyThreads[userId]) return false;
+  delete bountyThreads[userId];
+  saveState();
+  return true;
 }
 
 // A button click does NOT wake an archived thread, and editing a message inside
@@ -92,7 +106,15 @@ async function wake(channel) {
 // the admin channel, and a thread created there would be the wrong thread in
 // the wrong place.
 async function threadFor(client, userId, label) {
-  const existing = await liveThread(client, userId);
+  let existing;
+  try {
+    existing = await liveThread(client, userId);
+  } catch (err) {
+    // Could not tell whether their thread is still there. Building one now
+    // risks leaving them with two, so do nothing and let them press again.
+    console.error(`❌ thread lookup (${userId}):`, err.message);
+    return null;
+  }
   if (existing) {
     await wake(existing);
     return existing;
@@ -153,7 +175,7 @@ async function refreshThread(client, userId, skipMessageId = null) {
   const rec = bountyThreads[userId];
   if (!rec?.messageId || rec.messageId === skipMessageId) return;
 
-  const thread = await liveThread(client, userId);
+  const thread = await liveThread(client, userId).catch(() => null);
   if (!thread) return;
   await wake(thread);
 
@@ -186,4 +208,7 @@ async function refreshAll(client) {
   return n;
 }
 
-module.exports = { syncEntry, handleCreateThread, threadFor, refreshThread, refreshAll, wake, liveThread, NEW };
+module.exports = {
+  syncEntry, handleCreateThread, threadFor, refreshThread, refreshAll,
+  wake, liveThread, forgetThread, NEW,
+};

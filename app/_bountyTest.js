@@ -801,7 +801,7 @@ check("35. every modal stays within 5 fields",
 // 36. The thread that hosts the panel. Everything here fails silently in
 //     production if it is wrong: a stale panel still renders, an archived
 //     thread still opens, and a forgotten router prefix still shows buttons.
-const { wake, liveThread, refreshThread, NEW } = require("./bountyThread");
+const { wake, liveThread, threadFor, refreshThread, NEW } = require("./bountyThread");
 const { bountyThreads } = require("./state");
 
 check("36. the entry button reaches its handler", routerLetsThrough(NEW), NEW);
@@ -826,10 +826,24 @@ pending.push((async () => {
   check("36. and a non-thread channel is not an error", true);
 
   // A thread deleted by hand must be forgotten, not retried forever.
+  const gone = () => Object.assign(new Error("Unknown Channel"), { code: 10003 });
   bountyThreads["gone"] = { threadId: "t1", messageId: "m1" };
-  const dead = { channels: { fetch: async () => { throw new Error("Unknown Channel"); } } };
+  const dead = { channels: { fetch: async () => { throw gone(); } } };
   eq("36. a deleted thread resolves to nothing", await liveThread(dead, "gone"), null);
   check("36. and is dropped from state", !bountyThreads["gone"]);
+
+  // Only Unknown Channel means gone. Reading a rate limit or a blip as deletion
+  // would build a second thread beside the one still sitting there.
+  bountyThreads["blip"] = { threadId: "t9", messageId: "m9" };
+  const flaky = { channels: { fetch: async () => { throw Object.assign(new Error("rate limited"), { code: 0 }); } } };
+  let threw = false;
+  await liveThread(flaky, "blip").catch(() => { threw = true; });
+  check("36. any other failure is not treated as deletion", threw);
+  check("36. and the thread is still remembered", !!bountyThreads["blip"]);
+  // Unsure means do nothing — never create a duplicate.
+  eq("36. so nothing is created while unsure", await threadFor(flaky, "blip", "x"), null);
+  check("36. and it is still remembered after that", !!bountyThreads["blip"]);
+  delete bountyThreads["blip"];
 
   // The interaction already redrew this message; doing it again is a wasted
   // edit on the message the user is looking at.

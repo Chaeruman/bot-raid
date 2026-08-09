@@ -6,7 +6,7 @@ const { handleSelectMenu } = require("./handlers/selectMenus");
 const { handleModal } = require("./handlers/modals");
 const { handleAutocomplete } = require("./handlers/autocomplete");
 const { validateData } = require("./bounty");
-const { activeEvents, activeLootPanels, loadState, saveState } = require("./state");
+const { activeEvents, activeLootPanels, bountyThreads, loadState, saveState } = require("./state");
 const { version } = require("./version");
 const keepAlive = require("./utils/keepAlive");
 const { startWeeklyDigest } = require("./digest");
@@ -69,6 +69,11 @@ client.on("interactionCreate", async (interaction) => {
 
 client.on("threadDelete", (thread) => {
   let changed = false;
+  for (const [userId, rec] of Object.entries(bountyThreads)) {
+    if (rec.threadId !== thread.id) continue;
+    if (require("./bountyThread").forgetThread(userId))
+      console.log(`🗑️ Forgot bounty thread of ${userId} (${thread.id} deleted)`);
+  }
   for (const [msgId, panel] of Object.entries(activeLootPanels)) {
     if (panel.threadId === thread.id) {
       delete activeLootPanels[msgId];
