@@ -14,6 +14,38 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.25.0] — 2026-08-09
+
+### Added
+- **Tujuh nest yang tadinya tidak punya jalur signup sekarang punya:** TKN
+  Challenge, PKN Hell & Challenge, ABN Hell & Challenge, GN Hell & Challenge.
+  Tiga di antaranya ada di board dengan bounty nyata — tercatat, tampil, dan
+  mustahil dibuatkan party, jadi Done tidak pernah menyala dan quest-nya terbuka
+  selamanya.
+- **Role picker di `ROLE_PICK_CHANNEL_ID`** — satu pesan, dua tombol, dan tombol
+  yang sama untuk masuk dan keluar. Role menu yang tidak bisa dibatalkan itu
+  yang tidak akan ditekan orang.
+  - Balasannya menyebut **semua role yang kamu punya sekarang**, bukan cuma yang
+    barusan diubah — itu satu-satunya hal yang reaction lakukan lebih baik, dan
+    reaction sama sekali tidak bisa memberi kabar kalau gagal.
+  - Role ditulis sebagai mention, jadi Discord merendernya dengan warna role itu
+    sendiri. Tidak ada yang di-ping.
+  - Role yang env-nya belum diset tidak ditampilkan, bukan muncul lalu gagal
+    saat ditekan. Penolakan Discord menyebut sebabnya: role bot harus di atas
+    role yang dibagikan.
+  - Butuh `ROLE_PICK_CHANNEL_ID`, `RAID_ROLE_ID`, `NEST_ROLE_ID`.
+
+### Changed
+- **Semua nest pakai P1–P4 + tombol job**, termasuk TKN Hell yang tadinya
+  `Healer · DPS · Support · Sup-DPS` masing-masing 1. Role bernama dengan cap
+  per-role cuma pernah menolak orang dari nest yang tidak peduli siapa yang
+  datang.
+- **Pilihan `/start` `/raid` `/nest` `/marathon` dibangkitkan dari
+  `templates.js`**, bukan empat daftar yang dijaga tangan. Itu yang membuat
+  `SDN HC` bertahan di menu berminggu-minggu setelah template-nya hilang.
+  `/memo` tetap di luar — dia punya opsi kombinasi yang tidak bisa dilewatkan
+  pemilih event generik.
+
 ## [1.24.0] — 2026-08-09
 
 ### Changed
