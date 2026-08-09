@@ -1,3 +1,6 @@
 node_modules
 .env
 state.json
+
+# Yarn's local install cache — an optimization artifact, not source.
+.yarn/install-state.gz
