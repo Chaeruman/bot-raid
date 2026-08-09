@@ -34,7 +34,8 @@ function weekLabelId(now = new Date()) {
 function groupByVariant(weekDocs, charDocs = []) {
   const accountOf = new Map();
   for (const doc of charDocs)
-    for (const c of doc.chars || []) accountOf.set(ckey(doc._id, c.name), c.account || null);
+    for (const c of doc.chars || [])
+      accountOf.set(ckey(primaryOf(doc._id), c.name), c.account || null);
 
   const byVariant = new Map();
 
@@ -88,12 +89,18 @@ function groupByVariant(weekDocs, charDocs = []) {
 // A" in one nest is the same account as "akun A" in another.
 function accountLetters(charDocs = []) {
   const of = new Map(); // ckey → "A" | "B" | …
+  // Lettered per PERSON, not per document. Two linked accounts each starting
+  // again at A would print two different accounts as "akun A" side by side —
+  // the exact confusion the letter exists to remove.
+  const seenBy = new Map(); // primary → Map(account → letter)
   for (const doc of charDocs) {
-    const seen = new Map();
+    const p = primaryOf(doc._id);
+    if (!seenBy.has(p)) seenBy.set(p, new Map());
+    const seen = seenBy.get(p);
     for (const c of doc.chars || []) {
       if (!c.account) continue;
       if (!seen.has(c.account)) seen.set(c.account, String.fromCharCode(65 + seen.size));
-      of.set(ckey(doc._id, c.name), seen.get(c.account));
+      of.set(ckey(p, c.name), seen.get(c.account));
     }
   }
   return of;
@@ -130,7 +137,8 @@ function marathonBlock(weekDocs, charDocs = []) {
   const pools = require("./templates").marathon_gdn.poolKeys;
   const roleOf = new Map();
   for (const doc of charDocs)
-    for (const c of doc.chars || []) roleOf.set(ckey(doc._id, c.name), c.role || null);
+    for (const c of doc.chars || [])
+      roleOf.set(ckey(primaryOf(doc._id), c.name), c.role || null);
 
   const perPool = new Map(pools.map((p) => [p, 0]));
   const rows = [];

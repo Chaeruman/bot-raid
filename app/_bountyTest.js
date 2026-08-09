@@ -1361,6 +1361,40 @@ pending.push((async () => {
 })());
 
 
+// 47. A linked account's characters keep their role and their account letter on
+//     the board. Collapsing a group to one mention meant the board looked up
+//     roles under the PRIMARY id while the roster was filed under the account
+//     that actually registered the character — every lookup missed, and the
+//     board printed "?" for someone whose panel showed the role perfectly well.
+requestLink("main47", "alt47");
+approveLink("main47", "alt47");
+
+const linkedWeek = [
+  { _id: "alt47:w", owners: ["alt47"], weekKey: "w", chars: {
+      Santenaz: { board: [bq("gdn:classic", "unique", "weapon")], shares: [] },
+      Popoye: { board: [bq("gdn:classic", "unique", "armor")], shares: [] } } },
+];
+const linkedChars = [
+  { _id: "alt47", chars: [
+      { name: "Santenaz", role: "FU", account: "santet" },
+      { name: "Popoye", role: "Healer", account: "chelssea" } ] },
+];
+const linkedText = boardText(linkedWeek, linkedChars);
+
+check("47. the marathon block knows the role", /Santenaz.*- FU/.test(linkedText), linkedText.split("\n")[1]);
+check("47. not a question mark", !/Santenaz.*- \?/.test(linkedText));
+// Two characters of one person in one nest — the letters must appear, and the
+// two accounts must not both come out as "A".
+check("47. and the account letters still tell them apart",
+  /Santenaz\*\* · akun [AB]/.test(linkedText) && /Popoye\*\* · akun [AB]/.test(linkedText), linkedText);
+check("47. with different letters",
+  linkedText.match(/akun ([AB])/g)?.[0] !== linkedText.match(/akun ([AB])/g)?.[1]);
+// One person, one mention — that is what made the lookups need fixing at all.
+check("47. still one mention for the pair", !linkedText.includes("<@alt47>"));
+
+unlink("alt47");
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.
