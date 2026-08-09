@@ -14,6 +14,18 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+### Changed
+- **`/kirim-gaji` dikelompokkan per jumlah panel**, bukan satu daftar datar.
+  Header `**3 Panel** - [ Santeterz | chelssea ]`, barisnya tinggal nama + gaji.
+  Kuncinya jumlah panel **dan** daftar IGN sekaligus: yang sama-sama "2 panel"
+  belum tentu dari karakter yang sama, dan "2 panel [ santenaz ]" (satu karakter
+  jual dua panel) beda urusan dengan "1 panel [ santenaz ]".
+
+### Fixed
+- **Market board dan bounty board diam total kalau channel ID-nya salah** —
+  `channels.fetch` gagal, di-catch, lalu return tanpa jejak. Sekarang ada log
+  sekali per proses yang menyebut ID dan env var-nya.
+
 ## [1.27.0] — 2026-08-10
 
 ### Added

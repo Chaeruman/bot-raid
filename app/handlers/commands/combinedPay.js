@@ -138,34 +138,52 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
       .addOptions(options),
   );
 
-  // Parens (not bold **) around the name — punctuation gives double-click a
-  // clean word boundary so copying the IGN doesn't drag the trailing space in.
-  // ⭐ (recommended) and ⚠️ (no IGN alias) are independent — both show
-  // together when they both apply, neither hides the other.
   // Which of the seller's own game characters owe this member. Mail limit is
   // per character, so the IGN — not the panel — is what decides which one to
   // log into. Deduped: two panels sold on the same character are one trip.
   const sellerIgns = (uid) => [...new Set(agg[uid].panelNums.map((n) => panels[n - 1].sellerIgn || "?"))];
 
-  const list = memberInfo
-    .map((m) => {
-      const bullet = (recommendedSet.has(m.uid) ? "⭐" : "•") + (m.hasAlias ? "" : "⚠️");
-      // Plain text, no italic underscores — those kept colliding with the
-      // escaped "_balance" underscore elsewhere on the line and leaving a
-      // stray literal "_" visible instead of rendering as italic.
-      const note = m.hasAlias ? "" : " (bukan IGN mereka)";
-      // Panel count and IGN list are deliberately both here: the IGNs are
-      // deduped, so "2 panel [ santenaz ]" is a real case (same character sold
-      // both). The count answers "how many", the IGNs "which character".
-      // "_balance" glued on with no space — double-click grabs the whole
-      // "Ng_balance" token cleanly instead of stopping at "N" or "g". The
-      // underscore is escaped (\_) so Discord doesn't eat it as an italic
-      // delimiter (which also swallowed the literal char and, paired with
-      // the note's own _..._ italics elsewhere on the line, italicized
-      // everything in between).
-      return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g\\_balance (${agg[m.uid].panelNums.length} panel) [ ${sellerIgns(m.uid).join(" | ")} ]`;
-    })
-    .join("\n");
+  // The count and the IGN list are ONE key, not two. The IGNs are deduped, so
+  // "2 panel [ santenaz ]" is a real case (same character sold both) and a
+  // group keyed on IGNs alone would print one header for two different counts.
+  // Sorted by count so the heaviest debts read first.
+  const groups = [...memberInfo
+    .reduce((map, m) => {
+      const igns = sellerIgns(m.uid);
+      const count = agg[m.uid].panelNums.length;
+      const key = `${count}|${igns.join(" | ")}`;
+      if (!map.has(key)) map.set(key, { count, igns, members: [] });
+      map.get(key).members.push(m);
+      return map;
+    }, new Map())
+    .values()]
+    .sort((a, b) => b.count - a.count || a.igns.join().localeCompare(b.igns.join()));
+
+  // Parens (not bold **) around the name — punctuation gives double-click a
+  // clean word boundary so copying the IGN doesn't drag the trailing space in.
+  // ⭐ (recommended) and ⚠️ (no IGN alias) are independent — both show
+  // together when they both apply, neither hides the other.
+  const list = groups
+    .map((g) =>
+      [
+        `**${g.count} Panel** - [ ${g.igns.join(" | ")} ]`,
+        ...g.members.map((m) => {
+          const bullet = (recommendedSet.has(m.uid) ? "⭐" : "•") + (m.hasAlias ? "" : "⚠️");
+          // Plain text, no italic underscores — those kept colliding with the
+          // escaped "_balance" underscore elsewhere on the line and leaving a
+          // stray literal "_" visible instead of rendering as italic.
+          const note = m.hasAlias ? "" : " (bukan IGN mereka)";
+          // "_balance" glued on with no space — double-click grabs the whole
+          // "Ng_balance" token cleanly instead of stopping at "N" or "g". The
+          // underscore is escaped (\_) so Discord doesn't eat it as an italic
+          // delimiter (which also swallowed the literal char and, paired with
+          // the note's own _..._ italics elsewhere on the line, italicized
+          // everything in between).
+          return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g\\_balance`;
+        }),
+      ].join("\n"),
+    )
+    .join("\n\n");
 
   // Link text is just the seller IGN — the raid name and timestamp were long
   // and told the seller nothing they act on; the IGN is what they need.
