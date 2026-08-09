@@ -87,22 +87,24 @@ async function wake(channel) {
   if (channel?.isThread?.() && channel.archived) await channel.setArchived(false).catch(() => {});
 }
 
-async function handleCreateThread(interaction) {
-  const userId = interaction.user.id;
-  const { isHunter, applyHunter } = require("./handlers/commands/bountyChar");
-  // No role yet: the press IS the application. Nobody gets sent away to type a
-  // command they would have to be told about first.
-  if (!isHunter(interaction)) return applyHunter(interaction);
-
-  const existing = await liveThread(interaction.client, userId);
+// Finds or makes someone's thread. Takes the channel from config rather than
+// from wherever a button happened to be pressed — the approve button lives in
+// the admin channel, and a thread created there would be the wrong thread in
+// the wrong place.
+async function threadFor(client, userId, label) {
+  const existing = await liveThread(client, userId);
   if (existing) {
     await wake(existing);
-    return ephemeral(interaction, `Thread-mu sudah ada: ${existing.toString()}`);
+    return existing;
   }
+  if (!config.bountyMeChannelId) return null;
 
-  const thread = await interaction.channel.threads
+  const home = await client.channels.fetch(config.bountyMeChannelId).catch(() => null);
+  if (!home?.threads) return null;
+
+  const thread = await home.threads
     .create({
-      name: `🎯 bounty — ${interaction.member?.displayName || interaction.user.username}`.slice(0, 100),
+      name: `🎯 bounty — ${label}`.slice(0, 100),
       type: ChannelType.PrivateThread,
       invitable: false,
       autoArchiveDuration: 10080, // 7 days, the longest Discord allows
@@ -111,9 +113,7 @@ async function handleCreateThread(interaction) {
       console.error(`❌ create bounty thread (${userId}):`, err.message);
       return null;
     });
-
-  if (!thread)
-    return ephemeral(interaction, "⚠️ Gagal bikin thread. Bot butuh izin **Create Private Threads** di channel ini.");
+  if (!thread) return null;
 
   await thread.members.add(userId).catch(() => {});
   const msg = await thread.send(await buildPanel(userId));
@@ -121,7 +121,29 @@ async function handleCreateThread(interaction) {
 
   bountyThreads[userId] = { threadId: thread.id, messageId: msg.id };
   saveState();
-  return ephemeral(interaction, `✅ Thread-mu siap: ${thread.toString()}`);
+  return thread;
+}
+
+async function handleCreateThread(interaction) {
+  const userId = interaction.user.id;
+  const { isHunter, applyHunter } = require("./handlers/commands/bountyChar");
+  // No role yet: the press IS the application. Nobody gets sent away to type a
+  // command they would have to be told about first.
+  if (!isHunter(interaction)) return applyHunter(interaction);
+
+  const had = !!bountyThreads[userId];
+  const thread = await threadFor(
+    interaction.client,
+    userId,
+    interaction.member?.displayName || interaction.user.username,
+  );
+
+  if (!thread)
+    return ephemeral(
+      interaction,
+      "⚠️ Gagal bikin thread. Bot butuh izin **Create Private Threads** di channel bounty.",
+    );
+  return ephemeral(interaction, `${had ? "Thread-mu sudah ada" : "✅ Thread-mu siap"}: ${thread.toString()}`);
 }
 
 // Redraws the panel in someone's thread. Called after a write that happened
@@ -164,4 +186,4 @@ async function refreshAll(client) {
   return n;
 }
 
-module.exports = { syncEntry, handleCreateThread, refreshThread, refreshAll, wake, liveThread, NEW };
+module.exports = { syncEntry, handleCreateThread, threadFor, refreshThread, refreshAll, wake, liveThread, NEW };

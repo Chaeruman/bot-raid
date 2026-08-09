@@ -550,13 +550,12 @@ const charCmd = (() => {
   const src = require("fs").readFileSync(`${__dirname}/deploy-commands.js`, "utf8");
   const from = src.indexOf('.setName("bounty-char")');
   return from === -1 ? "" : src.slice(from, src.indexOf(".toJSON(),", from));
-  return m ? m[0] : "";
 })();
 check("28. bounty-char has an edit subcommand", charCmd.includes('.setName("edit")'));
 check("28. and still an add", charCmd.includes('.setName("add")'));
 // add demands everything; edit demands only which character.
 const addBlock = charCmd.slice(charCmd.indexOf('.setName("add")'), charCmd.indexOf('.setName("edit")'));
-const editBlock = charCmd.slice(charCmd.indexOf('.setName("edit")'), charCmd.indexOf('.setName("apply")'));
+const editBlock = charCmd.slice(charCmd.indexOf('.setName("edit")'), charCmd.indexOf('.setName("remove")'));
 eq("28. add requires name, role, dps, account",
   (addBlock.match(/setRequired\(true\)/g) || []).length, 4);
 eq("28. edit requires only the name",
@@ -1238,7 +1237,7 @@ const decision = (verb, canManage, addFn) => {
     customId: `${HUNTER}${verb}:applicant`,
     user: { id: "admin" },
     memberPermissions: { has: (p) => canManage && p === PermissionFlagsBits.ManageRoles },
-    guild: { members: { fetch: async () => ({ roles: { add: addFn } }) } },
+    guild: { members: { fetch: async () => ({ displayName: "Chae", roles: { add: addFn } }) } },
     reply: async (o) => { seen.reply = o.content; },
     update: async (o) => { seen.update = o; },
   };
@@ -1258,6 +1257,10 @@ pending.push((async () => {
   const ok45 = decision("approve", true, async () => {});
   await handleHunterDecision(ok45);
   check("45. an admin grants the role", /jadi Bounty Hunter/.test(ok45.seen.update?.content || ""));
+  // They are not here to press anything, so the thread appears for them. And a
+  // thread that cannot be made must not undo an approval that already happened.
+  check("45. the approval stands even if the thread cannot be made",
+    !/Thread-nya sudah dibuat/.test(ok45.seen.update.content));
   eq("45. and the buttons come off", ok45.seen.update.components.length, 0);
   check("45. the application is closed", !bountyApps["applicant"]);
 
@@ -1268,6 +1271,32 @@ pending.push((async () => {
   await handleHunterDecision(tooLow);
   check("45. a refusal from Discord names the role order", /di atas/.test(tooLow.seen.reply || ""));
   check("45. and leaves the request open to retry", !!bountyApps["applicant"]);
+
+  // With somewhere to put it, the thread is made and said so.
+  const cfg45 = require("./config");
+  const was45 = cfg45.bountyMeChannelId;
+  cfg45.bountyMeChannelId = "home";
+  bountyApps["applicant"] = true;
+  const withHome = decision("approve", true, async () => {});
+  withHome.client = {
+    channels: {
+      fetch: async () => ({
+        threads: {
+          create: async () => ({
+            id: "t45",
+            toString: () => "<#t45>",
+            members: { add: async () => {} },
+            send: async () => ({ id: "p45", pin: async () => {} }),
+          }),
+        },
+      }),
+    },
+  };
+  await handleHunterDecision(withHome);
+  check("45. approving also opens their thread",
+    /Thread-nya sudah dibuat/.test(withHome.seen.update?.content || ""), withHome.seen.update?.content);
+  cfg45.bountyMeChannelId = was45;
+  delete require("./state").bountyThreads["applicant"];
 
   const no = decision("decline", true, async () => {});
   await handleHunterDecision(no);

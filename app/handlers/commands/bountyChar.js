@@ -31,8 +31,6 @@ const notHunter =
 
 async function handleBountyChar(interaction) {
   switch (interaction.options.getSubcommand()) {
-    case "apply":
-      return applyHunter(interaction);
     case "add":
       if (!isHunter(interaction)) return reply(interaction, notHunter);
       return saveChar(interaction, false);

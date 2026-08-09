@@ -313,9 +313,6 @@ const commands = [
         .addStringOption((o) => o.setName("job").setDescription("In-game class").setMaxLength(32))
     )
     .addSubcommand((s) =>
-      s.setName("apply").setDescription("Ajukan diri jadi Bounty Hunter — dikirim ke admin"),
-    )
-    .addSubcommand((s) =>
       s
         .setName("remove")
         .setDescription("Remove a character from your roster")

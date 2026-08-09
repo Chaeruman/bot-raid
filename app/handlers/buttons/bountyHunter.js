@@ -47,7 +47,21 @@ async function handleHunterDecision(interaction) {
 
   delete bountyApplications[applicantId];
   saveState();
-  return close(`✅ <@${applicantId}> jadi Bounty Hunter — disetujui <@${interaction.user.id}>.`);
+
+  // The thread is the whole point of having asked, and they are not here to
+  // press anything — this is the moment it can just appear in their sidebar.
+  // A failure here does not undo the approval; they can still press the button.
+  const thread = await require("../../bountyThread")
+    .threadFor(interaction.client, applicantId, member.displayName || member.user?.username || applicantId)
+    .catch((err) => {
+      console.error(`❌ thread for approved hunter ${applicantId}:`, err.message);
+      return null;
+    });
+
+  return close(
+    `✅ <@${applicantId}> jadi Bounty Hunter — disetujui <@${interaction.user.id}>.` +
+      (thread ? ` Thread-nya sudah dibuat.` : ""),
+  );
 }
 
 module.exports = { handleHunterDecision, PREFIX };
