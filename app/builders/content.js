@@ -1,7 +1,7 @@
 const { EmbedBuilder } = require("discord.js");
 const { createButtons } = require("./buttons");
 const { MAX_SHARE_STACK } = require("../data/bounty");
-const { rewardText } = require("../bounty");
+const { rewardText, BY_POOL_KEY } = require("../bounty");
 
 // Roles are printed as a padded code-span column so the names line up down the
 // panel — with nine roles, a ragged left edge is what makes it hard to read.
@@ -53,13 +53,20 @@ function buildSignupEmbed(event, isPreview = false) {
     const stacked = seats.reduce((n, [, u]) => n + u.bountyQuests.length, 0);
 
     desc.push(
-      `🎯 **Stack ${Math.min(stacked, cap)}/${cap}**` +
-        (event.closedToBounty ? " · khusus bounty" : ""),
+      `🎯 **Bounty stacked: ${Math.min(stacked, cap)}/${cap}**` +
+        (event.closedToBounty ? " · bounty only" : ""),
     );
     // Name what is actually in the stack. Everyone in the party receives all of
     // it, so "what do I get for joining" should not need a second command.
+    //
+    // A marathon clears two variants, so each quest says which one it is for —
+    // otherwise "Unique · Weapon" leaves you guessing whether it lands on the HC
+    // run or the Classic one, and those are two different clears to show up for.
+    const many = event.poolKeys.length > 1;
+    const line = (q) =>
+      (many ? `${BY_POOL_KEY.get(q.poolKey)?.label || q.poolKey} · ` : "") + rewardText(q);
     for (const [uid, u] of seats)
-      desc.push(`　<@${uid}> **${u.bountyChar}** — ${u.bountyQuests.map(rewardText).join(" | ")}`);
+      desc.push(`　<@${uid}> **${u.bountyChar}** — ${u.bountyQuests.map(line).join(" | ")}`);
   }
   if (event.locked) desc.push(`🔒 **Party is LOCKED**`);
   else if (totalUsers >= event.maxSlot) desc.push(`✅ **Party FULL**`);

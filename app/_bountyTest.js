@@ -459,7 +459,8 @@ const stackPanel = (maxSlot, per, pools = ["gdn:classic"]) => ({
 });
 // seat.bountyQuests holds the quests themselves, so the panel can name them.
 const q1 = (n) => Array.from({ length: n }, () => ({ poolKey: "gdn:classic", rarity: "unique", scroll: "weapon" }));
-const stackLine = (ev) => sEmbed(ev).data.description.split("\n").find((l) => l.includes("Stack"));
+const stackLine = (ev) =>
+  sEmbed(ev).data.description.split("\n").find((l) => l.includes("Bounty stacked"));
 
 check("24. counts quests, not people", stackLine(stackPanel(8, [q1(2), q1(1)])).includes("3/6"));
 check("24. caps at 6 on an 8-player raid", stackLine(stackPanel(8, [q1(2), q1(2), q1(2), q1(2)])).includes("6/6"));
@@ -606,14 +607,14 @@ eq("30. both fit under the cap", fitted.length, 2);
 
 ev30.users.u1 = { slot: "ACRO", bountyChar: "ChelseaQT", bountyQuests: fitted };
 const d30 = buildSignupEmbed(ev30).data.description;
-check("30. the panel counts them", d30.includes("Stack 2/6"));
+check("30. the panel counts them", d30.includes("Bounty stacked: 2/6"));
 check("30. and names the holder", d30.includes("ChelseaQT"));
 
 // The cap is one budget for the whole run, so a second seat fills what is left.
 ev30.users.u2 = { slot: "FU", bountyChar: "Bolabola",
                   bountyQuests: fitToStack(ev30, Array.from({ length: 6 }, () => q30("gdn:hc", "unique"))) };
 eq("30. the cap is shared, not per variant", ev30.users.u2.bountyQuests.length, 4);
-check("30. and the panel stops at 6", buildSignupEmbed(ev30).data.description.includes("Stack 6/6"));
+check("30. and the panel stops at 6", buildSignupEmbed(ev30).data.description.includes("Bounty stacked: 6/6"));
 
 
 // 31. The writes take their values as an argument, so a modal or a select can
@@ -1734,6 +1735,64 @@ pending.push((async () => {
   eq("54. a plain panel is not taken over", await offerBounty(int54, ev54, "FU"), false);
   check("54. and no modal is opened", !seen54.modal);
 })());
+
+
+// 55. On a marathon, each stacked quest says which clear it belongs to. A
+//     marathon is two runs, so "Unique · Weapon" alone leaves you guessing
+//     whether it lands on the HC clear or the Classic one — and those are two
+//     different nights to show up for.
+const q55 = (poolKey, rarity) => ({ poolKey, rarity, scroll: "weapon", box: false });
+const panelFor = (tplKey, quests) => {
+  const t = tpls[tplKey];
+  const roles = Object.fromEntries(Object.entries(t.roles).map(([k, r]) => [k, { ...r, users: ["ol"] }]));
+  return buildSignupEmbed({
+    messageId: "m55", hostId: "h", title: t.label, maxSlot: 8, locked: false, roles,
+    users: { ol: { slot: "FU", bountyChar: "Santenaz", bountyQuests: quests } },
+    poolKeys: t.poolKeys,
+  }).data.description;
+};
+
+const marathon55 = panelFor("marathon_gdn", [q55("gdn:hc", "unique"), q55("gdn:classic", "legendary")]);
+check("55. the HC quest says HC", /HC · Unique/.test(marathon55), marathon55);
+check("55. and the Classic one says Classic", /Classic · Legendary/.test(marathon55));
+
+// One variant needs no label — the panel title already said which nest.
+const single55 = panelFor("gdn_hc", [q55("gdn:hc", "unique")]);
+check("55. a single-nest panel does not repeat itself", /— Unique · Weapon/.test(single55), single55);
+
+
+// 56. The board splits into another embed only once one is nearly full, and
+//     says which page it is only when there IS another page. Discord rejects a
+//     message over 6000 characters outright, so an unsplit board would not be
+//     truncated — it would simply never appear.
+const bigWeek = (players, questsEach) =>
+  Array.from({ length: players }, (_, p) => ({
+    _id: `p${p}:w`,
+    owners: [`p${p}`],
+    weekKey: "w",
+    chars: Object.fromEntries(
+      Array.from({ length: questsEach }, (_, i) => [
+        `LongCharacterName${p}_${i}`,
+        { board: [bq(VARIANT_LIST.filter((v) => v.capacity === 8)[i % 8].poolKey, "unique", "weapon")], shares: [] },
+      ]),
+    ),
+  }));
+
+const small = buildBoardEmbeds(bigWeek(2, 2), []);
+check("56. a board that fits stays whole", small.every((e) => !/·\s\d+\/\d+/.test(e.data.title)), small.map((e) => e.data.title).join(" | "));
+
+const huge = buildBoardEmbeds(bigWeek(20, 8), []);
+check("56. a big one splits", huge.length > 1);
+check("56. and every page says which it is", huge.every((e) => /· \d+\/\d+$/.test(e.data.title)), huge.map((e) => e.data.title).join(" | "));
+check("56. no embed is near the 4096 ceiling",
+  huge.every((e) => e.data.description.length < 4096),
+  huge.map((e) => e.data.description.length).join(","));
+check("56. and the message stays under 6000",
+  huge.reduce((n, e) => n + e.data.description.length + e.data.title.length, 0) <= 6000);
+// Losing the tail is bad; losing the whole board to a rejected send is worse,
+// and silence about it is worst.
+check("56. a dropped tail says so", /tidak muat/.test(huge[huge.length - 1].data.description));
+check("56. the week is still on the last one", !!huge[huge.length - 1].data.footer);
 
 
 // A throw inside an async block would reject Promise.all and take the summary

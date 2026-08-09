@@ -182,14 +182,36 @@ function marathonBlock(weekDocs, charDocs = []) {
 const section = (g, letters) =>
   [`**${g.variant.short}** — ${g.total}`, ...g.entries.map((e) => renderPlayer(e, letters))].join("\n");
 
+// Discord's limits, and what each one costs here: 4096 per embed description,
+// 6000 across every embed in one message, 10 embeds.
+const PER_EMBED = 3500; // split BEFORE a section can push an embed past 4096
+const PER_MESSAGE = 6000;
+const MAX_EMBEDS = 10;
+
+// One embed until it is nearly full, then another — never a fixed number of
+// nests each. Splitting early scatters a board that fits comfortably; splitting
+// late loses the tail.
+//
 // A blank line between nests. Without it the sections run together and a bold
 // nest name is the only thing separating two lists of names.
-const joinSections = (groups, letters) => {
-  const [first, ...rest] = groups;
-  const lines = [section(first, letters)];
-  if (rest.length) lines.push("", ...rest.flatMap((g) => [section(g, letters), ""]));
-  return lines.join("\n");
-};
+function chunkSections(groups, letters, head = null) {
+  const chunks = [];
+  let cur = head ? [head] : [];
+  let len = head ? head.length + 2 : 0;
+
+  for (const g of groups) {
+    const s = section(g, letters);
+    if (cur.length && len + s.length + 2 > PER_EMBED) {
+      chunks.push(cur.join("\n\n"));
+      cur = [];
+      len = 0;
+    }
+    cur.push(s);
+    len += s.length + 2;
+  }
+  if (cur.length) chunks.push(cur.join("\n\n"));
+  return chunks;
+}
 
 // Two embeds in one message rather than two messages: one id to remember, one
 // delete at reset, and they stay next to each other so nobody scrolls past the
@@ -216,33 +238,47 @@ function buildBoardEmbeds(weekDocs, charDocs = [], now = new Date()) {
   const marathon = marathonBlock(weekDocs, charDocs);
   const raid = groups.filter((g) => g.variant.capacity === 8);
   const nest = groups.filter((g) => g.variant.capacity !== 8);
+
+  // A page number ONLY when there is more than one page. On a board that fits —
+  // which is every board today — "1/1" is noise about a limit nobody hit.
+  const add = (embeds, title, chunks) =>
+    chunks.forEach((d, i) =>
+      embeds.push(
+        new EmbedBuilder()
+          .setTitle(chunks.length > 1 ? `${title} · ${i + 1}/${chunks.length}` : title)
+          .setColor(0xe67e22)
+          .setDescription(d.slice(0, 4000)),
+      ),
+    );
+
   const embeds = [];
-
   if (raid.length || marathon)
-    embeds.push(
-      new EmbedBuilder()
-        .setTitle("📋 BOUNTY BOARD — Raid (8 orang)")
-        .setColor(0xe67e22)
-        .setDescription(
-          [marathon, raid.length ? joinSections(raid, letters) : null]
-            .filter(Boolean)
-            .join("\n\n")
-            .slice(0, 4000),
-        ),
-    );
+    add(embeds, "📋 BOUNTY BOARD — Raid (8 orang)", chunkSections(raid, letters, marathon));
+  if (nest.length) add(embeds, "📋 Nest (4 orang)", chunkSections(nest, letters));
 
-  if (nest.length)
-    embeds.push(
-      new EmbedBuilder()
-        .setTitle("📋 Nest (4 orang)")
-        .setColor(0xe67e22)
-        .setDescription(joinSections(nest, letters).slice(0, 4000)),
+  // Past 6000 characters or 10 embeds Discord rejects the whole message, and the
+  // board would simply vanish. Dropping the tail and saying so keeps the rest
+  // readable and makes the loss visible instead of total.
+  let total = 0;
+  const kept = [];
+  for (const e of embeds) {
+    const size = (e.data.description || "").length + (e.data.title || "").length;
+    if (kept.length >= MAX_EMBEDS || total + size > PER_MESSAGE) break;
+    total += size;
+    kept.push(e);
+  }
+  if (kept.length < embeds.length) {
+    const lost = embeds.length - kept.length;
+    console.error(`❌ bounty board terpotong: ${lost} bagian tidak muat (${total}/${PER_MESSAGE})`);
+    kept[kept.length - 1].setDescription(
+      `${kept[kept.length - 1].data.description}\n\n_⚠️ ${lost} bagian tidak muat di satu pesan._`.slice(0, 4000),
     );
+  }
 
   // The week belongs on the last one, where it reads as a footer for the whole
   // message rather than a repeated stamp.
-  embeds[embeds.length - 1].setFooter(foot);
-  return embeds;
+  kept[kept.length - 1].setFooter(foot);
+  return kept;
 }
 
 // Posts the board when the week has rolled over, edits it otherwise. Keyed by
