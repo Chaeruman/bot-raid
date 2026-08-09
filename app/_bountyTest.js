@@ -1162,6 +1162,112 @@ check("43. a plain signup has no toggle",
     .some((b) => b.custom_id === BOUNTY_TOGGLE));
 
 
+// 44. Asking for the Bounty Hunter role. Fetching a channel needs no
+//     permission but sending does, so a bot that can SEE the admin channel and
+//     not post in it threw — and the applicant read "Something went wrong",
+//     which tells them nothing and tells the admin less.
+const { applyHunter } = require("./handlers/commands/bountyChar");
+const { bountyApplications: bountyApps } = require("./state");
+
+pending.push((async () => {
+  const cfg44 = require("./config");
+  const roleWas = cfg44.bountyHunterRoleId;
+  const chanWas = cfg44.bountyAdminChannelId;
+  cfg44.bountyHunterRoleId = "R";
+  cfg44.bountyAdminChannelId = "admin";
+
+  const applicant = (send) => {
+    const seen = {};
+    return {
+      seen,
+      user: { id: "u44" },
+      member: { roles: { cache: new Map() } }, // not a hunter yet
+      client: { channels: { fetch: async () => ({ send }) } },
+      reply: async (o) => { seen.reply = o.content; },
+    };
+  };
+
+  const blocked = applicant(async () => { throw new Error("Missing Access"); });
+  await applyHunter(blocked);
+  check("44. a refused send does not crash", !!blocked.seen.reply);
+  check("44. and says which permission is missing",
+    /Send Messages/.test(blocked.seen.reply || ""), blocked.seen.reply);
+
+  const ok44 = applicant(async () => ({ id: "m" }));
+  await applyHunter(ok44);
+  check("44. a delivered one says it is with the admin",
+    /reviewed by the admin/.test(ok44.seen.reply || ""), ok44.seen.reply);
+
+  // Pressing again while waiting is the natural thing to do, and the admins must
+  // not get a second copy of the same request.
+  let sends = 0;
+  const again = applicant(async () => { sends++; return { id: "m" }; });
+  await applyHunter(again);
+  eq("44. a second press sends nothing", sends, 0);
+  check("44. and says the same thing", /reviewed by the admin/.test(again.seen.reply || ""));
+
+  // The role arriving is what clears it — the bot is never told, so it checks.
+  const hunter = applicant(async () => ({ id: "m" }));
+  hunter.member = { roles: { cache: new Map([["R", {}]]) } };
+  await applyHunter(hunter);
+  check("44. once the role lands, the record is dropped", !bountyApps["u44"]);
+
+  cfg44.bountyHunterRoleId = roleWas;
+  cfg44.bountyAdminChannelId = chanWas;
+})());
+
+
+// 45. Approving from the request itself. This is the only place the bot uses
+//     Manage Roles, and the two ways it goes wrong are both silent-ish: anyone
+//     could press it, or the bot's own role sits too low and Discord refuses.
+const { handleHunterDecision, PREFIX: HUNTER } = require("./handlers/buttons/bountyHunter");
+const { PermissionFlagsBits } = require("discord.js");
+
+const decision = (verb, canManage, addFn) => {
+  const seen = {};
+  return {
+    seen,
+    customId: `${HUNTER}${verb}:applicant`,
+    user: { id: "admin" },
+    memberPermissions: { has: (p) => canManage && p === PermissionFlagsBits.ManageRoles },
+    guild: { members: { fetch: async () => ({ roles: { add: addFn } }) } },
+    reply: async (o) => { seen.reply = o.content; },
+    update: async (o) => { seen.update = o; },
+  };
+};
+
+check("45. the approve button reaches its handler", routerLetsThrough(`${HUNTER}approve:x`));
+
+pending.push((async () => {
+  // The request message sits in a staff channel, but a channel is not a
+  // permission — the button has to check for itself.
+  const nosy = decision("approve", false, async () => {});
+  await handleHunterDecision(nosy);
+  check("45. someone without Manage Roles is refused", /Manage Roles/.test(nosy.seen.reply || ""));
+  check("45. and the request stays open", !nosy.seen.update);
+
+  bountyApps["applicant"] = true;
+  const ok45 = decision("approve", true, async () => {});
+  await handleHunterDecision(ok45);
+  check("45. an admin grants the role", /jadi Bounty Hunter/.test(ok45.seen.update?.content || ""));
+  eq("45. and the buttons come off", ok45.seen.update.components.length, 0);
+  check("45. the application is closed", !bountyApps["applicant"]);
+
+  // The commonest real failure: Manage Roles is on, but the bot's role sits at
+  // or below the one it is being asked to hand out.
+  bountyApps["applicant"] = true;
+  const tooLow = decision("approve", true, async () => { throw new Error("Missing Permissions"); });
+  await handleHunterDecision(tooLow);
+  check("45. a refusal from Discord names the role order", /di atas/.test(tooLow.seen.reply || ""));
+  check("45. and leaves the request open to retry", !!bountyApps["applicant"]);
+
+  const no = decision("decline", true, async () => {});
+  await handleHunterDecision(no);
+  check("45. declining closes it without granting", /ditolak/.test(no.seen.update?.content || ""));
+  check("45. and clears the application", !bountyApps["applicant"]);
+})());
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.

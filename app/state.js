@@ -25,6 +25,9 @@ const bountyThreads = {}; // userId → { threadId, messageId } of their panel
 // the board" needs no second field.
 const bountyLinks = {}; // userId → primary userId
 const bountyLinkRequests = {}; // fromUserId → toUserId, waiting on the target's panel
+// Pressed the door and had no key. Remembered so a second press does not send
+// the admins a second copy of the same request.
+const bountyApplications = {}; // userId → true, until the role arrives
 // The one pinned "make my thread" message: { messageId }
 const bountyEntry = {};
 // The one weekly board message: { messageId, channelId, weekKey }
@@ -56,6 +59,7 @@ async function loadState() {
     Object.assign(bountyThreads, doc.bountyThreads || {});
     Object.assign(bountyLinks, doc.bountyLinks || {});
     Object.assign(bountyLinkRequests, doc.bountyLinkRequests || {});
+    Object.assign(bountyApplications, doc.bountyApplications || {});
     Object.assign(bountyEntry, doc.bountyEntry || {});
     Object.assign(bountyBoard, doc.bountyBoard || {});
     digestLastSent = doc.digestLastSent || 0;
@@ -80,6 +84,7 @@ function saveState() {
         bountyThreads,
         bountyLinks,
         bountyLinkRequests,
+        bountyApplications,
         bountyEntry,
         bountyBoard,
         digestLastSent,
@@ -415,6 +420,7 @@ module.exports = {
   bountyEntry,
   bountyLinks,
   bountyLinkRequests,
+  bountyApplications,
   primaryOf,
   linkedTo,
   mergeChars,

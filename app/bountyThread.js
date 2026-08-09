@@ -89,8 +89,10 @@ async function wake(channel) {
 
 async function handleCreateThread(interaction) {
   const userId = interaction.user.id;
-  const { isHunter, notHunter } = require("./handlers/commands/bountyChar");
-  if (!isHunter(interaction)) return ephemeral(interaction, notHunter);
+  const { isHunter, applyHunter } = require("./handlers/commands/bountyChar");
+  // No role yet: the press IS the application. Nobody gets sent away to type a
+  // command they would have to be told about first.
+  if (!isHunter(interaction)) return applyHunter(interaction);
 
   const existing = await liveThread(interaction.client, userId);
   if (existing) {

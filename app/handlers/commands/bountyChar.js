@@ -1,6 +1,6 @@
-const { MessageFlags } = require("discord.js");
+const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const config = require("../../config");
-const { getChars, saveChars } = require("../../state");
+const { getChars, saveChars, bountyApplications, saveState } = require("../../state");
 const { DPS_TIERS } = require("../../data/bounty");
 
 // A roster this size already means something has gone wrong — nobody plays 40
@@ -21,7 +21,7 @@ const isHunter = (interaction) =>
   interaction.member?.roles?.cache?.has(config.bountyHunterRoleId) === true;
 
 const notHunter =
-  "🎯 Fitur bounty khusus **Bounty Hunter**. Ajukan dulu dengan `/bounty-char apply`.";
+  "🎯 Fitur bounty khusus **Bounty Hunter**. Pencet **🎯 Create My Thread** di channel bounty buat mengajukan.";
 
 async function handleBountyChar(interaction) {
   switch (interaction.options.getSubcommand()) {
@@ -131,14 +131,29 @@ async function removeChar(interaction, rawName = interaction.options.getString("
   );
 }
 
+const APPLIED =
+  "Your request will be reviewed by the admin because you're not holding a " +
+  "**Bounty Hunter** role. Please wait until the admin approves the request.";
+
 // The bot only carries the request — the role is granted by hand, so nothing
 // here needs Manage Roles.
+//
+// Reached from the slash command AND from pressing a bounty button without the
+// role: a door that refuses you and then tells you to go type a command is the
+// step this whole feature spent its time removing.
 async function applyHunter(interaction) {
   if (!config.bountyHunterRoleId)
     return reply(interaction, "Belum ada role Bounty Hunter di server ini — semua orang sudah bisa pakai.");
-  if (isHunter(interaction)) return reply(interaction, "Kamu sudah Bounty Hunter. 🎯");
+  if (isHunter(interaction)) {
+    delete bountyApplications[interaction.user.id];
+    return reply(interaction, "Kamu sudah Bounty Hunter. 🎯");
+  }
   if (!config.bountyAdminChannelId)
     return reply(interaction, "⚠️ `BOUNTY_ADMIN_CHANNEL_ID` belum diset — pengajuan tidak bisa dikirim.");
+
+  // Pressing the button again is the natural thing to do while waiting, and it
+  // must not put a second copy in front of the admins.
+  if (bountyApplications[interaction.user.id]) return reply(interaction, APPLIED);
 
   const channel = await interaction.client.channels
     .fetch(config.bountyAdminChannelId)
@@ -146,15 +161,46 @@ async function applyHunter(interaction) {
   if (!channel) return reply(interaction, "⚠️ Channel admin tidak ditemukan.");
 
   const chars = await getChars(interaction.user.id);
-  await channel.send({
-    content:
-      `🎯 <@${interaction.user.id}> mengajukan diri jadi **Bounty Hunter** ` +
-      `(${chars.length} karakter terdaftar).
+  // Fetching a channel needs no permission; sending does. Unwrapped, a missing
+  // Send Messages here reached the applicant as "Something went wrong" — a
+  // dead end for them and no clue for whoever has to fix it.
+  const sent = await channel
+    .send({
+      content:
+        `🎯 <@${interaction.user.id}> mengajukan diri jadi **Bounty Hunter** ` +
+        `(${chars.length} karakter terdaftar).
 Kasih role <@&${config.bountyHunterRoleId}> kalau setuju.`,
-    allowedMentions: { parse: [] },
-  });
+      // The decision lives on the request itself, so nobody has to go find the
+      // role list and remember who asked.
+      components: [
+        new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`bounty-hunter:approve:${interaction.user.id}`)
+            .setLabel("✅ Approve")
+            .setStyle(ButtonStyle.Success),
+          new ButtonBuilder()
+            .setCustomId(`bounty-hunter:decline:${interaction.user.id}`)
+            .setLabel("✖️ Decline")
+            .setStyle(ButtonStyle.Secondary),
+        ),
+      ],
+      allowedMentions: { parse: [] },
+    })
+    .catch((err) => {
+      console.error(`❌ applyHunter → ${config.bountyAdminChannelId}:`, err.message);
+      return null;
+    });
 
-  return reply(interaction, "✅ Pengajuanmu dikirim ke admin. Tunggu role-nya dipasang.");
+  if (!sent)
+    return reply(
+      interaction,
+      "⚠️ Bot tidak bisa kirim ke channel admin — mintakan izin **Send Messages** di sana. " +
+        "Sementara ini, minta role Bounty Hunter langsung ke admin.",
+    );
+
+  bountyApplications[interaction.user.id] = true;
+  saveState();
+  return reply(interaction, APPLIED);
 }
 
 // Two options want it: `name` on remove, `account` on add. Discord autocomplete
@@ -182,5 +228,5 @@ async function autocompleteBountyChar(interaction) {
 module.exports = {
   handleBountyChar, autocompleteBountyChar, isHunter, notHunter,
   // For the panel, which drives the same two writes from buttons.
-  saveChar, removeChar,
+  saveChar, removeChar, applyHunter,
 };
