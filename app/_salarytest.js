@@ -38,3 +38,40 @@ const exact = Object.keys(nameOf).filter((uid) => nameOf[uid].toLowerCase() === 
 const hits = exact.length ? exact : Object.keys(nameOf).filter((uid) => nameOf[uid].toLowerCase().includes(excludeName));
 assert.deepStrictEqual(hits, ["u1"]);
 console.log("✅ exact match wins over substring match for @tag");
+
+// ── "nobody is excluded" is not a member id ──────────────────────────────────
+// The headline figure is computed with uid = null, and an entry excluding
+// nobody was STORED as excludedUserId: null — so `g.excludedUserId !== uid`
+// read null !== null and dropped every ÷7 gold drop that had no exclusion,
+// which is most of them. The panel listed the gold, the formula printed it, and
+// nobody was paid it. The case at the top only ever passed because its entry
+// names someone.
+const { salaryPerPerson, buildLootEmbed, STAMP_RATE_GOLD } = require("./builders/lootPanel");
+
+const goldPanel = (excludedUserId) => ({
+  lootMsgId: "p", threadId: "t", eventTitle: "GDN", hostId: "h",
+  members: ["a", "b"], sellerId: "a", payments: {}, closed: false,
+  stampRate: STAMP_RATE_GOLD,
+  items: [
+    { itemKey: "gdn_u_accessory", qty: 1, price: 225 }, // 20 stamps
+    { itemKey: "eq_gdn_galero", qty: 1, price: 35 },    //  1 stamp
+    { itemKey: "gdn_fragment", qty: 2, price: 90 },     //  2 stamps, price is the total
+  ],
+  goldEntries: [{ amount: 258, splitCount: 7, excludedUserId }],
+});
+
+// 350 - (23 x 5) = 235 -> /8 = 29, plus 258/7 = 36 -> 65, -0.3% = 64.
+for (const stored of [undefined, null]) {
+  assert.strictEqual(salaryPerPerson(goldPanel(stored)), 64, `headline, excludedUserId=${stored}`);
+  assert.strictEqual(memberSalary(goldPanel(stored), "a"), 64, `member, excludedUserId=${stored}`);
+}
+assert.strictEqual(memberSalary(goldPanel("b"), "b"), 28, "the named member loses that share");
+assert.strictEqual(memberSalary(goldPanel("b"), "a"), 64, "and nobody else does");
+console.log("✅ a divided-by-7 gold drop with nobody excluded is still paid");
+
+// The formula and the total come from different code paths. Disagreeing
+// silently is what kept this invisible: the panel showed the gold either way.
+const summary = buildLootEmbed(goldPanel(null)).data.fields.find((f) => f.name.includes("Summary")).value;
+assert.ok(summary.includes("258 ÷ 7"), "the formula names the gold drop");
+assert.ok(summary.includes("= **64**"), `and the total agrees with it: ${summary}`);
+console.log("✅ printed formula and printed total agree");

@@ -19,8 +19,14 @@ function memberSalary(panel, uid) {
   );
   const itemNet = totalItemGold - stampFee;
   const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
+  // `!uid` first, and it is not a tidy-up. The headline figure is computed with
+  // uid = null, and an entry that excludes nobody is STORED as
+  // excludedUserId: null — so `g.excludedUserId !== uid` read null !== null and
+  // silently dropped every ÷7 gold drop that had no exclusion, which is most of
+  // them. The panel listed the gold, the formula printed it, and nobody was paid
+  // it. Never compare an id against a sentinel that is also a real value.
   const gold7PerPerson = panel.goldEntries
-    .filter((g) => g.splitCount === 7 && g.excludedUserId !== uid)
+    .filter((g) => g.splitCount === 7 && (!uid || g.excludedUserId !== uid))
     .reduce((sum, g) => sum + Math.floor(g.amount / 7), 0);
   const gross = Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson;
   // An item priced below its own stamp fee can drag this negative — nobody
