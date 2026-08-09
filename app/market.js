@@ -155,10 +155,25 @@ function buildMarketEmbeds(panels, now = Date.now()) {
   return embeds;
 }
 
+// A wrong channel id used to fail completely silently: the board simply never
+// appeared and nothing said why. Logged once per process, not per tick — the id
+// comes from the environment and cannot change while we run, so repeating it
+// every hour would only bury the rest of the log.
+let warnedNoChannel = false;
+
 async function syncMarket(client) {
   if (!config.marketChannelId) return;
   const channel = await client.channels.fetch(config.marketChannelId).catch(() => null);
-  if (!channel) return;
+  if (!channel) {
+    if (!warnedNoChannel) {
+      warnedNoChannel = true;
+      console.error(
+        `❌ market board: channel ${config.marketChannelId} tidak ketemu — cek MARKET_CHANNEL_ID, atau bot belum punya akses ke channel itu`,
+      );
+    }
+    return;
+  }
+  warnedNoChannel = false; // found it — a later disappearance is worth saying again
 
   const embeds = buildMarketEmbeds(activeLootPanels);
 

@@ -285,12 +285,26 @@ function buildBoardEmbeds(weekDocs, charDocs = [], now = new Date()) {
 // weekKey rather than a timestamp: a new week is a new key, so a restart across
 // reset can neither miss nor duplicate — the same trick the rest of the feature
 // uses instead of a scheduled job.
+let warnedNoChannel = false;
+
 async function syncBoard(client) {
   if (!config.bountyBoardChannelId) return;
 
   const wk = weekKey();
   const channel = await client.channels.fetch(config.bountyBoardChannelId).catch(() => null);
-  if (!channel) return;
+  // Same silent hole the market board had: a wrong id meant the board never
+  // appeared and nothing said why. Once per process — the id comes from the
+  // environment and cannot change while we run.
+  if (!channel) {
+    if (!warnedNoChannel) {
+      warnedNoChannel = true;
+      console.error(
+        `❌ bounty board: channel ${config.bountyBoardChannelId} tidak ketemu — cek BOUNTY_BOARD_CHANNEL_ID, atau bot belum punya akses ke channel itu`,
+      );
+    }
+    return;
+  }
+  warnedNoChannel = false;
 
   const [weekDocs, charDocs] = await Promise.all([getBountyWeekAll(wk), getAllChars()]);
   const embeds = buildBoardEmbeds(weekDocs, charDocs);
