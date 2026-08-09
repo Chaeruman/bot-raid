@@ -1561,6 +1561,7 @@ const clicker = () => {
     user: { id: "u51" },
     message: { id: "p51", edit: async () => {} },
     followUp: async (o) => { seen.followUp = o; },
+    showModal: async (m) => { seen.modal = m.toJSON(); },
   };
 };
 
@@ -1570,7 +1571,7 @@ pending.push((async () => {
   await handleRoleSelect(click, ev);
   eq("51. the role button seats you", ev.users.u51?.slot, slot51);
   // No bounty on file here, so there is nothing to ask and nothing is said.
-  check("51. and asks nothing when there is no bounty", !click.seen.followUp);
+  check("51. and asks nothing when there is no bounty", !click.seen.followUp && !click.seen.modal);
 
   // Picking a character afterwards attaches the bounty without moving the seat.
   const pick = {
@@ -1705,6 +1706,7 @@ eq("53. and every key exists in config",
 //
 //     myQuestsHere already computes `matches`; this pins that the offer USES it
 //     rather than only sorting by it, which is all it did before.
+const { offerBounty } = require("./bountyJoin");
 const offer54 = (entries) => entries.filter((e) => e.matches);
 const e54 = (name, role, matches) => ({ charName: name, role, matches, quests: [] });
 
@@ -1716,6 +1718,22 @@ eq("54. nothing fitting means nothing offered",
 // Two of the same job is exactly where the bot must not choose for you.
 eq("54. two that fit are both offered",
   offer54([e54("A", "FU", true), e54("B", "FU", true)]).length, 2);
+
+// And it is a MODAL, because an ephemeral in a channel where people are talking
+// scrolls away — you would never learn you had a bounty to claim.
+pending.push((async () => {
+  const ev54 = { messageId: "m54", maxSlot: 8, roles: {}, users: {}, poolKeys: [] };
+  const seen54 = {};
+  const int54 = {
+    user: { id: "u54" },
+    message: { edit: async () => {} },
+    showModal: async (m) => { seen54.modal = m.toJSON(); },
+  };
+  // No pools on this panel: nothing to ask, and the response is left alone so
+  // the normal seating path can take it.
+  eq("54. a plain panel is not taken over", await offerBounty(int54, ev54, "FU"), false);
+  check("54. and no modal is opened", !seen54.modal);
+})());
 
 
 // A throw inside an async block would reject Promise.all and take the summary

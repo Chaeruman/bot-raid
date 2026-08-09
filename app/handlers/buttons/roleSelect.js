@@ -27,23 +27,12 @@ async function handleRoleSelect(interaction, event) {
   const slotKey = interaction.customId.replace("role_", "");
   if (!event.roles[slotKey]) return;
 
-  // Seat first, always. Clicking a role is a complete answer on its own — the
-  // bounty is a separate question, asked afterwards and safe to ignore.
-  //
-  // It used to gate the seat on that question and, with a single candidate,
-  // answer it for you: clicking SM/DA with one bounty character on file
-  // attached that character to the seat whatever role it actually plays.
+  // Just the seat. On a bounty panel the offer is a modal, so it answered the
+  // interaction upstream and seated the player itself — this path only runs
+  // when there was nothing to offer.
   seatUser(event, interaction.user.id, slotKey);
   saveState();
-  await updateMessage(interaction.message, event);
-
-  if (!event.poolKeys?.length) return;
-  // Never swallow this. A failure here leaves someone seated with no bounty
-  // recorded, which reads as "you have no quest for this nest" — a wrong answer
-  // that looks like a correct one.
-  return require("../../bountyJoin")
-    .offerBounty(interaction, event, slotKey)
-    .catch((err) => console.error(`❌ offerBounty (${interaction.user.id} → ${slotKey}):`, err));
+  return updateMessage(interaction.message, event);
 }
 
 module.exports = { handleRoleSelect, seatUser };

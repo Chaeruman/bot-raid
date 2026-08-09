@@ -13,6 +13,9 @@ async function handleModal(interaction) {
   if (interaction.customId.startsWith("bounty-modal:quest:")) {
     return handleBountyQuestModal(interaction);
   }
+  if (interaction.customId.startsWith("bounty-char:")) {
+    return require("../../bountyJoin").handleBountyCharModal(interaction);
+  }
   if (interaction.customId.startsWith("subrole:")) {
     return require("./subRole").handleSubRoleModal(interaction);
   }

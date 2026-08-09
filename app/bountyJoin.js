@@ -7,7 +7,9 @@
 //
 // Closing the run is the ONLY place a quest gets `runId` set. Without it the
 // board would keep showing quests people had already cleared.
-const { MessageFlags, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
+const {
+  MessageFlags, ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, LabelBuilder,
+} = require("discord.js");
 const { getBountyWeek, saveBountyWeek, getChars, saveState } = require("./state");
 const { weekKey, rewardText, BY_POOL_KEY } = require("./bounty");
 const { MAX_SHARE_STACK, rankOf } = require("./data/bounty");
@@ -34,6 +36,7 @@ const fitToStack = (event, quests) =>
 
 const PICK = "bounty-fin:pick"; // + :<eventMessageId>:<slotKey>
 const JOIN = "bounty-join"; // closed-to-bounty panels: one button instead of roles
+const CHAR_MODAL = "bounty-char:"; // + <eventMessageId>:<slotKey>
 const { BOUNTY_TOGGLE: TOGGLE } = require("./constants"); // bounty-only ⇄ open
 
 // Which slot a character's role maps to on this panel. Caps are off on a
@@ -80,58 +83,83 @@ function takenRole(event, userId, slotKey = null) {
   return (!slotKey && seat?.subRole) || event.roles?.[slot]?.label || slot || null;
 }
 
-// Called from roleSelect AFTER the seat is taken. The seat is already theirs;
-// this only asks which character they brought, so the run can mark the right
-// bounty when it closes.
+// A modal, not an ephemeral message. In a channel where people are talking an
+// ephemeral scrolls away, and you would never learn you had a bounty to claim —
+// a modal is in front of you or it is nothing.
 //
-// It never answers for them. A single candidate used to be treated as obvious
-// and attached automatically — which put an FU's quest on an SM/DA seat because
-// it was the only bounty on file. Ignoring this menu is a valid answer: you are
-// in the party either way, just with no bounty recorded.
+// It must therefore be the FIRST response to the button, which is why the role
+// branch calls this before its deferUpdate rather than roleSelect calling it
+// after. Seating happens straight after the modal opens, so dismissing it still
+// leaves you in the party — just with no bounty recorded.
+//
+// Returns true when it took the response over.
 async function offerBounty(interaction, event, slotKey) {
   const poolKeys = event.poolKeys || [];
-  if (!poolKeys.length) return;
+  if (!poolKeys.length) return false;
 
   const all = await myQuestsHere(interaction.user.id, poolKeys, takenRole(event, interaction.user.id, slotKey));
 
-  // Only characters that fit the seat just taken. The seat decides which
+  // Only characters that fit the seat being taken. The seat decides which
   // character gets played, so offering an FU to someone sitting in SM/DA offers
   // something they cannot do — and picking it would file the quest against a
   // run that character was never in.
   const entries = all.filter((e) => e.matches);
-  if (!entries.length) return; // nothing that fits — say nothing at all
+  if (!entries.length) return false; // nothing that fits — nothing to ask
 
-  // Never pre-committed, only pre-highlighted, and only when there is exactly
-  // one. Two characters of the same job both holding a quest here is precisely
-  // where the bot must not choose: it would claim a quest that was never run.
-  const sole = entries.length === 1;
-
-  return interaction.followUp({
-    content: [
-      "You have characters that have bounty quest here:",
-      "",
-      ...entries.map((e) => `- **${e.charName}** · ${e.role} · ${e.quests.map(rewardText).join(" | ")}` +
-        (poolKeys.length > 1 ? ` · ${BY_POOL_KEY.get(e.quests[0].poolKey)?.short || ""}` : "")),
-      "",
-      "Select one to use its bounty quest, or leave it alone if you don't want to:",
-    ].join("\n"),
-    components: [
-      new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder()
-          .setCustomId(`${PICK}:${event.messageId}:${slotKey}`)
-          .setPlaceholder("Which character?")
-          .addOptions(
-            entries.map((e) => ({
-              label: e.charName.slice(0, 100),
-              value: e.charName.slice(0, 100),
-              description: `${e.role} · ${e.quests.length} quest`.slice(0, 100),
-              default: sole,
-            })),
+  await interaction.showModal(
+    new ModalBuilder()
+      .setCustomId(`${CHAR_MODAL}${event.messageId}:${slotKey}`)
+      .setTitle("Bounty quest")
+      .setLabelComponents(
+        new LabelBuilder()
+          .setLabel("You have a bounty quest here")
+          .setDescription("Pick the character you are bringing, or dismiss this to skip.")
+          .setStringSelectMenuComponent(
+            new StringSelectMenuBuilder()
+              .setCustomId("char")
+              .setPlaceholder("Which character?")
+              .addOptions(
+                entries.slice(0, 25).map((e) => ({
+                  label: e.charName.slice(0, 100),
+                  value: e.charName.slice(0, 100),
+                  // A modal has no prose, so the reward rides on the option.
+                  description: `${e.role} · ${e.quests.map(rewardText).join(" | ")}`.slice(0, 100),
+                })),
+              ),
           ),
       ),
-    ],
-    flags: MessageFlags.Ephemeral,
-  });
+  );
+
+  // The seat is theirs the moment they clicked, modal answered or not.
+  const { seatUser } = require("./handlers/buttons/roleSelect");
+  seatUser(event, interaction.user.id, slotKey);
+  saveState();
+  await require("./builders/content").updateMessage(interaction.message, event);
+  return true;
+}
+
+// Attaches the bounty to a seat that is already taken.
+async function handleBountyCharModal(interaction) {
+  const { activeEvents } = require("./state");
+  const [messageId, slotKey] = interaction.customId.slice(CHAR_MODAL.length).split(":");
+  const event = activeEvents[messageId];
+  if (!event)
+    return interaction.reply({ content: "❌ Panel ini sudah tidak aktif.", flags: MessageFlags.Ephemeral });
+
+  const charName = interaction.fields.getStringSelectValues("char")[0];
+  const seat = event.users[interaction.user.id];
+  if (!seat) return interaction.reply({ content: "❌ Kamu sudah tidak di party ini.", flags: MessageFlags.Ephemeral });
+
+  const mine = (await myQuestsHere(interaction.user.id, event.poolKeys || [])).find(
+    (e) => e.charName === charName,
+  );
+  seat.bountyChar = charName;
+  seat.bountyQuests = fitToStack(event, mine?.quests || []);
+  saveState();
+
+  await interaction.deferUpdate();
+  const panel = await interaction.channel.messages.fetch(messageId).catch(() => null);
+  if (panel) await require("./builders/content").updateMessage(panel, event);
 }
 
 // The joiner names the character they brought.
@@ -330,7 +358,7 @@ async function markPartyDone(client, event) {
 }
 
 module.exports = {
-  offerBounty, myQuestsHere, questLines, takenRole, slotForRole, fitToStack,
+  offerBounty, handleBountyCharModal, myQuestsHere, questLines, takenRole, slotForRole, fitToStack,
   handleCharPick, handleBountyJoin, handleToggleBounty, markPartyDone,
-  PICK, JOIN, TOGGLE,
+  PICK, JOIN, TOGGLE, CHAR_MODAL,
 };

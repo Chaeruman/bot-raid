@@ -72,6 +72,18 @@ async function handleButton(interaction) {
       if (role.subRoles?.length > 0) {
         return handleSubRoleMenu(interaction, event, slotKey, role);
       }
+
+      // A bounty offer is a modal too, so it has to answer the interaction
+      // before the deferUpdate below. It seats the player itself.
+      if (event.poolKeys?.length) {
+        const took = await require("../../bountyJoin")
+          .offerBounty(interaction, event, slotKey)
+          .catch((err) => {
+            console.error(`❌ offerBounty (${userId} → ${slotKey}):`, err);
+            return false;
+          });
+        if (took) return;
+      }
     }
   }
 
