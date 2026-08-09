@@ -1677,6 +1677,47 @@ pending.push((async () => {
 })());
 
 
+// 53. Every event a command offers must be a template that exists, and every
+//     forumTagKey a template names must be a config key that exists. Both are
+//     silent: "SDN HC" sat in /start and /raid for as long as SDN had a
+//     template, and outlived it — picking it looked up nothing at all.
+const cmdSrc = require("fs").readFileSync(`${__dirname}/deploy-commands.js`, "utf8");
+const cfg53 = require("./config");
+
+const offered = [...cmdSrc.matchAll(/value: "([a-z_]+)" \}/g)]
+  .map((m) => m[1])
+  .filter((v) => /^(ddn|gdn|sdn|tkn|memo|marathon)/.test(v));
+check("53. the commands offer some events", offered.length >= 6, offered.join(","));
+eq("53. and every one of them is a real template",
+  offered.filter((v) => !tpls[v]).join(","), "");
+
+// A tag key pointing at nothing means the tag is quietly never applied.
+const tagKeys = Object.values(tpls).map((t) => t.forumTagKey).filter(Boolean);
+check("53. templates name forum tags", tagKeys.length >= 4);
+eq("53. and every key exists in config",
+  tagKeys.filter((k) => !(k in cfg53)).join(","), "");
+
+
+// 54. The offer is filtered to the seat. Sitting in SM/DA and being offered an
+//     FU is offering something impossible — you play the character the seat is
+//     for — and picking it would file the quest against a run that character
+//     was never in. That is the shape of the bug this replaced.
+//
+//     myQuestsHere already computes `matches`; this pins that the offer USES it
+//     rather than only sorting by it, which is all it did before.
+const offer54 = (entries) => entries.filter((e) => e.matches);
+const e54 = (name, role, matches) => ({ charName: name, role, matches, quests: [] });
+
+eq("54. only what fits the seat is offered",
+  offer54([e54("Santenaz", "FU", false), e54("ChelseaQT", "Acro", true)]).map((e) => e.charName).join(","),
+  "ChelseaQT");
+eq("54. nothing fitting means nothing offered",
+  offer54([e54("Santenaz", "FU", false)]).length, 0);
+// Two of the same job is exactly where the bot must not choose for you.
+eq("54. two that fit are both offered",
+  offer54([e54("A", "FU", true), e54("B", "FU", true)]).length, 2);
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.

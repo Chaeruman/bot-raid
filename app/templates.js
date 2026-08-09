@@ -49,6 +49,14 @@ module.exports = {
     forumTagKey: "forumTagCL",
     roles: { ...GDN_ROLES },
   },
+  sdn_hc: {
+    poolKeys: ["sdn:hc"],
+    label: "SDN HC",
+    maxSlot: 8,
+    hcGoldSplit: true,
+    forumTagKey: "forumTagSDNHC",
+    roles: { ...GDN_ROLES },
+  },
 
   // ── Other events ──────────────────────────────────────────────
   tkn_hell: {

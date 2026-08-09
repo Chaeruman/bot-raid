@@ -92,31 +92,40 @@ async function offerBounty(interaction, event, slotKey) {
   const poolKeys = event.poolKeys || [];
   if (!poolKeys.length) return;
 
-  const entries = await myQuestsHere(interaction.user.id, poolKeys, takenRole(event, interaction.user.id, slotKey));
-  if (!entries.length) return; // no bounty here — nothing to ask, say nothing
+  const all = await myQuestsHere(interaction.user.id, poolKeys, takenRole(event, interaction.user.id, slotKey));
 
-  // Pre-select only when EXACTLY one matches the slot just taken. Two characters
-  // of the same job both holding a quest here is precisely the case where the
-  // bot must not choose: it would claim a quest that was never run.
-  const soleMatch = entries.filter((e) => e.matches).length === 1;
+  // Only characters that fit the seat just taken. The seat decides which
+  // character gets played, so offering an FU to someone sitting in SM/DA offers
+  // something they cannot do — and picking it would file the quest against a
+  // run that character was never in.
+  const entries = all.filter((e) => e.matches);
+  if (!entries.length) return; // nothing that fits — say nothing at all
+
+  // Never pre-committed, only pre-highlighted, and only when there is exactly
+  // one. Two characters of the same job both holding a quest here is precisely
+  // where the bot must not choose: it would claim a quest that was never run.
+  const sole = entries.length === 1;
 
   return interaction.followUp({
     content: [
-      ...questLines(entries, poolKeys.length > 1),
+      "You have characters that have bounty quest here:",
       "",
-      "_Pilih kalau kamu bawa salah satunya. Kamu sudah masuk party — lewati saja kalau tidak._",
+      ...entries.map((e) => `- **${e.charName}** · ${e.role} · ${e.quests.map(rewardText).join(" | ")}` +
+        (poolKeys.length > 1 ? ` · ${BY_POOL_KEY.get(e.quests[0].poolKey)?.short || ""}` : "")),
+      "",
+      "Select one to use its bounty quest, or leave it alone if you don't want to:",
     ].join("\n"),
     components: [
       new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
           .setCustomId(`${PICK}:${event.messageId}:${slotKey}`)
-          .setPlaceholder("Bawa karakter yang mana?")
+          .setPlaceholder("Which character?")
           .addOptions(
             entries.map((e) => ({
               label: e.charName.slice(0, 100),
               value: e.charName.slice(0, 100),
-              description: `${e.role || "no role"} · ${e.quests.length} quest`.slice(0, 100),
-              default: soleMatch && e.matches,
+              description: `${e.role} · ${e.quests.length} quest`.slice(0, 100),
+              default: sole,
             })),
           ),
       ),
