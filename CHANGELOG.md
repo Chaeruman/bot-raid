@@ -16,10 +16,12 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ### Changed
 - **`/kirim-gaji` dikelompokkan per jumlah panel**, bukan satu daftar datar.
-  Header `**3 Panel** - [ Santeterz | chelssea ]`, barisnya tinggal nama + gaji.
-  Kuncinya jumlah panel **dan** daftar IGN sekaligus: yang sama-sama "2 panel"
-  belum tentu dari karakter yang sama, dan "2 panel [ santenaz ]" (satu karakter
-  jual dua panel) beda urusan dengan "1 panel [ santenaz ]".
+  Dua tingkat: header `**3 Panel**` sekali per jumlah, lalu daftar IGN seller
+  `[ Santeterz | chelssea ]` sebagai sub-blok di bawahnya. Barisnya tinggal
+  nama + gaji. Jumlah panel dan daftar IGN tidak bisa digabung jadi satu kunci
+  (bikin header berulang dan daftarnya jadi tinggi), tapi juga tidak bisa cuma
+  IGN — "2 panel [ santenaz ]" (satu karakter jual dua panel) beda urusan
+  dengan "1 panel [ santenaz ]".
 
 ### Fixed
 - **Market board dan bounty board diam total kalau channel ID-nya salah** —

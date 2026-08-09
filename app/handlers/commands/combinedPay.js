@@ -143,44 +143,54 @@ async function buildUnpaidView(client, guild, sellerId, budget = null) {
   // log into. Deduped: two panels sold on the same character are one trip.
   const sellerIgns = (uid) => [...new Set(agg[uid].panelNums.map((n) => panels[n - 1].sellerIgn || "?"))];
 
-  // The count and the IGN list are ONE key, not two. The IGNs are deduped, so
-  // "2 panel [ santenaz ]" is a real case (same character sold both) and a
-  // group keyed on IGNs alone would print one header for two different counts.
-  // Sorted by count so the heaviest debts read first.
-  const groups = [...memberInfo
-    .reduce((map, m) => {
-      const igns = sellerIgns(m.uid);
-      const count = agg[m.uid].panelNums.length;
-      const key = `${count}|${igns.join(" | ")}`;
-      if (!map.has(key)) map.set(key, { count, igns, members: [] });
-      map.get(key).members.push(m);
-      return map;
-    }, new Map())
-    .values()]
-    .sort((a, b) => b.count - a.count || a.igns.join().localeCompare(b.igns.join()));
+  // Two levels, not one composite key. Panel count is the coarse question the
+  // seller asks first; the IGN list is what actually decides the trip and sits
+  // under it. Keying on both at once printed "2 Panel" twice with different
+  // brackets — correct, but it ran the height of the screen.
+  //
+  // The nesting cannot collapse to IGNs alone: they are deduped, so
+  // "2 panel [ santenaz ]" (one character sold both) is a different row from
+  // "1 panel [ santenaz ]" and the two must not merge.
+  const byCount = new Map(); // count → Map(ignKey → { igns, members })
+  for (const m of memberInfo) {
+    const igns = sellerIgns(m.uid);
+    const count = agg[m.uid].panelNums.length;
+    const ignKey = igns.join(" | ");
+    if (!byCount.has(count)) byCount.set(count, new Map());
+    const inner = byCount.get(count);
+    if (!inner.has(ignKey)) inner.set(ignKey, { igns, members: [] });
+    inner.get(ignKey).members.push(m);
+  }
 
   // Parens (not bold **) around the name — punctuation gives double-click a
   // clean word boundary so copying the IGN doesn't drag the trailing space in.
   // ⭐ (recommended) and ⚠️ (no IGN alias) are independent — both show
   // together when they both apply, neither hides the other.
-  const list = groups
-    .map((g) =>
+  const memberRow = (m) => {
+    const bullet = (recommendedSet.has(m.uid) ? "⭐" : "•") + (m.hasAlias ? "" : "⚠️");
+    // Plain text, no italic underscores — those kept colliding with the
+    // escaped "_balance" underscore elsewhere on the line and leaving a
+    // stray literal "_" visible instead of rendering as italic.
+    const note = m.hasAlias ? "" : " (bukan IGN mereka)";
+    // "_balance" glued on with no space — double-click grabs the whole
+    // "Ng_balance" token cleanly instead of stopping at "N" or "g". The
+    // underscore is escaped (\_) so Discord doesn't eat it as an italic
+    // delimiter (which also swallowed the literal char and, paired with
+    // the note's own _..._ italics elsewhere on the line, italicized
+    // everything in between).
+    return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g\\_balance`;
+  };
+
+  // Blank line between counts only — the IGN sub-blocks inside one count stay
+  // packed, which is the whole point of splitting the header in two.
+  const list = [...byCount.entries()]
+    .sort((a, b) => b[0] - a[0]) // heaviest debts first
+    .map(([count, inner]) =>
       [
-        `**${g.count} Panel** - [ ${g.igns.join(" | ")} ]`,
-        ...g.members.map((m) => {
-          const bullet = (recommendedSet.has(m.uid) ? "⭐" : "•") + (m.hasAlias ? "" : "⚠️");
-          // Plain text, no italic underscores — those kept colliding with the
-          // escaped "_balance" underscore elsewhere on the line and leaving a
-          // stray literal "_" visible instead of rendering as italic.
-          const note = m.hasAlias ? "" : " (bukan IGN mereka)";
-          // "_balance" glued on with no space — double-click grabs the whole
-          // "Ng_balance" token cleanly instead of stopping at "N" or "g". The
-          // underscore is escaped (\_) so Discord doesn't eat it as an italic
-          // delimiter (which also swallowed the literal char and, paired with
-          // the note's own _..._ italics elsewhere on the line, italicized
-          // everything in between).
-          return `${bullet} (${m.label})${note} — ${agg[m.uid].total.toLocaleString()}g\\_balance`;
-        }),
+        `**${count} Panel**`,
+        ...[...inner.values()]
+          .sort((a, b) => a.igns.join().localeCompare(b.igns.join()))
+          .flatMap((g) => [`[ ${g.igns.join(" | ")} ]`, ...g.members.map(memberRow)]),
       ].join("\n"),
     )
     .join("\n\n");
