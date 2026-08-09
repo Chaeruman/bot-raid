@@ -14,6 +14,40 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.23.0] — 2026-08-09
+
+### Added
+- **`SDN HC` punya template lagi.** `/start` dan `/raid` menawarkannya sejak dulu
+  tapi template-nya sudah tidak ada — memilihnya mencari sesuatu yang tidak
+  pernah ditemukan. Role dan `hcGoldSplit` mengikuti raid HC lainnya.
+
+### Changed
+- **Tawaran karakter bounty jadi modal**, bukan pesan ephemeral. Di channel yang
+  ramai ephemeral ke-scroll hilang, dan orangnya tidak pernah tahu dia punya
+  bounty untuk di-claim. Kursinya diambil begitu modal terbuka, jadi
+  meng-dismiss tetap membuatmu masuk party — cuma tanpa bounty tercatat.
+- **Hanya karakter yang role-nya cocok dengan kursi yang ditawarkan.** Kursi
+  menentukan karakter mana yang dimainkan, jadi menawarkan FU ke orang yang
+  duduk di SM/DA menawarkan sesuatu yang mustahil — dan memilihnya akan
+  mencatatkan quest ke run yang karakter itu tidak pernah ikuti.
+
+### Removed
+- `FORUM_TAG_SDN_CORE` — tidak ada template yang menamainya.
+
+### Fixed
+- **Done menghapus run-nya sebelum punya tempat menaruhnya.** Event dihapus dulu
+  dan thread loot dibuat setelahnya, jadi `threads.create` yang ditolak
+  meninggalkan panel mati, tanpa thread, tanpa cara menekan Done lagi, dan
+  "Something went wrong" sebagai satu-satunya petunjuk. Sekarang event bertahan
+  sampai thread-nya ada.
+- **Forum tag yang bukan milik forum itu membatalkan seluruh pembuatan thread.**
+  Sekarang tag yang tidak dikenal dibuang (thread tetap jadi) dan dicatat ke log
+  lengkap dengan nama env-nya.
+- **`closePreview` di-import di `doneRun.js` tapi tidak pernah dipanggil**, jadi
+  tiap run yang selesai meninggalkan preview yang masih terlihat terbuka.
+- **Memilih karakter bounty me-reset kelas MT.** `seatUser` membangun ulang
+  kursi dari nol, jadi Destroyer yang sudah dipilih di modal berubah jadi `null`.
+
 ## [1.22.0] — 2026-08-09
 
 ### Added
