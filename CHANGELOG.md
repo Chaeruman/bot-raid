@@ -14,6 +14,32 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.22.0] — 2026-08-09
+
+### Added
+- **`✅ Mark done` / `↩️ Undo` di panel.** Sebelumnya bot cuma tahu quest selesai
+  kalau host menekan Done di panel signup, jadi party yang dibentuk di chat
+  meninggalkan quest itu `○` selamanya — dan board terus menyuruh orang mengajak
+  seseorang yang sudah kelar. Itu memakan waktu orang lain, bukan cuma bikin
+  angka meleset.
+  - Satu select berisi semua quest terbuka dari seluruh roster, bisa pilih
+    beberapa sekaligus. Tidak menambah asumsi kepercayaan baru: quest-nya sendiri
+    memang dilaporkan sendiri sejak awal.
+  - Ditandai `runId: "manual"`, bukan id panel run, supaya "ditutup lewat panel"
+    dan "dilaporkan sendiri" tetap bisa dibedakan.
+  - Tombolnya mati kalau tidak ada yang bisa dikerjakan — nol terbuka berarti
+    tidak ada yang bisa diselesaikan, nol selesai berarti tidak ada yang bisa
+    dikembalikan.
+
+### Changed
+- **Pemilih kelas MT jadi modal**, bukan pesan ephemeral berisi select. Submit-nya
+  tidak meninggalkan apa pun untuk dibaca atau di-dismiss, karena panel di
+  bawahnya sudah menunjukkan kursinya. Cek "party baru saja penuh" tetap
+  dijalankan saat submit — party bisa terisi sementara orangnya masih memilih.
+
+### Removed
+- `select_subrole_` dan `handleSubRoleSelect` — tidak ada lagi yang memanggilnya.
+
 ## [1.21.0] — 2026-08-09
 
 ### Added

@@ -708,7 +708,7 @@ pending.push((async () => {
   // not the invariant — the actions are.
   eq("33. the actions on offer",
     rows.map((b) => b.custom_id.split(":").slice(1, -1).join(":")).join(","),
-    "add,edit,remove,quest,replace,refresh,link");
+    "add,edit,remove,quest,replace,done,undo,refresh,link");
   check("33. every button carries its owner", rows.every((b) => b.custom_id.endsWith(":u1")));
   // Add and refresh are the only two that can do anything without a character.
   eq("33. the rest are disabled while the roster is empty",
@@ -1398,7 +1398,7 @@ unlink("alt47");
 // 48. The roster groups by game account, because that is the question it
 //     answers: characters on one account cannot run at the same time. With the
 //     account as a heading it stops being repeated on every single line.
-const { describeRoster } = require("./bountyPanel");
+const { describeRoster, panelRows } = require("./bountyPanel");
 const desc48 = (chars) => describeRoster(chars).lines.join("\n");
 
 const two48 = desc48([
@@ -1435,6 +1435,103 @@ eq("48. earnings still add up across accounts",
     },
   ).earned,
   "2× Potion Engrave · 2× Weapon scroll");
+
+
+// 49. Reporting your own quest done, and taking it back. Until now the bot only
+//     learned a quest was finished when a host pressed Done, so a party formed
+//     in chat left it open forever — and the board kept sending people after
+//     someone already finished, which costs their evening, not just a number.
+const { questsIn, MANUAL, MARK } = require("./handlers/selectMenus/bountyMark");
+
+const mq = (poolKey, runId = null) => ({ poolKey, rarity: "unique", scroll: "weapon", box: false, runId });
+const week49 = () => ({
+  chars: {
+    Chelssea: { board: [mq("gdn:hc"), mq("gdn:classic", "run1")], shares: [] },
+    Bolabola: { board: [mq("ddn:iv")], shares: [] },
+  },
+});
+
+eq("49. open quests are offered to finish",
+  questsIn(week49(), false).map((x) => `${x.charName}/${x.q.poolKey}`).join(","),
+  "Chelssea/gdn:hc,Bolabola/ddn:iv");
+eq("49. and finished ones to take back",
+  questsIn(week49(), true).map((x) => x.q.poolKey).join(","), "gdn:classic");
+eq("49. nothing to take back on a fresh week", questsIn({ chars: {} }, true).length, 0);
+
+// A self-report is not a tracked run, and writing the same value for both would
+// lose the difference for good.
+check("49. the marker is not a message id", MANUAL === "manual");
+
+// The panel offers each button only when it can do something: nothing open
+// means nothing to finish, nothing finished means nothing to take back.
+const markRow = (open, done) =>
+  panelRows("u49", true, open, done)[1]
+    .toJSON()
+    .components.filter((b) => /done|undo/.test(b.custom_id))
+    .map((b) => `${b.custom_id.split(":")[1]}${b.disabled ? "-off" : ""}`)
+    .join(",");
+eq("49. a fresh week can finish but not undo", markRow(2, 0), "done,undo-off");
+eq("49. a finished week can undo but not finish", markRow(0, 2), "done-off,undo");
+eq("49. an empty one offers neither", markRow(0, 0), "done-off,undo-off");
+
+check("49. the select reaches its handler", `${MARK}done`.startsWith("bounty-mark:"));
+
+
+// 50. The MT class picker is a modal now. It used to be an ephemeral message
+//     with a select, which left one behind for every join — one to read, one to
+//     dismiss — where a modal submit acknowledges itself and vanishes, because
+//     the panel underneath already shows the seat.
+const { buildSubRoleModal, SUBROLE_MODAL } = require("./handlers/buttons/subRoleMenu");
+const { handleSubRoleModal } = require("./handlers/modals/subRole");
+
+const mtSlot = Object.entries(tpls.gdn_cl.roles).find(([, r]) => r.subRoles?.length);
+const m50 = buildSubRoleModal("panel50", mtSlot[0], mtSlot[1]).toJSON();
+eq("50. the panel and slot ride in the customId", m50.custom_id, `${SUBROLE_MODAL}panel50:${mtSlot[0]}`);
+eq("50. and the classes are the options",
+  m50.components[0].component.options.map((o) => o.value).join(","), mtSlot[1].subRoles.join(","));
+
+pending.push((async () => {
+  const { activeEvents } = require("./state");
+  const seat50 = (over = {}) => {
+    const roles = Object.fromEntries(
+      Object.entries(tpls.gdn_cl.roles).map(([k, r]) => [k, { ...r, users: [] }]),
+    );
+    activeEvents.panel50 = { messageId: "panel50", hostId: "h", maxSlot: 8, roles, users: {}, ...over };
+    return activeEvents.panel50;
+  };
+  const submit = (cls = "Guardian") => {
+    const seen = {};
+    return {
+      seen,
+      customId: `${SUBROLE_MODAL}panel50:${mtSlot[0]}`,
+      user: { id: "u50" },
+      fields: { getStringSelectValues: () => [cls] },
+      channel: { messages: { fetch: async () => null } },
+      deferUpdate: async () => { seen.deferred = true; },
+      reply: async (o) => { seen.reply = o.content; },
+    };
+  };
+
+  const ev = seat50();
+  const ok50 = submit("Guardian");
+  await handleSubRoleModal(ok50);
+  eq("50. the class is recorded on the seat", ev.users.u50?.subRole, "Guardian");
+  check("50. and nothing is left behind to dismiss", ok50.seen.deferred && !ok50.seen.reply);
+
+  // The party can fill up while someone is still deciding, and seating them
+  // anyway would put a ninth person in an eight-person run.
+  const full = seat50();
+  full.roles[mtSlot[0]].users = Array.from({ length: full.roles[mtSlot[0]].max }, (_, i) => `x${i}`);
+  const late = submit();
+  await handleSubRoleModal(late);
+  check("50. a slot that filled meanwhile is refused", /just filled up/.test(late.seen.reply || ""));
+  check("50. and nobody is seated", !full.users.u50);
+
+  delete activeEvents.panel50;
+  const stale = submit();
+  await handleSubRoleModal(stale);
+  check("50. a dead panel says so", /tidak aktif/.test(stale.seen.reply || ""));
+})());
 
 
 // A throw inside an async block would reject Promise.all and take the summary

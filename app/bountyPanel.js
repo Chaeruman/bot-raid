@@ -52,6 +52,8 @@ function renderTally(t) {
 function describeRoster(chars, byChar = {}) {
   const lines = [];
   const total = { potion: 0, box: 0, scroll: {} };
+  let open = 0;
+  let done = 0;
 
   // Grouped by game account, because that is the question the roster answers:
   // characters on one account cannot run at the same time. With the account as
@@ -82,7 +84,11 @@ function describeRoster(chars, byChar = {}) {
       // holding nothing, and a party formed outside the panel never tells the
       // bot — so the number is always too high, which is the direction that
       // makes someone plan a run they cannot claim.
-      board.forEach((q) => lines.push(`${q.runId ? "✓" : "○"} ${questLabel(q)}`));
+      board.forEach((q) => {
+        lines.push(`${q.runId ? "✓" : "○"} ${questLabel(q)}`);
+        if (q.runId) done++;
+        else open++;
+      });
       const t = tally(charWeek);
       total.potion += t.potion;
       total.box += t.box;
@@ -90,7 +96,7 @@ function describeRoster(chars, byChar = {}) {
     });
   }
 
-  return { lines, earned: renderTally(total) };
+  return { lines, earned: renderTally(total), open, done };
 }
 
 // Characters with nothing recorded still appear — this is the roster view as
@@ -100,7 +106,7 @@ async function buildPanel(ownerId) {
   const [chars, doc] = await Promise.all([getChars(ownerId), getBountyWeek(ownerId, weekKey())]);
   const byChar = doc?.chars || {};
 
-  const { lines, earned } = describeRoster(chars, byChar);
+  const { lines, earned, open, done } = describeRoster(chars, byChar);
   lines.unshift(`<@${ownerId}>`);
   if (!chars.length) lines.push("", "Belum ada karakter. Mulai dari **➕ Add Character**.");
 
@@ -130,7 +136,7 @@ async function buildPanel(ownerId) {
         // drawn in. Stale is then visible rather than silent.
         .setFooter({ text: weekLabelId() }),
     ],
-    components: panelRows(ownerId, chars.length > 0),
+    components: panelRows(ownerId, chars.length > 0, open, done),
     // The owner is named so the panel says whose it is; pinging them on every
     // redraw would be a notification per button press.
     allowedMentions: { parse: [] },
@@ -168,7 +174,7 @@ function linkRow(ownerId) {
   );
 }
 
-const panelRows = (ownerId, hasChars) => [
+const panelRows = (ownerId, hasChars, open = 0, done = 0) => [
   new ActionRowBuilder().addComponents(
     BUTTON(ownerId, "add", "➕ Add Character", ButtonStyle.Success),
     BUTTON(ownerId, "edit", "✏️ Edit", ButtonStyle.Secondary, !hasChars),
@@ -177,6 +183,10 @@ const panelRows = (ownerId, hasChars) => [
   new ActionRowBuilder().addComponents(
     BUTTON(ownerId, "quest", "🎯 Add quest", ButtonStyle.Primary, !hasChars),
     BUTTON(ownerId, "replace", "♻️ Edit quest", ButtonStyle.Secondary, !hasChars),
+    // Nothing open means nothing to finish, and nothing finished means nothing
+    // to take back — a live button for either would only ever say "none".
+    BUTTON(ownerId, "done", "✅ Mark done", ButtonStyle.Secondary, !open),
+    BUTTON(ownerId, "undo", "↩️ Undo", ButtonStyle.Secondary, !done),
     BUTTON(ownerId, "refresh", "🔄 Refresh Panel", ButtonStyle.Secondary),
   ),
   linkRow(ownerId),
@@ -295,6 +305,18 @@ async function handlePanelButton(interaction) {
   // Linking. Approving is the ONLY one that needs the other person, and it is
   // the invited account pressing it — which is the whole consent story.
   const [verb, arg] = action.split(":");
+  if (verb === "done" || verb === "undo") {
+    const { rows, count } = await require("./handlers/selectMenus/bountyMark").buildMarkRows(
+      ownerId,
+      verb === "undo",
+    );
+    if (!count) return ephemeral(interaction, verb === "undo" ? "Belum ada yang ditandai selesai." : "Tidak ada quest yang belum kelar.");
+    return interaction.reply({
+      content: verb === "undo" ? "Pilih yang mau dikembalikan:" : "Pilih yang sudah kelar:",
+      components: rows,
+      flags: MessageFlags.Ephemeral,
+    });
+  }
   if (verb === "link") return interaction.showModal(linkModal(ownerId));
   if (verb === "cancel" || verb === "unlink" || verb === "decline" || verb === "approve") {
     if (verb === "cancel") cancelLink(ownerId);
@@ -398,5 +420,5 @@ module.exports = {
   buildPanel, handlePanelButton, handlePanelModal, PREFIX,
   // Pure functions of (ownerId, roster) — the modal shape depends on the
   // roster, so that relationship is worth checking directly.
-  addModal, editModal, describeRoster,
+  addModal, editModal, describeRoster, panelRows,
 };

@@ -1,9 +1,11 @@
 const { handleRemoveMemberSelect } = require("./removeMember");
-const { handleSubRoleSelect } = require("./subRoleSelect");
 const { handleLootSelect } = require("./loot");
 const { handleCombinedPaySelect } = require("../commands/combinedPay");
 
 async function handleSelectMenu(interaction) {
+  if (interaction.customId.startsWith("bounty-mark:")) {
+    return require("./bountyMark").handleMark(interaction);
+  }
   if (interaction.customId.startsWith("bounty-fix:")) {
     return require("./bountyFix").handleQuestFix(interaction);
   }
@@ -18,9 +20,6 @@ async function handleSelectMenu(interaction) {
   }
   if (interaction.customId.startsWith("select_remove_")) {
     return handleRemoveMemberSelect(interaction);
-  }
-  if (interaction.customId.startsWith("select_subrole_")) {
-    return handleSubRoleSelect(interaction);
   }
 }
 
