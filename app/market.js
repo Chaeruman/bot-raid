@@ -18,11 +18,38 @@ const DEBOUNCE_MS = 5000;
 // never come near it.
 const PER_EMBED = 2800;
 
-// Only what a buyer actually shops for. Rune, fragment and research book are
-// bulk goods nobody browses a board for — and they are most of the lines on a
-// panel, so leaving them out is what keeps this readable.
-const NAMED_EQUIPMENT_KEYS = new Set(NAMED_EQUIPMENT.filter((e) => e.kind).map((e) => e.key));
-const onBoard = (key) => isAccessory(key) || isEquipment(key) || NAMED_EQUIPMENT_KEYS.has(key);
+// Named equipment carries its own dungeon; generic keys wear it as a prefix.
+const NAMED_DUNGEON = new Map(NAMED_EQUIPMENT.filter((e) => e.kind).map((e) => [e.key, e.dungeon]));
+
+// Only what a buyer shops for. Rune, fragment, smelted rune and research book
+// are bulk goods nobody browses a board for — and they are most of the lines on
+// a panel, so leaving them out is what keeps this readable.
+const onBoard = (key) => isAccessory(key) || isEquipment(key) || NAMED_DUNGEON.has(key);
+
+// Accessory and equipment are separate markets and stay in separate embeds.
+// Inside them the second cut differs, because it is a different question each
+// time: for an accessory it is Legend or Unique, for equipment it is the tier
+// (DDN = level 60, GDN and SDN = level 50).
+function classify(key) {
+  if (key.includes("_l_accessory")) return { category: "acc", block: "L" };
+  if (key.includes("_u_accessory")) return { category: "acc", block: "U" };
+  return { category: "equip", block: (NAMED_DUNGEON.get(key) || key.slice(0, 3)) === "ddn" ? 60 : 50 };
+}
+
+// "DDN Legend Accessory" + "Necklace@INT VIT" → "DDN L Necklace · INT VIT".
+//
+// The detail arrives in TWO shapes for the same thing: the text parser and the
+// Browse menus store "Type@Subtype", while the qty modal stores "Type — Subtype"
+// (itemQty.js rewrites the @ before saving). Split on both or half the rows come
+// out with a raw separator in them.
+function itemLabel(itemKey, detail) {
+  const name = CATALOG[itemKey].name.replace(
+    /^(\w+) (Legend|Unique) Accessory$/,
+    (_, dungeon, tier) => `${dungeon} ${tier[0]}`,
+  );
+  const parts = detail ? detail.split(/@| — /).map((s) => s.trim()).filter(Boolean) : [];
+  return parts.length ? `${name} ${parts.join(" · ")}` : name;
+}
 
 // Discord ids carry their own creation time, so "how old is this" needs no
 // field on the panel and no migration for the panels already open.
@@ -51,17 +78,14 @@ function collectRows(panels, now = Date.now()) {
     for (const item of panel.items || []) {
       if (item.price != null || item.notForSale) continue;
       if (!onBoard(item.itemKey)) continue;
-      const def = CATALOG[item.itemKey];
-      if (!def) continue;
+      if (!CATALOG[item.itemKey]) continue;
 
-      const category = isAccessory(item.itemKey) ? "Accessory" : "Equipment";
       // ponytail: no qty. Everything on this board is a unique drop, so it is
       // 1x — bring it back if stackables ever earn a place here.
-      const name = `${def.name}${item.detail ? ` (${item.detail})` : ""}`;
-      const key = `${category}|${name}`;
+      const name = itemLabel(item.itemKey, item.detail);
 
-      if (!byItem.has(key)) byItem.set(key, { category, name, sellers: [], age });
-      const row = byItem.get(key);
+      if (!byItem.has(name)) byItem.set(name, { ...classify(item.itemKey), name, sellers: [], age });
+      const row = byItem.get(name);
       if (panel.sellerIgn && !row.sellers.includes(panel.sellerIgn)) row.sellers.push(panel.sellerIgn);
       row.age = Math.min(row.age, age);
     }
@@ -70,7 +94,9 @@ function collectRows(panels, now = Date.now()) {
   return [...byItem.values()].sort((a, b) => a.age - b.age || a.name.localeCompare(b.name));
 }
 
-const rowText = (r) => `${r.name} — ${r.sellers.join(", ") || "—"} · ${ageLabel(r.age)}`;
+// No dash anywhere on the board: the middle dot already separates the parts of
+// an item name, so the seller and age go in brackets instead of behind a rule.
+const rowText = (r) => `${r.name} (${r.sellers.join(", ") || "?"} | ${ageLabel(r.age)})`;
 
 // Dropping the tail and saying so, rather than letting Discord reject the whole
 // message and the board simply vanish.
@@ -88,9 +114,9 @@ function fit(lines) {
   return out.join("\n");
 }
 
-const CATS = [
-  ["Accessory", "💍"],
-  ["Equipment", "⚔️"],
+const SECTIONS = [
+  { key: "acc", title: "ON SALE: Accessory", blocks: [["L", "Legend"], ["U", "Unique"]] },
+  { key: "equip", title: "ON SALE: Equipment", blocks: [[60, "Level 60"], [50, "Level 50"]] },
 ];
 
 function buildMarketEmbeds(panels, now = Date.now()) {
@@ -101,18 +127,22 @@ function buildMarketEmbeds(panels, now = Date.now()) {
   if (!rows.length)
     return [
       new EmbedBuilder()
-        .setTitle("🏪 ON SALE")
+        .setTitle("ON SALE")
         .setColor(0x2ecc71)
         .setDescription("Belum ada item yang sedang dijual."),
     ];
 
-  const embeds = CATS.flatMap(([cat, emoji]) => {
-    const mine = rows.filter((r) => r.category === cat);
+  const embeds = SECTIONS.flatMap(({ key, title, blocks }) => {
+    const mine = rows.filter((r) => r.category === key);
     if (!mine.length) return [];
-    return new EmbedBuilder()
-      .setTitle(`🏪 ON SALE — ${emoji} ${cat}`)
-      .setColor(0x2ecc71)
-      .setDescription(fit(mine.map(rowText)));
+
+    const lines = [];
+    for (const [block, header] of blocks) {
+      const inBlock = mine.filter((r) => r.block === block);
+      if (inBlock.length) lines.push(`**${header}**`, ...inBlock.map(rowText));
+    }
+
+    return new EmbedBuilder().setTitle(title).setColor(0x2ecc71).setDescription(fit(lines));
   });
 
   embeds[embeds.length - 1].setFooter({
@@ -175,4 +205,4 @@ function startMarket(client) {
   console.log("🏪 Market board aktif — update tiap ada perubahan loot panel");
 }
 
-module.exports = { collectRows, buildMarketEmbeds, syncMarket, queueMarketSync, startMarket };
+module.exports = { collectRows, buildMarketEmbeds, itemLabel, syncMarket, queueMarketSync, startMarket };

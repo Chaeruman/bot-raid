@@ -21,9 +21,14 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
   - Sumbernya item tanpa harga di loot panel yang masih terbuka — tidak ada data
     baru yang disimpan. Item hilang begitu diberi harga, dan sisanya ikut hilang
     saat panel ditutup, jadi tidak ada yang perlu dicoret manual.
-  - Hanya accessory + equipment (termasuk named equipment). Rune, fragment dan
-    research book barang bulk yang tidak pernah dicari lewat papan, dan justru
-    itu yang bikin daftarnya panjang.
+  - Dua embed terpisah: **Accessory** (blok Legend & Unique) dan **Equipment**
+    (blok Level 60 untuk DDN, Level 50 untuk GDN/SDN). Blok yang kosong tidak
+    ditampilkan.
+  - Accessory ditulis pendek: `GDN Legend Accessory (Necklace@INT VIT)` jadi
+    `GDN L Necklace · INT VIT`. Tidak ada dash di papan ini; seller dan umur
+    masuk kurung, `GDN L Necklace · INT VIT (Rubiq | 2 jam)`.
+  - Rune, fragment, smelted rune dan research book di luar papan — barang bulk
+    yang tidak pernah dicari lewat papan.
   - Satu baris per item, bukan per panel: tiga orang memegang ring yang sama
     jadi satu baris dengan tiga nama.
   - Seller ditulis sebagai IGN biasa tanpa mention, dan tanpa link thread —
