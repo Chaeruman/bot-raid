@@ -37,17 +37,14 @@ function classify(key) {
 }
 
 // "DDN Legend Accessory" + "Necklace@INT VIT" → "DDN L Necklace · INT VIT".
-//
-// The detail arrives in TWO shapes for the same thing: the text parser and the
-// Browse menus store "Type@Subtype", while the qty modal stores "Type — Subtype"
-// (itemQty.js rewrites the @ before saving). Split on both or half the rows come
-// out with a raw separator in them.
+// Every path that writes a detail — the text parser and both Browse menus —
+// stores it as "Type@Subtype".
 function itemLabel(itemKey, detail) {
   const name = CATALOG[itemKey].name.replace(
     /^(\w+) (Legend|Unique) Accessory$/,
     (_, dungeon, tier) => `${dungeon} ${tier[0]}`,
   );
-  const parts = detail ? detail.split(/@| — /).map((s) => s.trim()).filter(Boolean) : [];
+  const parts = detail ? detail.split("@").map((s) => s.trim()).filter(Boolean) : [];
   return parts.length ? `${name} ${parts.join(" · ")}` : name;
 }
 

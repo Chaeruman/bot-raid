@@ -46,7 +46,7 @@ async function handleItemSelect(interaction, panel) {
 
   // quantity type (fragments etc.) → show qty modal
   if (def.type === "quantity") {
-    return showQtyModal(interaction, panel.lootMsgId, itemKey, def, null);
+    return showQtyModal(interaction, panel.lootMsgId, itemKey, def);
   }
 
   // unique type with no sub-selection → add 1 directly
@@ -72,12 +72,12 @@ async function addUniqueItem(interaction, panel, itemKey, def, detail) {
   await refreshLootPanel(interaction.client, panel);
 }
 
-// Only for quantity-type items (fragments etc.)
-async function showQtyModal(interaction, lootMsgId, itemKey, def, detail) {
-  const detailSuffix = detail ? `:${detail}` : "";
+// Only for quantity-type items (fragments etc.), which never carry a detail —
+// equipment and accessories are unique-type and go through addUniqueItem.
+async function showQtyModal(interaction, lootMsgId, itemKey, def) {
   const modal = new ModalBuilder()
-    .setCustomId(`loot-modal:item_qty:${lootMsgId}:${itemKey}${detailSuffix}`)
-    .setTitle(`Add: ${(detail ? `${def.name} (${detail.replace("@", " — ")})` : def.name).slice(0, 40)}`);
+    .setCustomId(`loot-modal:item_qty:${lootMsgId}:${itemKey}`)
+    .setTitle(`Add: ${def.name}`.slice(0, 40));
 
   modal.addComponents(
     new ActionRowBuilder().addComponents(

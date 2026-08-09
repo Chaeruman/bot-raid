@@ -22,18 +22,9 @@ const rowsOf = (items, over) => collectRows({ a: panel({ items, ...over }) }, NO
 // "GDN Legend Accessory (Necklace@INT VIT)" → "GDN L Necklace · INT VIT".
 assert.strictEqual(itemLabel("gdn_l_accessory", "Necklace@INT VIT"), "GDN L Necklace · INT VIT");
 assert.strictEqual(itemLabel("ddn_u_accessory", "Ring@Attack"), "DDN U Ring · Attack");
-// The qty modal stores " — " where the parser stores "@" — same item, same label.
-assert.strictEqual(itemLabel("gdn_l_accessory", "Necklace — INT VIT"), "GDN L Necklace · INT VIT");
 assert.strictEqual(itemLabel("ddn_armor", "Warrior@Head"), "DDN Armor Warrior · Head");
-
-// The two detail spellings collapse into ONE row, not two.
-{
-  const rows = rowsOf([
-    { itemKey: "gdn_l_accessory", detail: "Necklace@INT VIT", qty: 1 },
-    { itemKey: "gdn_l_accessory", detail: "Necklace — INT VIT", qty: 1 },
-  ]);
-  assert.strictEqual(rows.length, 1);
-}
+// Fragments and other quantity-type items carry no detail at all.
+assert.strictEqual(itemLabel("ddn_armor", null), "DDN Armor");
 
 // --- Accessory: Legend vs Unique, never mixed with equipment ---------------
 {

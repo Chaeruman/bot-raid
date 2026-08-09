@@ -4,13 +4,13 @@ const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
 async function handleItemQtyModal(interaction) {
-  // customId: loot-modal:item_qty:{lootMsgId}:{itemKey}[:{detail}]
-  // detail (optional) encoded as "Class@Part" or "Type@Subtype"
+  // customId: loot-modal:item_qty:{lootMsgId}:{itemKey}
+  // No detail: this modal only ever handles quantity-type items (fragments),
+  // which have none. Equipment and accessories carry theirs through
+  // addUniqueItem instead.
   const parts = interaction.customId.split(":");
   const lootMsgId = parts[2];
   const itemKey   = parts[3];
-  const rawDetail = parts[4] || null; // e.g. "Warrior@Head" or "Ring@Hybrid"
-  const detail    = rawDetail ? rawDetail.replace("@", " — ") : null;
 
   const panel = activeLootPanels[lootMsgId];
   if (!panel || panel.closed) {
@@ -28,17 +28,16 @@ async function handleItemQtyModal(interaction) {
     return interaction.reply({ content: "❌ Unknown item.", flags: MessageFlags.Ephemeral });
   }
 
-  const existing = panel.items.find((i) => i.itemKey === itemKey && i.detail === detail);
+  const existing = panel.items.find((i) => i.itemKey === itemKey && !i.detail);
   if (existing) {
     existing.qty += qty;
   } else {
-    panel.items.push({ itemKey, qty, price: null, detail });
+    panel.items.push({ itemKey, qty, price: null, detail: null });
   }
   saveState();
 
-  const detailStr = detail ? ` (${detail})` : "";
   await interaction.update({
-    content: `✅ Added **${def.name}${detailStr}** ×${qty}.`,
+    content: `✅ Added **${def.name}** ×${qty}.`,
     components: [],
   });
   await refreshLootPanel(interaction.client, panel);
