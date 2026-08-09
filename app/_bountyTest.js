@@ -1723,6 +1723,10 @@ cfg57.raidRoleId = "R";
 cfg57.nestRoleId = "N";
 eq("57. both roles get a button", rpBtns(menuMessage()).join(","), "raid,nest");
 check("57. and the message says how to leave", /press again to leave/i.test(menuMessage().content));
+// Rendered as role mentions so they carry their own colour — and suppressed so
+// a pinned picker never pings two roles at everyone.
+check("57. the roles are shown as mentions", /- <@&R> —/.test(menuMessage().content));
+eq("57. and nothing is pinged", menuMessage().allowedMentions.parse.length, 0);
 
 cfg57.nestRoleId = undefined;
 eq("57. an unconfigured role is not offered", rpBtns(menuMessage()).join(","), "raid");
@@ -1730,8 +1734,11 @@ cfg57.nestRoleId = "N";
 
 check("57. the buttons reach their handler", routerLetsThrough(`${RPICK}raid`));
 
+const run57 = async (p) => { await handleRolePick(p); return p; };
+const presserReply = (p) => p.seen.reply || "";
+
 pending.push((async () => {
-  const presser = (hasRole, fail) => {
+  const presser = (hasRole, fail, otherRole = false) => {
     const seen = { calls: [] };
     return {
       seen,
@@ -1739,7 +1746,8 @@ pending.push((async () => {
       user: { id: "u57" },
       member: {
         roles: {
-          cache: { has: () => hasRole },
+          // The picker asks about each configured role, not just the one pressed.
+          cache: { has: (id) => (id === "R" ? hasRole : otherRole) },
           add: async (id) => { seen.calls.push(`add:${id}`); if (fail) throw new Error("Missing Permissions"); },
           remove: async (id) => { seen.calls.push(`remove:${id}`); if (fail) throw new Error("Missing Permissions"); },
         },
@@ -1757,6 +1765,15 @@ pending.push((async () => {
   await handleRolePick(leaving);
   eq("57. pressing with it removes", leaving.seen.calls.join(","), "remove:R");
   check("57. and says that instead", /left/i.test(leaving.seen.reply || ""));
+
+  // A button cannot show what you already hold — a reaction can, and that is the
+  // one thing reactions do better. Saying it outright closes the gap.
+  check("57. the reply lists everything you now hold",
+    /You now have: <@&N>$/m.test(presserReply(await run57(presser(true, false, true)))), "left Raid, kept Nest");
+  check("57. including the one just added",
+    /You now have: <@&R> <@&N>$/m.test(presserReply(await run57(presser(false, false, true)))));
+  check("57. and says so when it is none",
+    /You now have: none$/m.test(presserReply(await run57(presser(true, false, false)))));
 
   // Same trap as granting Bounty Hunter: the permission can be on and Discord
   // still refuses, because the bot's role sits at or below the one it manages.

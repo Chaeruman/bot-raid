@@ -27,8 +27,11 @@ function menuMessage() {
       "**Pick a role**",
       "These decide what you get pinged for. Press to join, press again to leave.",
       "",
-      ...roles.map((r) => `- **${r.label}** — ${r.note}`),
+      // Mentions, not bold text: Discord renders a role mention in that role's
+      // own colour, so the list looks like the thing it hands out.
+      ...roles.map((r) => `- <@&${r.id}> — ${r.note}`),
     ].join("\n"),
+    allowedMentions: { parse: [] }, // named to be seen, never to be summoned
     components: [
       new ActionRowBuilder().addComponents(
         roles.map((r) =>
@@ -82,9 +85,19 @@ async function handleRolePick(interaction) {
     });
   }
 
+  // Buttons cannot show which ones you already have — a reaction can, and that
+  // is the only thing reactions do better here. Saying it outright closes the
+  // gap without giving up the feedback a reaction can never give.
+  const mine = available()
+    .filter((r) => (r.key === key ? !has : interaction.member.roles.cache.has(r.id)))
+    .map((r) => `<@&${r.id}>`);
+
   return interaction.reply({
-    content: has ? `You left **${role.label}**.` : `You joined **${role.label}**.`,
+    content:
+      (has ? `You left <@&${role.id}>.` : `You joined <@&${role.id}>.`) +
+      `\nYou now have: ${mine.length ? mine.join(" ") : "none"}`,
     flags: MessageFlags.Ephemeral,
+    allowedMentions: { parse: [] },
   });
 }
 
