@@ -1605,6 +1605,78 @@ pending.push((async () => {
 })());
 
 
+// 52. Done used to delete the event FIRST and create the loot thread after. A
+//     rejected create — a forum tag from another forum is enough — left the host
+//     with a dead panel, no thread, no way to press Done again, and "Something
+//     went wrong" as the only clue. The run was simply gone.
+const { handleDoneRun } = require("./handlers/buttons/doneRun");
+const { activeEvents: live52 } = require("./state");
+
+const run52 = (over = {}) => {
+  live52.d52 = {
+    messageId: "d52", hostId: "h", title: "DDN HC", maxSlot: 8,
+    roles: {}, users: {}, forumTagKey: "forumTagDDNHC", ...over,
+  };
+  return live52.d52;
+};
+
+const doneInt = (forum) => {
+  const seen = {};
+  return {
+    seen,
+    client: { channels: { fetch: async () => forum } },
+    channel: forum,
+    message: { id: "d52", client: {}, edit: async (o) => { seen.edit = o; } },
+    followUp: async (o) => { seen.followUp = o.content; },
+  };
+};
+
+pending.push((async () => {
+  const cfg52 = require("./config");
+  const wasChan = cfg52.threadChannelId;
+  const wasTag = cfg52.forumTagDDNHC;
+  cfg52.threadChannelId = "forum";
+  cfg52.forumTagDDNHC = "tag-from-another-forum";
+
+  run52();
+  const refused = doneInt({
+    id: "forum",
+    availableTags: [{ id: "a-real-tag" }],
+    threads: { create: async () => { throw new Error("Invalid Form Body"); } },
+  });
+  await handleDoneRun(refused, live52.d52);
+  check("52. a failed thread leaves the run alive", !!live52.d52, "event was deleted");
+  check("52. and says so instead of a bare error", /Done bisa ditekan lagi/.test(refused.seen.followUp || ""));
+
+  // A tag this forum does not have must not be sent at all — Discord rejects
+  // the whole create over it, losing the thread for the sake of a label.
+  let sentTags;
+  const ok52 = doneInt({
+    id: "forum",
+    availableTags: [{ id: "a-real-tag" }],
+    threads: {
+      create: async (opts) => {
+        sentTags = opts.appliedTags;
+        return { id: "t52", send: async () => ({ id: "l52", edit: async () => {} }) };
+      },
+    },
+  });
+  await handleDoneRun(ok52, live52.d52);
+  eq("52. an unknown tag is dropped, not sent", sentTags, undefined);
+  check("52. and the run closes", !live52.d52);
+
+  // The tag the forum really has still goes on.
+  cfg52.forumTagDDNHC = "a-real-tag";
+  run52();
+  await handleDoneRun(ok52, live52.d52);
+  eq("52. a known tag is applied", sentTags?.join(","), "a-real-tag");
+
+  cfg52.threadChannelId = wasChan;
+  cfg52.forumTagDDNHC = wasTag;
+  delete live52.d52;
+})());
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.
