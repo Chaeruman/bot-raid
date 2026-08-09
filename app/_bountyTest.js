@@ -1137,6 +1137,31 @@ pending.push((async () => {
 })());
 
 
+// 43. The bounty toggle is host-only in the HANDLER, not just greyed out in the
+//     UI. Disabling a button hides it from the client; it does not stop the
+//     interaction, and this one changes who is allowed to join the party.
+const { HOST_ONLY_BUTTONS, BOUNTY_TOGGLE } = require("./constants");
+const { createButtons } = require("./builders/buttons");
+
+const toggleEvent = {
+  messageId: "m", hostId: "host", maxSlot: 8, locked: false, users: {},
+  roles: Object.fromEntries(Object.entries(tpls.gdn_cl.roles).map(([k, r]) => [k, { ...r, users: [] }])),
+  poolKeys: tpls.gdn_cl.poolKeys,
+};
+const toggleIds = createButtons(toggleEvent, "host")
+  .flatMap((r) => r.toJSON().components)
+  .map((b) => b.custom_id);
+
+check("43. the toggle is on a bounty panel", toggleIds.includes(BOUNTY_TOGGLE), toggleIds.join(","));
+check("43. and the host gate covers it", HOST_ONLY_BUTTONS.includes(BOUNTY_TOGGLE));
+// One constant behind the builder, the router and the gate: a rename that
+// missed the gate would unlock it for everyone without breaking anything.
+check("43. a plain signup has no toggle",
+  !createButtons({ ...toggleEvent, poolKeys: [] }, "host")
+    .flatMap((r) => r.toJSON().components)
+    .some((b) => b.custom_id === BOUNTY_TOGGLE));
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.

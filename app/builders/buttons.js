@@ -1,4 +1,5 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
+const { BOUNTY_TOGGLE } = require("../constants");
 
 function isMTDestroyer(event) {
   const mt = event.roles["MT"];
@@ -104,7 +105,7 @@ function createButtons(event, viewerId = null) {
   if (event.poolKeys?.length) {
     controlRow1.addComponents(
       new ButtonBuilder()
-        .setCustomId("bounty-open")
+        .setCustomId(BOUNTY_TOGGLE)
         .setLabel(event.closedToBounty ? "🔓 Buka untuk semua" : "🎯 Khusus bounty")
         .setStyle(event.closedToBounty ? ButtonStyle.Secondary : ButtonStyle.Primary)
         .setDisabled(!isHost),

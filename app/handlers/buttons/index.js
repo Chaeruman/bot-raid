@@ -2,7 +2,7 @@ const { MessageFlags } = require("discord.js");
 const { ack } = require("../../utils/ack");
 const { checkCooldown } = require("../../utils/cooldown");
 const { activeEvents } = require("../../state");
-const { HOST_ONLY_BUTTONS } = require("../../constants");
+const { HOST_ONLY_BUTTONS, BOUNTY_TOGGLE } = require("../../constants");
 
 const { handleSubRoleMenu } = require("./subRoleMenu");
 const { handleRoleSelect } = require("./roleSelect");
@@ -106,7 +106,7 @@ async function handleButton(interaction) {
     case "cancel_my_role": return handleCancelMyRole(interaction, event);
     case "toggle_lock":    return handleToggleLock(interaction, event);
     case "cancel_run":     return handleCancelRun(interaction, event);
-    case "bounty-open":    return require("../../bountyJoin").handleToggleBounty(interaction, event);
+    case BOUNTY_TOGGLE:    return require("../../bountyJoin").handleToggleBounty(interaction, event);
     case "done_run":       return handleDoneRun(interaction, event);
     case "party_up":       return handlePartyUp(interaction, event);
     default:

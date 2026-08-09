@@ -34,7 +34,7 @@ const fitToStack = (event, quests) =>
 
 const PICK = "bounty-fin:pick"; // + :<eventMessageId>:<slotKey>
 const JOIN = "bounty-join"; // closed-to-bounty panels: one button instead of roles
-const TOGGLE = "bounty-open"; // flips a panel between bounty-only and open
+const { BOUNTY_TOGGLE: TOGGLE } = require("./constants"); // bounty-only ⇄ open
 
 // Which slot a character's role maps to on this panel. Caps are off on a
 // bounty-only party, so the only way to miss is a role the template has no slot
