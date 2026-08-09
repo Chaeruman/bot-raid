@@ -14,6 +14,25 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.24.0] — 2026-08-09
+
+### Changed
+- **Tiap quest yang ter-stack menyebut clear-nya di panel marathon.** Marathon
+  itu dua run, jadi `Unique · Weapon` saja membuat orang menebak apakah itu
+  jatuh di clear HC atau Classic — dua malam yang berbeda untuk datang. Panel
+  satu nest tidak mengulanginya; judulnya sudah menyebut nest-nya.
+- **`Stack 1/6` jadi `Bounty stacked: 1/6`** — `Stack` sendirian tidak
+  memberitahu apa yang dihitung. `· khusus bounty` jadi `· bounty only`.
+- **Board pecah ke embed berikutnya hanya kalau satu embed hampir penuh**, bukan
+  sejumlah nest tetap per embed. Nomor halaman (`· 1/2`) muncul hanya kalau
+  memang ada halaman lain.
+  - Batas sebenarnya 6000 karakter untuk seluruh pesan, bukan 4096 per embed,
+    dan Discord menolak pesan yang lewat batas **seluruhnya** — board-nya bukan
+    terpotong tapi tidak muncul sama sekali. Jadi ekornya dibuang, embed
+    terakhir menyebut berapa bagian yang hilang, dan log mencatatnya.
+  - Diukur dengan data produksi: 17 quest terbuka = 1361 karakter, ~80 per
+    quest. Satu pesan memuat sekitar 75 quest.
+
 ## [1.23.0] — 2026-08-09
 
 ### Added
