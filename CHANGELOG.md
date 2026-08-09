@@ -14,6 +14,8 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.27.0] — 2026-08-10
+
 ### Added
 - **Market board** — satu pesan di channel `MARKET_CHANNEL_ID` berisi item yang
   masih dijual, supaya pembeli cukup baca satu channel. Mati kalau env var-nya
