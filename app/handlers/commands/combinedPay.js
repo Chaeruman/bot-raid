@@ -271,13 +271,12 @@ async function markPaidForUids(client, sellerId, picked) {
   return { touchedCount: touched.size, closedNames };
 }
 
-async function handleCombinedPay(interaction) {
+async function handleCombinedPay(interaction, budget = interaction.options?.getInteger("budget") ?? null) {
   // Fetching every candidate panel's thread + every unpaid member's guild
   // profile can take longer than Discord's 3s ack window — defer first so
   // the interaction doesn't die with "Interaction failed" while this runs.
   await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-  const budget = interaction.options.getInteger("budget");
   const view = await buildUnpaidView(interaction.client, interaction.guild, interaction.user.id, budget);
   if (!view) {
     return interaction.editReply({

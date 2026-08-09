@@ -144,13 +144,12 @@ const commands = [
     .addStringOption((o) =>
       o
         .setName("range")
-        .setDescription("Rentang waktu (default: 7 hari)")
+        .setDescription("Rentang waktu (default: minggu ini)")
         .setRequired(false)
         .addChoices(
-          { name: "7 hari", value: "7d" },
-          { name: "14 hari", value: "14d" },
-          { name: "30 hari", value: "30d" },
-          { name: "90 hari", value: "90d" },
+          { name: "Minggu ini (sejak reset Sabtu)", value: "week" },
+          { name: "Bulan ini", value: "month" },
+          { name: "Semua", value: "all" },
         ),
     )
     .toJSON(),

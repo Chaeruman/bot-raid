@@ -25,6 +25,8 @@ module.exports = {
   bountyBoardChannelId: process.env.BOUNTY_BOARD_CHANNEL_ID,
   bountyMeChannelId: process.env.BOUNTY_ME_CHANNEL_ID,
   rolePickChannelId: process.env.ROLE_PICK_CHANNEL_ID,
+  kirimGajiChannelId: process.env.KIRIM_GAJI_CHANNEL_ID,
+  gajiSayaChannelId: process.env.GAJI_SAYA_CHANNEL_ID,
   raidRoleId: process.env.RAID_ROLE_ID,
   nestRoleId: process.env.NEST_ROLE_ID,
   bountyAdminChannelId: process.env.BOUNTY_ADMIN_CHANNEL_ID,

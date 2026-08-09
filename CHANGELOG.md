@@ -14,6 +14,35 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.26.0] — 2026-08-09
+
+### Added
+- **Tombol di `#kirim-gaji` dan `#gaji-saya`** — pesan ter-pin dengan tombol
+  hijau, jadi tidak perlu mengetik command. `/kirim-gaji` dan `/gaji-saya` tetap
+  ada. Butuh `KIRIM_GAJI_CHANNEL_ID` dan `GAJI_SAYA_CHANNEL_ID`.
+  - Satu tombol per rentang, bukan picker di balik tombol: tiga preset muat di
+    satu baris, dan satu interaksi tambahan untuk membuka daftar berisi tiga
+    itu menu tentang dirinya sendiri.
+
+### Changed
+- **Rentang gaji berjangkar, bukan bergulir.** `7 hari` dulu berarti tujuh hari
+  mundur dari detik kamu bertanya — pertanyaan yang sama menjawab beda tiap jam,
+  dan gaji yang masuk Sabtu pagi keluar dari "minggu ini" pada Sabtu sore.
+  Sekarang **sejak reset Sabtu**, **bulan ini**, atau **semua**. Nilai lama
+  (`7d`, `30d`) jatuh ke "minggu ini", tidak mati.
+
+### Fixed
+- **Gold drop tanpa pengecualian dibayarkan ke siapa pun.** "Tidak ada yang
+  dikecualikan" disimpan sebagai `excludedUserId: null`, dan gaji headline
+  dihitung dengan `uid = null` — jadi `g.excludedUserId !== uid` membaca
+  `null !== null` dan membuang entri itu. Setiap gold ÷7 tanpa pengecualian,
+  yaitu sebagian besarnya, hilang dari gaji semua orang. Panel menampilkan
+  gold-nya, rumus mencetak `258 ÷ 7`, dan angka di sebelahnya dihitung tanpa
+  itu. Tidak ada error, cuma angka yang lebih kecil.
+- **`_lzDigestTest.js` menguji 08:00 WIB padahal digest-nya jam 00:00.** Suite
+  yang selalu merah berhenti dibaca, dan itu lebih buruk daripada tidak punya
+  test — kerusakan berikutnya ikut tersembunyi di baliknya.
+
 ## [1.25.0] — 2026-08-09
 
 ### Added

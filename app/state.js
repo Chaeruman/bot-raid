@@ -32,6 +32,8 @@ const bountyApplications = {}; // userId → true, until the role arrives
 const bountyEntry = {};
 // The one pinned role picker: { messageId }
 const rolePickMenu = {};
+// Pinned salary buttons: { kirim: messageId, saya: messageId }
+const salaryMenus = {};
 // The one weekly board message: { messageId, channelId, weekKey }
 const bountyBoard = {};
 
@@ -64,6 +66,7 @@ async function loadState() {
     Object.assign(bountyApplications, doc.bountyApplications || {});
     Object.assign(bountyEntry, doc.bountyEntry || {});
     Object.assign(rolePickMenu, doc.rolePickMenu || {});
+    Object.assign(salaryMenus, doc.salaryMenus || {});
     Object.assign(bountyBoard, doc.bountyBoard || {});
     digestLastSent = doc.digestLastSent || 0;
     lzDigestLastSent = doc.lzDigestLastSent || 0;
@@ -90,6 +93,7 @@ function saveState() {
         bountyApplications,
         bountyEntry,
         rolePickMenu,
+        salaryMenus,
         bountyBoard,
         digestLastSent,
         lzDigestLastSent,
@@ -423,6 +427,7 @@ module.exports = {
   bountyThreads,
   bountyEntry,
   rolePickMenu,
+  salaryMenus,
   bountyLinks,
   bountyLinkRequests,
   bountyApplications,

@@ -14,6 +14,7 @@ const { startLzDigest } = require("./lzDigest");
 const { startBoard } = require("./bountyBoard");
 const { syncEntry } = require("./bountyThread");
 const { syncRoleMenu } = require("./roleMenu");
+const { syncSalaryMenus } = require("./salaryMenu");
 const { startBountyReminder } = require("./bountyReminder");
 
 const client = new Client({
@@ -136,5 +137,6 @@ process.on("unhandledRejection", console.error);
   startBoard(client);
   syncEntry(client).catch((err) => console.error("❌ syncEntry:", err.message));
   syncRoleMenu(client).catch((err) => console.error("❌ syncRoleMenu:", err.message));
+  syncSalaryMenus(client).catch((err) => console.error("❌ syncSalaryMenus:", err.message));
   startBountyReminder(client);
 })();
