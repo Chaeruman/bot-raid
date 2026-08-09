@@ -11,8 +11,14 @@ const MAX_NAME = 32;
 
 const norm = (s) => (s || "").trim().replace(/\s+/g, " ");
 const same = (a, b) => a.toLowerCase() === b.toLowerCase();
+// allowedMentions off across the board: these messages name roles and people
+// to identify them, never to summon them.
 const reply = (interaction, content) =>
-  interaction.reply({ content: content.slice(0, 2000), flags: MessageFlags.Ephemeral });
+  interaction.reply({
+    content: content.slice(0, 2000),
+    flags: MessageFlags.Ephemeral,
+    allowedMentions: { parse: [] },
+  });
 
 // Invite-only, but only if you set the role. Unset means open to everyone —
 // so the gate never silently locks people out of a bot that never had one.
@@ -131,9 +137,9 @@ async function removeChar(interaction, rawName = interaction.options.getString("
   );
 }
 
-const APPLIED =
+const applied = () =>
   "Your request will be reviewed by the admin because you're not holding a " +
-  "**Bounty Hunter** role. Please wait until the admin approves the request.";
+  `<@&${config.bountyHunterRoleId}> role. Please wait until the admin approves the request.`;
 
 // The bot only carries the request — the role is granted by hand, so nothing
 // here needs Manage Roles.
@@ -153,22 +159,24 @@ async function applyHunter(interaction) {
 
   // Pressing the button again is the natural thing to do while waiting, and it
   // must not put a second copy in front of the admins.
-  if (bountyApplications[interaction.user.id]) return reply(interaction, APPLIED);
+  if (bountyApplications[interaction.user.id]) return reply(interaction, applied());
 
   const channel = await interaction.client.channels
     .fetch(config.bountyAdminChannelId)
     .catch(() => null);
   if (!channel) return reply(interaction, "⚠️ Channel admin tidak ditemukan.");
 
-  const chars = await getChars(interaction.user.id);
+  // No character count: the gate stops a non-hunter registering any, so it was
+  // always "(0 karakter terdaftar)" — a number that could only ever say one
+  // thing is not information.
+  //
   // Fetching a channel needs no permission; sending does. Unwrapped, a missing
   // Send Messages here reached the applicant as "Something went wrong" — a
   // dead end for them and no clue for whoever has to fix it.
   const sent = await channel
     .send({
       content:
-        `🎯 <@${interaction.user.id}> mengajukan diri jadi **Bounty Hunter** ` +
-        `(${chars.length} karakter terdaftar).
+        `🎯 <@${interaction.user.id}> mengajukan diri jadi Bounty Hunter.
 Kasih role <@&${config.bountyHunterRoleId}> kalau setuju.`,
       // The decision lives on the request itself, so nobody has to go find the
       // role list and remember who asked.
@@ -200,7 +208,7 @@ Kasih role <@&${config.bountyHunterRoleId}> kalau setuju.`,
 
   bountyApplications[interaction.user.id] = true;
   saveState();
-  return reply(interaction, APPLIED);
+  return reply(interaction, applied());
 }
 
 // Two options want it: `name` on remove, `account` on add. Discord autocomplete

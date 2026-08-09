@@ -328,7 +328,9 @@ async function handlePanelModal(interaction) {
   await require("./bountyThread").wake(interaction.channel);
 
   if (action === "link") {
-    const to = interaction.fields.getSelectedUsers("who")[0];
+    // A Collection, not an array — `[0]` on it is always undefined, which read
+    // as "you picked nobody" however carefully you picked.
+    const to = interaction.fields.getSelectedUsers("who")?.first();
     const problem = to ? requestLink(ownerId, to.id) : "Belum pilih akun.";
     await interaction.update(await buildPanel(ownerId));
     if (problem) return interaction.followUp({ content: `❌ ${problem}`, flags: MessageFlags.Ephemeral });

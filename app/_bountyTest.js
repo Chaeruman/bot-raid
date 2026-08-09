@@ -1183,7 +1183,7 @@ pending.push((async () => {
       user: { id: "u44" },
       member: { roles: { cache: new Map() } }, // not a hunter yet
       client: { channels: { fetch: async () => ({ send }) } },
-      reply: async (o) => { seen.reply = o.content; },
+      reply: async (o) => { seen.reply = o.content; seen.mentions = o.allowedMentions; },
     };
   };
 
@@ -1192,6 +1192,14 @@ pending.push((async () => {
   check("44. a refused send does not crash", !!blocked.seen.reply);
   check("44. and says which permission is missing",
     /Send Messages/.test(blocked.seen.reply || ""), blocked.seen.reply);
+
+  // The role is named as a role pill, so it is the thing they can point at —
+  // and the reply must never actually summon it.
+  const pill = applicant(async () => ({ id: "m" }));
+  await applyHunter(pill);
+  check("44. the role is a mention, not bold text", /<@&R>/.test(pill.seen.reply || ""), pill.seen.reply);
+  check("44. and nothing is pinged", pill.seen.mentions?.parse?.length === 0);
+  delete bountyApps["u44"];
 
   const ok44 = applicant(async () => ({ id: "m" }));
   await applyHunter(ok44);
@@ -1265,6 +1273,48 @@ pending.push((async () => {
   await handleHunterDecision(no);
   check("45. declining closes it without granting", /ditolak/.test(no.seen.update?.content || ""));
   check("45. and clears the application", !bountyApps["applicant"]);
+})());
+
+
+// 46. Reading the user picked in a modal. getSelectedUsers hands back a
+//     Collection, not an array, so indexing it read as "you picked nobody"
+//     however carefully you picked — and the refusal looked like the feature
+//     working, not failing.
+const { Collection } = require("discord.js");
+const { handlePanelModal } = require("./bountyPanel");
+
+const linkModalInt = (picked) => {
+  const seen = {};
+  return {
+    seen,
+    customId: `${PREFIX}link:u46`,
+    user: { id: "u46" },
+    client: {},
+    message: { id: "m" },
+    fields: {
+      getSelectedUsers: () => picked,
+      getTextInputValue: () => "",
+      getStringSelectValues: () => [],
+    },
+    update: async (o) => { seen.update = o; },
+    followUp: async (o) => { (seen.followUps ||= []).push(o.content); },
+  };
+};
+
+pending.push((async () => {
+  const chosen = new Collection([["chae46", { id: "chae46", send: async () => {} }]]);
+  const ok46 = linkModalInt(chosen);
+  await handlePanelModal(ok46);
+  check("46. a picked account is read", !ok46.seen.followUps?.some((t) => /Belum pilih/.test(t)),
+    JSON.stringify(ok46.seen.followUps));
+  check("46. and the invite is sent", ok46.seen.followUps?.some((t) => /Undangan menunggu/.test(t)));
+  eq("46. it waits on their panel", incomingLinks("chae46").join(","), "u46");
+  cancelLink("u46");
+
+  // Picking nothing still has to say so.
+  const none = linkModalInt(null);
+  await handlePanelModal(none);
+  check("46. picking nobody is still refused", none.seen.followUps?.some((t) => /Belum pilih/.test(t)));
 })());
 
 
