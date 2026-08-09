@@ -80,44 +80,32 @@ function takenRole(event, userId, slotKey = null) {
   return (!slotKey && seat?.subRole) || event.roles?.[slot]?.label || slot || null;
 }
 
-// Called from roleSelect BEFORE seating. Returns true when it took over — the
-// joiner holds quests on more than one character, so the picker will seat them
-// once they say which. Returns false to let the caller seat normally.
-async function askBeforeSeat(interaction, event, slotKey) {
+// Called from roleSelect AFTER the seat is taken. The seat is already theirs;
+// this only asks which character they brought, so the run can mark the right
+// bounty when it closes.
+//
+// It never answers for them. A single candidate used to be treated as obvious
+// and attached automatically — which put an FU's quest on an SM/DA seat because
+// it was the only bounty on file. Ignoring this menu is a valid answer: you are
+// in the party either way, just with no bounty recorded.
+async function offerBounty(interaction, event, slotKey) {
   const poolKeys = event.poolKeys || [];
-  if (!poolKeys.length) return false;
+  if (!poolKeys.length) return;
 
-  const entries = await myQuestsHere(
-    interaction.user.id,
-    poolKeys,
-    takenRole(event, interaction.user.id, slotKey),
-  );
-  if (!entries.length) return false; // no bounty here — seat normally, say nothing
+  const entries = await myQuestsHere(interaction.user.id, poolKeys, takenRole(event, interaction.user.id, slotKey));
+  if (!entries.length) return; // no bounty here — nothing to ask, say nothing
 
-  const lines = questLines(entries, poolKeys.length > 1);
-
-  // Only one candidate — nothing to ask. Seat now and just say so.
-  if (entries.length === 1) {
-    const { seatUser } = require("./handlers/buttons/roleSelect");
-    const seat = seatUser(event, interaction.user.id, slotKey);
-    seat.bountyChar = entries[0].charName;
-    seat.bountyQuests = fitToStack(event, entries[0].quests);
-    saveState();
-    await require("./builders/content").updateMessage(interaction.message, event);
-    await interaction.followUp({
-      content: [...lines, "", "_Ditandai selesai otomatis waktu host menutup run._"].join("\n"),
-      flags: MessageFlags.Ephemeral,
-    });
-    return true;
-  }
-
-  // Pre-select only when EXACTLY one matches the slot. Two characters of the
-  // same job both holding a quest here is precisely the case where the bot must
-  // not choose: it would claim a quest that was never run.
+  // Pre-select only when EXACTLY one matches the slot just taken. Two characters
+  // of the same job both holding a quest here is precisely the case where the
+  // bot must not choose: it would claim a quest that was never run.
   const soleMatch = entries.filter((e) => e.matches).length === 1;
 
-  await interaction.followUp({
-    content: [...lines, "", "_Pilih dulu yang kamu bawa — baru kamu masuk party._"].join("\n"),
+  return interaction.followUp({
+    content: [
+      ...questLines(entries, poolKeys.length > 1),
+      "",
+      "_Pilih kalau kamu bawa salah satunya. Kamu sudah masuk party — lewati saja kalau tidak._",
+    ].join("\n"),
     components: [
       new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
@@ -135,12 +123,14 @@ async function askBeforeSeat(interaction, event, slotKey) {
     ],
     flags: MessageFlags.Ephemeral,
   });
-  return true;
 }
 
-// The joiner names the character they brought — and only now do they take the
-// seat. Dismissing the menu means not joining, which is the point: the panel
-// never holds a seat the bot cannot attribute.
+// The joiner names the character they brought.
+//
+// From a role button they are already seated and this only attaches the bounty.
+// From a bounty-only panel there were no role buttons, so the character's role
+// decides the slot and this seats them too — the `slotKey` in the customId is
+// what tells the two apart.
 async function handleCharPick(interaction) {
   const { activeEvents, getChars: readChars } = require("./state");
   const [, , messageId, slotFromId] = interaction.customId.split(":");
@@ -173,7 +163,8 @@ async function handleCharPick(interaction) {
   );
 
   const { seatUser } = require("./handlers/buttons/roleSelect");
-  const seat = seatUser(event, interaction.user.id, slotKey);
+  const already = event.users[interaction.user.id]?.slot === slotKey;
+  const seat = already ? event.users[interaction.user.id] : seatUser(event, interaction.user.id, slotKey);
   seat.bountyChar = charName;
   seat.bountyQuests = fitToStack(event, mine?.quests || []);
   saveState();
@@ -185,8 +176,9 @@ async function handleCharPick(interaction) {
   const wasted = (mine?.quests.length || 0) - fitted;
   return interaction.update({
     content:
-      `🎯 **${charName}** masuk party` +
-      (fitted ? ` — ${fitted} quest masuk stack.` : " sebagai numpang.") +
+      `🎯 **${charName}**` +
+      (already ? "" : " masuk party") +
+      (fitted ? ` — ${fitted} quest masuk stack.` : " — tidak ada quest yang masuk stack.") +
       (wasted ? ` ⚠️ ${wasted} quest-mu tidak muat (stack maks ${stackCap(event)}) — tetap di board.` : ""),
     components: [],
   });
@@ -329,7 +321,7 @@ async function markPartyDone(client, event) {
 }
 
 module.exports = {
-  askBeforeSeat, myQuestsHere, questLines, takenRole, slotForRole, fitToStack,
+  offerBounty, myQuestsHere, questLines, takenRole, slotForRole, fitToStack,
   handleCharPick, handleBountyJoin, handleToggleBounty, markPartyDone,
   PICK, JOIN, TOGGLE,
 };

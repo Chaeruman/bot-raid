@@ -27,25 +27,23 @@ async function handleRoleSelect(interaction, event) {
   const slotKey = interaction.customId.replace("role_", "");
   if (!event.roles[slotKey]) return;
 
-  // On a bounty-aware panel, the character comes first: clicking a role picks a
-  // ROLE, and when the joiner holds quests on more than one character the bot
-  // must not seat them under a name it guessed. The picker seats them instead.
-  if (event.poolKeys?.length) {
-    // Never swallow this. A failure here seats the player with no bounty
-    // recorded, which reads as "you have no quest for this nest" — a wrong
-    // answer that looks like a correct one.
-    const asked = await require("../../bountyJoin")
-      .askBeforeSeat(interaction, event, slotKey)
-      .catch((err) => {
-        console.error(`❌ askBeforeSeat (${interaction.user.id} → ${slotKey}):`, err);
-        return false;
-      });
-    if (asked) return;
-  }
-
+  // Seat first, always. Clicking a role is a complete answer on its own — the
+  // bounty is a separate question, asked afterwards and safe to ignore.
+  //
+  // It used to gate the seat on that question and, with a single candidate,
+  // answer it for you: clicking SM/DA with one bounty character on file
+  // attached that character to the seat whatever role it actually plays.
   seatUser(event, interaction.user.id, slotKey);
   saveState();
-  return updateMessage(interaction.message, event);
+  await updateMessage(interaction.message, event);
+
+  if (!event.poolKeys?.length) return;
+  // Never swallow this. A failure here leaves someone seated with no bounty
+  // recorded, which reads as "you have no quest for this nest" — a wrong answer
+  // that looks like a correct one.
+  return require("../../bountyJoin")
+    .offerBounty(interaction, event, slotKey)
+    .catch((err) => console.error(`❌ offerBounty (${interaction.user.id} → ${slotKey}):`, err));
 }
 
 module.exports = { handleRoleSelect, seatUser };

@@ -1534,6 +1534,77 @@ pending.push((async () => {
 })());
 
 
+// 51. Clicking a role seats you, full stop. The bounty is a second question,
+//     asked after and safe to ignore.
+//
+//     It used to gate the seat on that question and, with a single candidate,
+//     answer it for you — so clicking SM/DA with one bounty character on file
+//     attached that character to the seat whatever role it actually plays.
+const { handleRoleSelect } = require("./handlers/buttons/roleSelect");
+const { handleCharPick, PICK } = require("./bountyJoin");
+
+const panel51 = () => {
+  const roles = Object.fromEntries(
+    Object.entries(tpls.gdn_cl.roles).map(([k, r]) => [k, { ...r, users: [] }]),
+  );
+  const ev = { messageId: "p51", hostId: "h", maxSlot: 8, roles, users: {}, poolKeys: tpls.gdn_cl.poolKeys };
+  require("./state").activeEvents.p51 = ev;
+  return ev;
+};
+const slot51 = Object.keys(tpls.gdn_cl.roles)[0];
+
+const clicker = () => {
+  const seen = {};
+  return {
+    seen,
+    customId: `role_${slot51}`,
+    user: { id: "u51" },
+    message: { id: "p51", edit: async () => {} },
+    followUp: async (o) => { seen.followUp = o; },
+  };
+};
+
+pending.push((async () => {
+  const ev = panel51();
+  const click = clicker();
+  await handleRoleSelect(click, ev);
+  eq("51. the role button seats you", ev.users.u51?.slot, slot51);
+  // No bounty on file here, so there is nothing to ask and nothing is said.
+  check("51. and asks nothing when there is no bounty", !click.seen.followUp);
+
+  // Picking a character afterwards attaches the bounty without moving the seat.
+  const pick = {
+    customId: `${PICK}:p51:${slot51}`,
+    user: { id: "u51" },
+    values: ["Chelssea"],
+    channel: { messages: { fetch: async () => null } },
+    update: async (o) => { pick.reply = o.content; },
+  };
+  await handleCharPick(pick);
+  eq("51. the pick leaves the seat alone", ev.users.u51.slot, slot51);
+  eq("51. and records the character", ev.users.u51.bountyChar, "Chelssea");
+  check("51. without claiming they just joined", !/masuk party/.test(pick.reply || ""), pick.reply);
+
+  // The real cost of re-seating someone already in place: seatUser rebuilds the
+  // seat from scratch, so an MT who chose Destroyer in the modal would have that
+  // silently reset to null by picking a bounty character afterwards.
+  const mtSlot51 = Object.entries(tpls.gdn_cl.roles).find(([, r]) => r.subRoles?.length)[0];
+  ev.users.u51 = { slot: mtSlot51, subRole: "Destroyer" };
+  ev.roles[mtSlot51].users = ["u51"];
+  const pick2 = {
+    customId: `${PICK}:p51:${mtSlot51}`,
+    user: { id: "u51" },
+    values: ["Chelssea"],
+    channel: { messages: { fetch: async () => null } },
+    update: async () => {},
+  };
+  await handleCharPick(pick2);
+  eq("51. and keeps the class they already chose", ev.users.u51.subRole, "Destroyer");
+
+  delete require("./state").activeEvents.p51;
+})());
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.
