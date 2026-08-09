@@ -14,6 +14,37 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.21.0] — 2026-08-09
+
+### Added
+- **Approve sekaligus membuatkan thread-nya.** Yang baru disetujui tidak sedang
+  menunggu di depan tombol, jadi thread-nya muncul sendiri di sidebar mereka.
+  Gagal membuat thread tidak membatalkan persetujuan — role sudah terpasang dan
+  tombolnya masih bisa ditekan sendiri.
+- **Panel dikelompokkan per akun game.** Nama akun naik jadi judul, jadi tidak
+  diulang di tiap baris karakter. Satu grup bukan pengelompokan: roster dengan
+  satu akun, atau tanpa akun sama sekali, tidak dapat judul.
+
+### Removed
+- **`/bounty-char apply`** — tombol `🎯 Create My Thread` sudah mengajukan atas
+  nama mereka, jadi command-nya cuma jalur kedua untuk didokumentasikan dan
+  dijaga.
+
+### Fixed
+- **Karakter akun ter-link kehilangan role-nya di board.** Board mengelompokkan
+  orang pakai akun primary, sementara tabel roster masih dikunci pakai akun yang
+  benar-benar mendaftarkan karakternya — semua pencarian meleset dan board
+  mencetak `?` untuk karakter yang role-nya terbaca normal di panel.
+- **Huruf akun dinomori per dokumen, bukan per orang.** Dua akun ter-link
+  masing-masing mulai lagi dari `A`, jadi dua akun game berbeda bisa tercetak
+  `akun A` bersebelahan.
+- **Hanya `Unknown Channel` yang berarti thread dihapus.** Sebelumnya semua
+  kegagalan dianggap penghapusan, jadi rate limit atau gangguan sesaat membuat
+  catatannya dibuang — dan penekanan berikutnya membangun thread **kedua** di
+  samping yang masih hidup, meninggalkan panel lama yang tidak pernah ter-update.
+- **Pemilih akun di modal link membaca Collection sebagai array**, jadi
+  `Belum pilih akun` selalu muncul betapa pun telitinya memilih.
+
 ## [1.20.0] — 2026-08-09
 
 ### Added

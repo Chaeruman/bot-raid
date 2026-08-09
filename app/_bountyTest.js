@@ -1395,6 +1395,48 @@ check("47. still one mention for the pair", !linkedText.includes("<@alt47>"));
 unlink("alt47");
 
 
+// 48. The roster groups by game account, because that is the question it
+//     answers: characters on one account cannot run at the same time. With the
+//     account as a heading it stops being repeated on every single line.
+const { describeRoster } = require("./bountyPanel");
+const desc48 = (chars) => describeRoster(chars).lines.join("\n");
+
+const two48 = desc48([
+  { name: "A1", role: "FU", dpsTier: "high", account: "one" },
+  { name: "B1", role: "MT", dpsTier: "high", account: "two" },
+  { name: "A2", role: "Healer", dpsTier: "low", account: "one" },
+]);
+eq("48. one heading per account", (two48.match(/`account /g) || []).length, 2);
+// Grouped, not merely labelled: both of "one" sit together, above "two".
+check("48. characters sit under their account",
+  two48.indexOf("A1") < two48.indexOf("A2") && two48.indexOf("A2") < two48.indexOf("B1"), two48);
+check("48. and the account leaves the character line", !/\*\*A1\*\*.*account/.test(two48));
+
+// One group is not a grouping.
+check("48. a single account gets no heading",
+  !desc48([{ name: "Solo", role: "FU", dpsTier: "high", account: "one" }]).includes("`account"));
+check("48. nor does a roster with none recorded",
+  !desc48([{ name: "Bare", role: "FU", dpsTier: "high" }]).includes("`account"));
+
+// A character with no account still has to appear somewhere.
+const mixed48 = desc48([
+  { name: "Has", role: "FU", dpsTier: "high", account: "one" },
+  { name: "None", role: "MT", dpsTier: "high" },
+]);
+check("48. an account-less character is still listed", mixed48.includes("**None**"), mixed48);
+
+// The week's rewards are summed across the whole roster, not per group.
+eq("48. earnings still add up across accounts",
+  describeRoster(
+    [{ name: "X", account: "one" }, { name: "Y", account: "two" }],
+    {
+      X: { board: [{ poolKey: "gdn:hc", rarity: "unique", scroll: "weapon", runId: "d" }], shares: [] },
+      Y: { board: [{ poolKey: "sdn:hc", rarity: "unique", scroll: "weapon", runId: "d" }], shares: [] },
+    },
+  ).earned,
+  "2× Potion Engrave · 2× Weapon scroll");
+
+
 // A throw inside an async block would reject Promise.all and take the summary
 // with it — no count, no failure list, just a stack trace. Turn it into a
 // failure like any other.

@@ -47,27 +47,37 @@ function renderTally(t) {
   return parts.join(" · ");
 }
 
-// Characters with nothing recorded still appear — this is the roster view as
-// well as the week view, and "which of my characters did I forget" is exactly
-// the question it exists to answer.
-async function buildPanel(ownerId) {
-  const [chars, doc] = await Promise.all([getChars(ownerId), getBountyWeek(ownerId, weekKey())]);
-  const byChar = doc?.chars || {};
-
-  const lines = [`<@${ownerId}>`];
+// Pure, and exported: the roster is the part of the panel worth checking, and
+// buildPanel cannot be exercised without a database.
+function describeRoster(chars, byChar = {}) {
+  const lines = [];
   const total = { potion: 0, box: 0, scroll: {} };
 
+  // Grouped by game account, because that is the question the roster answers:
+  // characters on one account cannot run at the same time. With the account as
+  // a heading it stops being repeated on every line.
+  //
+  // One group is not a grouping, so a roster with a single account — or none
+  // recorded yet — gets no headings at all.
+  const byAccount = new Map();
   for (const c of chars) {
-    const charWeek = byChar[c.name];
-    const board = charWeek?.board || [];
-    lines.push(
-      "",
-      `**${c.name}** · ${c.role || "no role"} · ${DPS_TIERS[c.dpsTier] || "no DPS tier"}` +
-        (c.account ? ` · account ${c.account}` : ""),
-    );
+    const key = c.account || "";
+    if (!byAccount.has(key)) byAccount.set(key, []);
+    byAccount.get(key).push(c);
+  }
+  const headed = byAccount.size > 1;
 
-    if (!board.length) lines.push("_no quest_");
-    else {
+  for (const [account, members] of byAccount) {
+    if (headed) lines.push("", `\`account ${account || "—"}\``);
+    members.forEach((c, i) => {
+      const charWeek = byChar[c.name];
+      const board = charWeek?.board || [];
+      // A blank line between characters, but not straight after a heading.
+      if (!headed || i > 0) lines.push("");
+      lines.push(`**${c.name}** · ${c.role || "no role"} · ${DPS_TIERS[c.dpsTier] || "no DPS tier"}`);
+
+      if (!board.length) return lines.push("_no quest_");
+
       // No claim count. Joining a 3-stack spends 3 claims even on a character
       // holding nothing, and a party formed outside the panel never tells the
       // bot — so the number is always too high, which is the direction that
@@ -77,9 +87,21 @@ async function buildPanel(ownerId) {
       total.potion += t.potion;
       total.box += t.box;
       for (const [k, n] of Object.entries(t.scroll)) total.scroll[k] = (total.scroll[k] || 0) + n;
-    }
+    });
   }
 
+  return { lines, earned: renderTally(total) };
+}
+
+// Characters with nothing recorded still appear — this is the roster view as
+// well as the week view, and "which of my characters did I forget" is exactly
+// the question it exists to answer.
+async function buildPanel(ownerId) {
+  const [chars, doc] = await Promise.all([getChars(ownerId), getBountyWeek(ownerId, weekKey())]);
+  const byChar = doc?.chars || {};
+
+  const { lines, earned } = describeRoster(chars, byChar);
+  lines.unshift(`<@${ownerId}>`);
   if (!chars.length) lines.push("", "Belum ada karakter. Mulai dari **➕ Add Character**.");
 
   // The invite waits HERE rather than arriving as a message. A DM can be closed
@@ -92,7 +114,6 @@ async function buildPanel(ownerId) {
 
   const group = linkedTo(ownerId).filter((id) => id !== ownerId);
   if (group.length) lines.push("", `🔗 Ter-link: ${group.map((id) => `<@${id}>`).join(" · ")}`);
-  const earned = renderTally(total);
   if (earned) lines.push("", `**Earned this week:** ${earned}`);
 
   // An embed, not message content: 15 characters with their quests runs past
@@ -377,5 +398,5 @@ module.exports = {
   buildPanel, handlePanelButton, handlePanelModal, PREFIX,
   // Pure functions of (ownerId, roster) — the modal shape depends on the
   // roster, so that relationship is worth checking directly.
-  addModal, editModal,
+  addModal, editModal, describeRoster,
 };
