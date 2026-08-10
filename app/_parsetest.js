@@ -4,7 +4,7 @@
 //   node app/_parsetest.js "thorns l | gdn fragment x5"
 //   node app/_parsetest.js "gdn (armor)"   "ddn unique accessory ring hybrid"
 
-const { parseItemLines } = require("./utils/parseItems");
+const { parseItemLines, formatParseError } = require("./utils/parseItems");
 const { CATALOG } = require("./items");
 
 const input = process.argv.slice(2).join("\n");
@@ -38,7 +38,7 @@ if (golds.length) {
 if (unresolved.length) {
   console.log("❓ Needs a choice:");
   for (const u of unresolved) {
-    console.log(`   "${u.raw}" (qty ${u.qty}):`);
+    console.log(`   "${u.raw}" (qty ${u.qty})${u.reason ? ` — ${u.reason}` : ""}:`);
     u.candidates.forEach((c, i) => {
       const meta = [c.class, c.part].filter(Boolean).join(", ");
       console.log(`      ${i + 1}) ${c.name}${meta ? ` (${meta})` : ""}  [${c.key}]`);
@@ -48,7 +48,7 @@ if (unresolved.length) {
 
 if (errors.length) {
   console.log("⚠️  Not matched:");
-  for (const e of errors) console.log(`   • ${e}`);
+  for (const e of errors) console.log(`   • ${formatParseError(e)}`);
 }
 
 if (!added.length && !golds.length && !unresolved.length && !errors.length) console.log("(nothing parsed)");

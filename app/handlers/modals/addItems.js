@@ -1,8 +1,8 @@
 const { ActionRowBuilder, ButtonBuilder, ButtonStyle, MessageFlags } = require("discord.js");
-const { activeLootPanels, saveState, setPendingResolution } = require("../../state");
+const { activeLootPanels, saveState, setPendingResolution, recordParseFail } = require("../../state");
 const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
-const { parseItemLines } = require("../../utils/parseItems");
+const { parseItemLines, formatParseError } = require("../../utils/parseItems");
 
 function addToPanel(panel, it) {
   // "unique" items (equipment, runes, accessories) never merge — each drop
@@ -48,6 +48,13 @@ async function handleAddItemsModal(interaction) {
   }
 
   const { added, golds, unresolved, errors } = parseItemLines(interaction.fields.getTextInputValue("items"));
+
+  // What the parser could not read, kept so the vocabulary gets tuned against
+  // real input. A line that needed a click is recorded too, separately: one
+  // repeated often enough is a default the parser should be making itself.
+  for (const e of errors) recordParseFail("loot", e.raw, e.reason, interaction.user.id);
+  for (const u of unresolved)
+    recordParseFail("loot", u.raw, u.reason || "needed a choice", interaction.user.id, "needs_pick");
 
   for (const it of added) addToPanel(panel, it);
 
@@ -103,7 +110,9 @@ async function handleAddItemsModal(interaction) {
   }
   if (errors.length) {
     lines.push(`${lines.length ? "\n" : ""}⚠️ Couldn't match ${errors.length} line(s):`);
-    for (const e of errors) lines.push(`• \`${e}\``);
+    // The parser is the only place that knows why, and formatParseError is the
+    // one place that words it — so /parse-fails and this reply cannot drift.
+    for (const e of errors) lines.push(`• ${formatParseError(e)}`);
   }
 
   const components = [];
@@ -111,7 +120,9 @@ async function handleAddItemsModal(interaction) {
     setPendingResolution(lootMsgId, interaction.user.id, unresolved);
     lines.push(`${lines.length ? "\n" : ""}❓ ${unresolved.length} line(s) need a choice — click **Resolve** and type one number per line (comma-separated):`);
     unresolved.forEach((u, i) => {
-      lines.push(`\n**[${i + 1}]** \`${u.raw}\``);
+      // The reason IS the question the list is asking — "which tier?" — and a
+      // bare pair of accessories does not ask it.
+      lines.push(`\n**[${i + 1}]** \`${u.raw}\`${u.reason ? ` — ${u.reason}` : ""}`);
       u.candidates.forEach((c, j) => {
         const meta = [c.class, c.part].filter(Boolean).join(", ");
         lines.push(`  ${j + 1}) ${c.name}${meta ? ` (${meta})` : ""}`);

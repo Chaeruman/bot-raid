@@ -14,7 +14,58 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.28.0] — 2026-08-10
+
+### Added
+- **Class Assassin** di loot panel — 8 item GDN dan 8 item DDN. Weapon: Scimitar
+  & Dagger (Main), Crook (Second). Armor: Mask (Helmet), Vest (Armor), Greave
+  (Pants), Grip (Gloves), Walker (Boots). Stamp-nya ikut bucket-nya otomatis
+  (GDN armor 1 · GDN weapon 3 · DDN armor 2 · DDN weapon 4), jadi tidak ada
+  angka baru yang perlu diisi. `Assassin` juga masuk `CLASSES`, jadi dropdown
+  equipment dan baris struktural (`gdn armor assassin head`) ikut mengenalinya.
+- **Catatan baris yang gagal di-parse**, biar kosakata parser disetel dari input
+  nyata, bukan tebakan. Berlaku untuk loot panel dan bounty quest.
+  - Satu dokumen per **baris berbeda** (collection `parseFails`), bukan per
+    percobaan: typo yang sama dari lima orang jadi satu baris `count: 5`. Jadi
+    ukurannya dibatasi jumlah kesalahan unik, bukan jumlah traffic — tidak perlu
+    TTL index atau job pembersih.
+  - Dibedakan `failed` (baris dibuang) vs `needs_pick` (muncul daftar pilihan).
+    Baris `needs_pick` yang sering berulang artinya parser mestinya bisa menebak
+    sendiri.
+  - **`/parse-fails`** (Co-Leader) menampilkannya dalam satu blok kode yang siap
+    di-copy — terbanyak dulu, lengkap dengan alasan kegagalannya. Filter
+    `source` (loot/bounty) dan `outcome`, plus `clear:true` untuk mengosongkan
+    setelah satu batch selesai ditangani.
+  - Ikut ditulis ke stdout juga, jadi log Render tetap punya jejaknya walau
+    MongoDB sedang mati.
+
 ### Changed
+- **Parser item (loot panel) dan parser quest (bounty) sekarang toleran typo.**
+  Kata yang tidak dikenal dicocokkan ke kosakata terdekat lebih dulu, jadi
+  `gdn fragmen`, `ddn hc legendry wep`, `gdn armour warrior head` langsung
+  masuk. Batasnya 1 edit sampai 5 huruf, 2 di atas itu; token 2 huruf tidak
+  pernah dikoreksi (`l` dan `u` beda tier tapi cuma beda 1 edit), dan kalau ada
+  dua kandidat sama dekatnya parser bertanya, bukan menebak. Koreksi yang
+  dipakai ditampilkan di balasan (`🔧 Dibaca sebagai: ...`) supaya tebakan yang
+  salah kelihatan di layar yang sama dengan quest-nya.
+- **Baris yang gagal sekarang menyebut alasannya**, bukan cuma mengulang
+  barisnya. `sdn rune` → "no SDN smelted rune in the catalog"; token asing di
+  bounty → saran yang ditandai jenisnya (`` `wep` (scroll) ``) alih-alih daftar
+  nama nest untuk typo rarity. Semua token asing dilaporkan, bukan yang pertama
+  saja.
+- **Kurang satu kata = satu klik, bukan baris mati.** Loot: `gdn ring atk`
+  (tanpa tier), `thorns` (tanpa L/U), `armor warrior head` (tanpa dungeon),
+  `sdn armor` sekarang jadi daftar pilihan lewat tombol **Resolve**, dan
+  pilihannya membawa detail-nya (`Ring@Attack` ikut tersimpan). Bounty: baris
+  tanpa rarity/scroll jadi dropdown juga, bukan cuma baris ambigu nest —
+  selama total kombinasinya ≤ 25 opsi.
+- `gdn wep` / `ddn arm` (singkatan tanpa nama item) sekarang resolve ke
+  equipment generic; sebelumnya tidak match sama sekali. Baris yang menyebut
+  nama spesifik (`gdn wep voodoo doll`) tetap diambil pencarian named item.
+- `parseItemLines()` mengembalikan `errors` sebagai objek `{ raw, reason }`,
+  bukan string jadi. Formatnya dipegang `formatParseError()` — supaya balasan
+  modal dan `/parse-fails` tidak bisa berbeda kata, dan supaya log kegagalan
+  bisa memakai baris mentahnya sebagai kunci tanpa membedah kalimat error.
 - **`/kirim-gaji` dikelompokkan per jumlah panel**, bukan satu daftar datar.
   Dua tingkat: header `**3 Panel**` sekali per jumlah, lalu daftar IGN seller
   `[ Santeterz | chelssea ]` sebagai sub-blok di bawahnya. Barisnya tinggal

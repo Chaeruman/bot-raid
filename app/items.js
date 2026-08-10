@@ -93,7 +93,7 @@ const ACCESSORY_ITEMS = new Set([
 
 const ARMOR_PARTS = ["Head", "Top", "Lower", "Gloves", "Shoes"];
 const WEAPON_TYPES = ["Main", "Second"];
-const CLASSES = ["Kali", "Academic", "Sorceress", "Warrior", "Cleric", "Archer"];
+const CLASSES = ["Kali", "Academic", "Sorceress", "Warrior", "Cleric", "Archer", "Assassin"];
 
 const ACCESSORY_TYPES = {
   Ring:     ["Hybrid", "Magic", "Attack"],

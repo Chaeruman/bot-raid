@@ -46,6 +46,18 @@ Dragon Nest raid party signup bot. Players click role buttons to join a party; h
 - Bump with `npm run release:patch|minor|major` (creates commit + `vX.Y.Z` tag).
 - Before bumping, move the `[Unreleased]` items in `CHANGELOG.md` into a new dated version section.
 
+## Parse-failure log
+- Both parsers (`utils/parseItems.js` for loot, `bounty.js` for quests) record
+  lines they couldn't read via `recordParseFail()` in `app/state.js`.
+- One document per DISTINCT line in the `parseFails` collection, `$inc`-ed on
+  repeat — bounded by the number of distinct mistakes, not by traffic, and
+  self-sorting by what's worth fixing first. No TTL index, no cleanup job.
+- `outcome`: `failed` (line dropped) vs `needs_pick` (a shortlist was offered).
+  A `needs_pick` line repeated often is a default the parser should be making.
+- Read back with `/parse-fails` (Co-Leader); `clear:true` empties it after a
+  batch has been acted on. Also mirrored to stdout, so Render logs have it even
+  when Mongo is down.
+
 ## Weekly digest
 - `app/digest.js` posts a top-10 salary leaderboard to `DIGEST_CHANNEL_ID` every Saturday 08:00 WIB.
 - Off by default — gated behind `DIGEST_ENABLED=true` env var (kill-switch, no redeploy needed to disable).

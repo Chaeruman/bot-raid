@@ -139,6 +139,24 @@ const BOX_WORDS = new Set(BOX_ALIASES.map((a) => collapse(lc(a))));
 
 const variantsOfNest = (nestKey) => VARIANT_LIST.filter((v) => v.nestKey === nestKey);
 
+// Every word a quest line may legally contain, in one flat index tagged with
+// what kind of thing it is. Typo repair and suggestions both read THIS rather
+// than the variant list alone: a misspelt "legendry" is a rarity problem, and
+// answering it with a list of nest names is a wrong answer wearing the clothes
+// of a helpful one.
+const VOCAB = [];
+for (const [words, kind] of [
+  [NEST_ALIAS.keys(), "nest"],
+  [VARIANT_WORDS, "variant"],
+  [RARITY_ALIAS.keys(), "rarity"],
+  [SCROLL_ALIAS.keys(), "scroll"],
+  [BOX_WORDS, "box"],
+])
+  for (const word of words) VOCAB.push({ word, kind });
+
+const isKnown = (t) =>
+  NEST_ALIAS.has(t) || RARITY_ALIAS.has(t) || SCROLL_ALIAS.has(t) || BOX_WORDS.has(t) || VARIANT_WORDS.has(t);
+
 // ── Parsing ──────────────────────────────────────────────────────────────────
 const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
@@ -198,6 +216,45 @@ function suggestVariants(token, list = VARIANT_LIST, n = 5) {
     .map((x) => x.v);
 }
 
+// How many edits still count as "the same word, typed badly". Short tokens are
+// left alone: at two characters every word in the vocabulary is one edit from
+// another, so a repair there is a coin flip — and this vocabulary is full of
+// two-character words that mean entirely different things (`u`, `cl`, `hc`).
+const maxTypos = (len) => (len <= 2 ? 0 : len <= 5 ? 1 : 2);
+
+// The nearest vocabulary word, or null. A TIE is deliberately not repaired:
+// `adn` is one edit from ddn, gdn and sdn alike, and picking one of the three
+// files a week of quests under a nest nobody typed — the exact wrong answer
+// this parser exists to prevent. Better to ask.
+function nearestVocab(token) {
+  const limit = maxTypos(token.length);
+  if (!limit) return null;
+
+  let best = null, bestD = Infinity, tie = false;
+  for (const v of VOCAB) {
+    if (Math.abs(v.word.length - token.length) > limit) continue;
+    const d = levenshtein(token, v.word);
+    if (d > limit) continue;
+    if (d < bestD) {
+      best = v;
+      bestD = d;
+      tie = false;
+    } else if (d === bestD && v.word !== best.word) tie = true;
+  }
+  return best && !tie ? best : null;
+}
+
+// Nearest words from the whole vocabulary, each tagged with what it is, so the
+// hint points at the part of the line that is actually wrong.
+function suggestVocab(token, n = 5) {
+  const seen = new Set();
+  return VOCAB.map((v) => ({ v, d: levenshtein(token, v.word) }))
+    .sort((a, b) => a.d - b.d || a.v.word.length - b.v.word.length)
+    .filter((x) => !seen.has(x.v.word) && seen.add(x.v.word))
+    .slice(0, n)
+    .map((x) => `\`${spell(x.v.word)}\` (${x.v.kind})`);
+}
+
 // One quest line → { poolKey, rarity, scroll, box } or { error, hint }.
 //
 // Matching is by token membership, never by position, so `u wep hc ddn` parses
@@ -208,23 +265,40 @@ function parseQuestLine(raw) {
   const tokens = collapsePhrases(lc(raw)).split(/\s+/).filter(Boolean);
 
   let nestKey = null, variantWord = null, rarity = null, scroll = null, box = false;
-  const unknown = [], extra = [];
+  const unknown = [], extra = [], fixes = [];
 
-  for (const t of tokens) {
+  for (const typed of tokens) {
+    let t = typed;
+    // A token nobody knows gets ONE chance to be a typo before it is reported.
+    // Repairs are collected rather than applied silently — the reply names them,
+    // so a wrong guess is visible on the same screen that shows the quest.
+    if (!isKnown(t)) {
+      const near = nearestVocab(t);
+      if (!near) {
+        unknown.push(t);
+        continue;
+      }
+      fixes.push(`\`${spell(t)}\` → \`${spell(near.word)}\``);
+      t = near.word;
+    }
+
     if (NEST_ALIAS.has(t)) nestKey ? extra.push(t) : (nestKey = NEST_ALIAS.get(t));
     else if (RARITY_ALIAS.has(t)) rarity ? extra.push(t) : (rarity = RARITY_ALIAS.get(t));
     else if (SCROLL_ALIAS.has(t)) scroll ? extra.push(t) : (scroll = SCROLL_ALIAS.get(t));
     else if (BOX_WORDS.has(t)) box = true;
     else if (VARIANT_WORDS.has(t)) variantWord ? extra.push(t) : (variantWord = t);
-    else unknown.push(t);
   }
 
-  if (unknown.length) {
-    const near = suggestVariants(unknown[0]).map((v) => v.name);
-    return { raw, error: `don't know "${spell(unknown[0])}"`, hint: `did you mean: ${near.join(", ")}` };
-  }
+  // Every unknown token is named, not just the first: someone who typed two
+  // wrong words should not have to submit twice to learn about the second.
+  if (unknown.length)
+    return {
+      raw, fixes,
+      error: `don't know ${unknown.map((u) => `"${spell(u)}"`).join(", ")}`,
+      hint: `did you mean: ${suggestVocab(unknown[0]).join(", ")}`,
+    };
   if (extra.length)
-    return { raw, error: `two values for the same thing — "${spell(extra[0])}" is one too many` };
+    return { raw, fixes, error: `two values for the same thing — "${spell(extra[0])}" is one too many` };
 
   // Resolve nest + variant into the pool key. Where the answer is one of a
   // known few, the error carries `candidates` so the caller can offer them as a
@@ -236,7 +310,7 @@ function parseQuestLine(raw) {
     const variantKey = VARIANT_BY_NEST.get(nestKey)?.get(variantWord);
     if (!variantKey)
       return {
-        raw,
+        raw, fixes,
         error: `"${spell(variantWord)}" is not a variant of ${NEST_NAME.get(nestKey)}`,
         hint: `try: ${variantsOfNest(nestKey).map((v) => v.label).join(", ")}`,
         candidates: variantsOfNest(nestKey).map((v) => v.poolKey),
@@ -248,7 +322,7 @@ function parseQuestLine(raw) {
     if (!poolKey) {
       const owners = VARIANT_LIST.filter((v) => v.variantAliases.some((a) => collapse(a) === variantWord));
       return {
-        raw,
+        raw, fixes,
         error: `"${spell(variantWord)}" belongs to ${owners.length} nests — which one?`,
         hint: `add a nest: ${[...new Set(owners.map((v) => v.nestAliases[0]))].join(", ")}`,
         candidates: owners.map((v) => v.poolKey),
@@ -260,20 +334,53 @@ function parseQuestLine(raw) {
     if (vs.length === 1) poolKey = vs[0].poolKey;
     else
       return {
-        raw,
+        raw, fixes,
         error: `which ${NEST_NAME.get(nestKey)}?`,
         hint: `add a variant: ${vs.map((v) => v.label).join(", ")}`,
         candidates: vs.map((v) => v.poolKey),
         rarity, scroll, box,
       };
   } else {
-    return { raw, error: "no nest here", hint: "a line looks like `ddn hc u wep`" };
+    return { raw, fixes, error: "no nest here", hint: "a line looks like `ddn hc u wep`" };
   }
 
-  if (!rarity) return { raw, error: "no rarity", hint: "add `u`, `leg` or `rl`" };
-  if (!scroll) return { raw, error: "no scroll type", hint: "add `wep`, `wtd`, `acc` or `arm`" };
+  // A missing rarity or scroll carries everything that WAS understood, so the
+  // caller can offer the handful of possible completions as a picker. Rarity has
+  // three values and scroll has four — a shortlist that short is a click, and
+  // making someone retype a line the bot already read is the waste.
+  if (!rarity)
+    return { raw, fixes, error: "no rarity", hint: "add `u`, `leg` or `rl`", poolKey, scroll, box };
+  if (!scroll)
+    return { raw, fixes, error: "no scroll type", hint: "add `wep`, `wtd`, `acc` or `arm`", poolKey, rarity, box };
 
-  return { raw, poolKey, rarity, scroll, box };
+  return { raw, fixes, poolKey, rarity, scroll, box };
+}
+
+// Every complete quest an unfinished line could have meant. Whatever was left
+// open — nest, rarity, scroll, or two of them at once — becomes one axis of the
+// product, which is what lets one picker answer `hc u wep` (which nest?) and
+// `gdn hc` (which reward?) without either knowing about the other.
+//
+// Past the cap there is no picker: Discord takes 25 options, and a line so bare
+// it produces more than that (`hc` alone → 36) is not a line with a typo in it,
+// it is a line that was never written.
+const RARITY_KEYS = Object.keys(RARITY);
+const SCROLL_KEYS = Object.keys(SCROLL);
+
+function fixCandidates(e, cap = 25) {
+  if (!e || !e.error) return [];
+  const pools = e.candidates?.length ? e.candidates : e.poolKey ? [e.poolKey] : null;
+  if (!pools) return [];
+
+  const rarities = e.rarity ? [e.rarity] : RARITY_KEYS;
+  const scrolls = e.scroll ? [e.scroll] : SCROLL_KEYS;
+  if (pools.length * rarities.length * scrolls.length > cap) return [];
+
+  const out = [];
+  for (const poolKey of pools)
+    for (const rarity of rarities)
+      for (const scroll of scrolls) out.push({ poolKey, rarity, scroll, box: !!e.box });
+  return out;
 }
 
 // Split on newlines and pipes, same as the loot panel's item input.
@@ -282,9 +389,11 @@ function parseQuestLine(raw) {
 function parseQuestLines(text) {
   const added = [], errors = [], duplicates = [];
   const seen = new Set();
+  const fixed = new Set(); // every typo repaired anywhere in the paste, deduped
 
   for (const line of String(text || "").split(/[\n|]+/).map((s) => s.trim()).filter(Boolean)) {
     const r = parseQuestLine(line);
+    for (const f of r.fixes || []) fixed.add(f);
     if (r.error) {
       errors.push(r);
       continue;
@@ -297,7 +406,7 @@ function parseQuestLines(text) {
     }
   }
 
-  return { added, errors, duplicates };
+  return { added, errors, duplicates, fixes: [...fixed] };
 }
 
 // ── Claims ───────────────────────────────────────────────────────────────────
@@ -431,6 +540,8 @@ module.exports = {
   validateData,
   parseQuestLine,
   parseQuestLines,
+  fixCandidates,
+  nearestVocab,
   suggestVariants,
   collapsePhrases,
   collapse,

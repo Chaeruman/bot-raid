@@ -190,6 +190,34 @@ const commands = [
     .toJSON(),
 
   new SlashCommandBuilder()
+    .setName("parse-fails")
+    .setDescription("Co-Leader: lines the item/quest parser couldn't read, most repeated first")
+    .addStringOption((o) =>
+      o
+        .setName("source")
+        .setDescription("Parser mana (default: dua-duanya)")
+        .setRequired(false)
+        .addChoices({ name: "Loot panel", value: "loot" }, { name: "Bounty quest", value: "bounty" }),
+    )
+    .addStringOption((o) =>
+      o
+        .setName("outcome")
+        .setDescription("Jenis kegagalan (default: semua)")
+        .setRequired(false)
+        .addChoices(
+          { name: "Gagal total (baris dibuang)", value: "failed" },
+          { name: "Butuh klik (muncul pilihan)", value: "needs_pick" },
+        ),
+    )
+    .addBooleanOption((o) =>
+      o
+        .setName("clear")
+        .setDescription("Hapus catatan (yang cocok dengan source di atas) — pakai setelah parser diperbaiki")
+        .setRequired(false),
+    )
+    .toJSON(),
+
+  new SlashCommandBuilder()
     .setName("clear")
     .setDescription("Co-Leader: clear an active event or loot panel from state")
     .addStringOption((o) =>

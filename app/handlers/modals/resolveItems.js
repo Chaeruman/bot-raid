@@ -3,21 +3,23 @@ const { activeLootPanels, saveState, takePendingResolution } = require("../../st
 const { CATALOG } = require("../../items");
 const { refreshLootPanel } = require("../../builders/lootPanel");
 
-function addToPanel(panel, itemKey, qty, note, notForSale) {
+// `detail` is null for a named item (the name IS the detail) and set for a
+// structural shortlist — "which tier is this Ring@Attack" keeps the Ring@Attack.
+function addToPanel(panel, itemKey, qty, note, notForSale, detail = null) {
   // "unique" items never merge — see addItems.js's addToPanel for why.
   // "quantity" items only merge when note AND notForSale match too.
   const existing =
     CATALOG[itemKey].type === "unique"
       ? null
       : panel.items.find(
-          (i) => i.itemKey === itemKey && i.detail === null && i.note === (note || null) && !!i.notForSale === !!notForSale,
+          (i) => i.itemKey === itemKey && i.detail === (detail || null) && i.note === (note || null) && !!i.notForSale === !!notForSale,
         );
   if (existing) {
     existing.qty += qty;
     return;
   }
 
-  const base = { itemKey, price: null, detail: null, note: note || null, notForSale: !!notForSale };
+  const base = { itemKey, price: null, detail: detail || null, note: note || null, notForSale: !!notForSale };
   if (CATALOG[itemKey].type === "unique" && qty > 1) {
     for (let n = 0; n < qty; n++) panel.items.push({ ...base, qty: 1 });
   } else {
@@ -50,8 +52,8 @@ async function handleResolveItemsModal(interaction) {
       return;
     }
     const picked = u.candidates[choice - 1];
-    addToPanel(panel, picked.key, u.qty, u.note, u.notForSale);
-    added.push({ name: CATALOG[picked.key].name, qty: u.qty });
+    addToPanel(panel, picked.key, u.qty, u.note, u.notForSale, picked.detail);
+    added.push({ name: picked.name || CATALOG[picked.key].name, qty: u.qty });
   });
 
   if (added.length) saveState();

@@ -11,6 +11,7 @@ let collection = null;
 let salaryLogCollection = null;
 let charsCollection = null;
 let bountyWeekCollection = null;
+let parseFailCollection = null;
 let digestLastSent = 0; // ms epoch, persisted so a Render restart doesn't cause a duplicate/missed weekly digest
 let lzDigestLastSent = 0; // same idea, daily instead of weekly
 let bountyReminderLastSent = 0; // same idea, for the Friday pre-reset ping
@@ -57,6 +58,7 @@ async function loadState() {
   // its own part of the same document.
   charsCollection = db.collection("chars");
   bountyWeekCollection = db.collection("bountyWeek");
+  parseFailCollection = db.collection("parseFails");
 
   const doc = await collection.findOne({ _id: "state" });
   if (doc) {
@@ -388,6 +390,57 @@ async function getBountyWeekAll(weekKey) {
   return bountyWeekCollection.find({ weekKey }).toArray();
 }
 
+// ── Parse failures ───────────────────────────────────────────────────────────
+// What people actually typed that the parsers could not read, so the vocabulary
+// gets tuned against real input instead of guesses about it.
+//
+// One document per DISTINCT line, not per attempt: the same typo from five
+// people is one row with `count: 5`. That makes the collection bounded by the
+// number of distinct mistakes rather than by traffic, and sorts itself by the
+// thing most worth fixing — no TTL index, no cleanup job.
+//
+// `outcome` separates the two kinds of friction: "failed" is a line that died,
+// "needs_pick" is one that cost a click. A needs_pick line repeated often enough
+// is a default the parser should be making on its own.
+function recordParseFail(source, raw, reason, userId, outcome = "failed") {
+  const line = String(raw || "").trim().slice(0, 200);
+  if (!line) return;
+  // Logged to stdout too, so the signal exists even before Mongo is reachable.
+  console.log(`📝 parse-${outcome} [${source}] "${line}" — ${reason}`);
+  if (!parseFailCollection) return;
+
+  parseFailCollection
+    .updateOne(
+      { _id: `${source}:${line.toLowerCase()}` },
+      {
+        $set: { source, line, reason: String(reason || "").slice(0, 300), outcome, lastAt: new Date() },
+        $setOnInsert: { firstAt: new Date() },
+        $inc: { count: 1 },
+        ...(userId ? { $addToSet: { users: userId } } : {}),
+      },
+      { upsert: true },
+    )
+    .catch((err) => console.error("❌ recordParseFail failed:", err.message));
+}
+
+// Most-repeated first: the line worth teaching the parser about is the one the
+// most people keep typing.
+async function getParseFails({ source = null, outcome = null, limit = 40 } = {}) {
+  if (!parseFailCollection) return [];
+  const q = {};
+  if (source) q.source = source;
+  if (outcome) q.outcome = outcome;
+  return parseFailCollection.find(q).sort({ count: -1, lastAt: -1 }).limit(limit).toArray();
+}
+
+// Emptied by hand once a batch has been acted on, so the next batch is only the
+// lines that still fail. Awaited — the caller reports how many went.
+async function clearParseFails(source = null) {
+  if (!parseFailCollection) return 0;
+  const r = await parseFailCollection.deleteMany(source ? { source } : {});
+  return r.deletedCount || 0;
+}
+
 function setPendingEphemeral(lootMsgId, userId, interaction) {
   pendingEphemerals.set(`${lootMsgId}:${userId}`, interaction);
 }
@@ -456,6 +509,9 @@ module.exports = {
   getBountyWeek,
   saveBountyWeek,
   getBountyWeekAll,
+  recordParseFail,
+  getParseFails,
+  clearParseFails,
   setPendingEphemeral,
   clearPendingEphemeral,
   setPendingResolution,

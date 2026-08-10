@@ -46,6 +46,11 @@ module.exports = {
     { name: "DDN Leggings", class: "Archer", part: "Pants" },
     { name: "DDN Mittens", class: "Archer", part: "Gloves" },
     { name: "DDN Booties", class: "Archer", part: "Boots" },
+    { name: "DDN Mask", class: "Assassin", part: "Helmet" },
+    { name: "DDN Vest", class: "Assassin", part: "Armor" },
+    { name: "DDN Greave", class: "Assassin", part: "Pants" },
+    { name: "DDN Grip", class: "Assassin", part: "Gloves" },
+    { name: "DDN Walker", class: "Assassin", part: "Boots" },
   ],
 
   // ─── GDN Armor (1 stamp) ───
@@ -80,6 +85,11 @@ module.exports = {
     { name: "GDN Leggings", class: "Archer", part: "Pants" },
     { name: "GDN Mittens", class: "Archer", part: "Gloves" },
     { name: "GDN Booties", class: "Archer", part: "Boots" },
+    { name: "GDN Mask", class: "Assassin", part: "Helmet" },
+    { name: "GDN Vest", class: "Assassin", part: "Armor" },
+    { name: "GDN Greave", class: "Assassin", part: "Pants" },
+    { name: "GDN Grip", class: "Assassin", part: "Gloves" },
+    { name: "GDN Walker", class: "Assassin", part: "Boots" },
   ],
 
   // ─── DDN Weapon (4 stamps) ───
@@ -106,6 +116,9 @@ module.exports = {
     { name: "DDN Longbow", class: "Archer", part: "Main" },
     { name: "DDN Crossbow", class: "Archer", part: "Main" },
     { name: "DDN Quiver", class: "Archer", part: "Second" },
+    { name: "DDN Scimitar", class: "Assassin", part: "Main" },
+    { name: "DDN Dagger", class: "Assassin", part: "Main" },
+    { name: "DDN Crook", class: "Assassin", part: "Second" },
   ],
 
   // ─── GDN Weapon (3 stamps) ───
@@ -132,5 +145,8 @@ module.exports = {
     { name: "GDN Longbow", class: "Archer", part: "Main" },
     { name: "GDN Crossbow", class: "Archer", part: "Main" },
     { name: "GDN Quiver", class: "Archer", part: "Second" },
+    { name: "GDN Scimitar", class: "Assassin", part: "Main" },
+    { name: "GDN Dagger", class: "Assassin", part: "Main" },
+    { name: "GDN Crook", class: "Assassin", part: "Second" },
   ],
 };

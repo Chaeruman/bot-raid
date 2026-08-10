@@ -15,6 +15,7 @@ const { handleSoundboardList } = require("./soundboardList");
 const { handleBountyChar } = require("./bountyChar");
 const { handleBountyQuest } = require("./bountyQuest");
 const { handleBountyMe } = require("./bountyMe");
+const { handleParseFails } = require("./parseFails");
 
 const commandHandlers = {
   start:    handleStart,
@@ -34,6 +35,7 @@ const commandHandlers = {
   "bounty-char": handleBountyChar,
   bounty: handleBountyQuest,
   "bounty-me": handleBountyMe,
+  "parse-fails": handleParseFails,
 };
 
 async function handleCommand(interaction) {

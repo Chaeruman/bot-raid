@@ -33,6 +33,76 @@ const RING_SUBS = {
 const ACC_TIER_L = ["legend", "l", "hunter", "hc"];
 const ACC_TIER_U = ["unique", "u", "squad"];
 
+// Every word parseStructural understands, in one flat set. A line dies far more
+// often on a misspelt keyword than on a keyword nobody knows, so an unrecognised
+// token is repaired against this list BEFORE matching rather than reported after.
+const STRUCT_VOCAB = new Set([
+  "ddn", "gdn", "sdn",
+  "fragment", "frag", "smelted", "rune", "research", "res",
+  "accessory", "acc",
+  ...Object.keys(ACC_TYPES),
+  ...Object.keys(RING_SUBS),
+  ...ACC_TIER_L, ...ACC_TIER_U,
+  "armor", "arm", "weapon", "wep",
+  "upper", "lower",
+  ...CLASSES.map((c) => c.toLowerCase()),
+  ...ARMOR_PARTS.map((p) => p.toLowerCase()),
+  ...WEAPON_TYPES.map((p) => p.toLowerCase()),
+  ...Object.values(ACCESSORY_TYPES).flat().flatMap((s) => s.toLowerCase().split(/\s+/)),
+  ...FAMILIES.flatMap((f) => f.words),
+]);
+
+// A token that already appears inside a named item's name is a NAME keyword, not
+// a misspelt structural word. "Repairing" it would hijack the line away from the
+// named-equipment search that was about to resolve it correctly — so those are
+// left exactly as typed.
+const NAMED_BLOB = NAMED_EQUIPMENT.map((e) => e.name.toLowerCase()).join(" ");
+
+// How many edits still count as "the same word, typed badly". Short tokens are
+// left alone: `l` and `u` mean opposite tiers and are one edit apart, so a
+// repair at that length is a coin flip on somebody's payout.
+const maxTypos = (len) => (len <= 2 ? 0 : len <= 5 ? 1 : 2);
+
+// Nearest vocabulary word, or the token unchanged. A TIE is left unrepaired on
+// purpose: two equally good answers means we do not know which was meant, and
+// guessing writes the wrong item onto a sale.
+function repairToken(t) {
+  if (STRUCT_VOCAB.has(t)) return t;
+  const limit = maxTypos(t.length);
+  if (!limit || NAMED_BLOB.includes(t)) return t;
+
+  let best = null, bestD = Infinity, tie = false;
+  for (const w of STRUCT_VOCAB) {
+    if (Math.abs(w.length - t.length) > limit) continue;
+    const d = levenshtein(t, w);
+    if (d > limit) continue;
+    if (d < bestD) {
+      best = w;
+      bestD = d;
+      tie = false;
+    } else if (d === bestD && w !== best) tie = true;
+  }
+  return best && !tie ? best : t;
+}
+
+// One entry of a shortlist, in the shape the resolve flow already speaks.
+// `detail` rides along so a chosen accessory keeps its Ring@Attack — dropping it
+// would make the picker answer a narrower question than the one that was asked.
+const cand = (key, detail = null) => ({
+  key,
+  name: detail ? `${CATALOG[key].name} (${detail.replace("@", " ")})` : CATALOG[key].name,
+  class: null,
+  part: null,
+  detail,
+});
+
+// Every catalog key matching a pattern, as a shortlist. Fewer than two answers
+// is not a choice, so it stays null and the line reports why instead.
+function shortlist(re, detail = null) {
+  const keys = Object.keys(CATALOG).filter((k) => re.test(k));
+  return keys.length > 1 ? keys.map((k) => cand(k, detail)) : null;
+}
+
 function levenshtein(a, b) {
   const m = a.length, n = b.length;
   const d = Array.from({ length: m + 1 }, (_, i) => [i, ...Array(n).fill(0)]);
@@ -139,7 +209,15 @@ function matchNamedFuzzy(raw) {
 }
 
 // Structural catalog match (fragments, accessories, equipment, thorns/etc.).
-// Returns { itemKey, qty, detail } or null.
+// Returns:
+//   { itemKey, qty, detail }        certain
+//   { qty, candidates, reason }     one token short of certain — offer a shortlist
+//   { reason }                      category understood, nothing worth offering
+//   null                            not a structural line at all
+//
+// The near-miss shapes are what stop a line dying over a single missing word.
+// "gdn ring atk" used to fall out as an unmatched line; it is one click from
+// being a real item, and the only thing missing is which tier it dropped at.
 function parseStructural(raw) {
   let tokens = raw.toLowerCase().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return null;
@@ -151,26 +229,34 @@ function parseStructural(raw) {
     return true;
   });
   if (qty <= 0) qty = 1;
+  tokens = tokens.map(repairToken);
 
   const has = (w) => tokens.includes(w);
   const dungeon = ["ddn", "gdn", "sdn"].find((d) => has(d));
 
   if (has("fragment") || has("frag")) {
     const key = `${dungeon}_fragment`;
-    return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
+    if (CATALOG[key]) return { itemKey: key, qty, detail: null };
+    const reason = dungeon
+      ? `no ${dungeon.toUpperCase()} fragment in the catalog — which one?`
+      : "which dungeon's fragment?";
+    const candidates = shortlist(/^(ddn|gdn|sdn)_fragment$/);
+    return candidates ? { qty, candidates, reason } : { reason };
   }
 
   if (has("smelted") || has("rune")) {
     // ponytail: only a DDN variant exists right now, so no dungeon typed = DDN.
     // Add a dungeon-required check here once a GDN/SDN smelted rune shows up.
     const key = `${dungeon || "ddn"}_smelted_rune`;
-    return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
+    if (CATALOG[key]) return { itemKey: key, qty, detail: null };
+    return { reason: `no ${(dungeon || "ddn").toUpperCase()} smelted rune in the catalog` };
   }
 
   if (has("research") || has("res")) {
     // ponytail: only a DDN variant exists right now, so no dungeon typed = DDN.
     const key = `${dungeon || "ddn"}_research_book`;
-    return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
+    if (CATALOG[key]) return { itemKey: key, qty, detail: null };
+    return { reason: `no ${(dungeon || "ddn").toUpperCase()} research book in the catalog` };
   }
 
   // Accessory: triggered by "accessory"/"acc" OR a type word/alias (ring / neck / ear).
@@ -180,9 +266,6 @@ function parseStructural(raw) {
   const accType = tokens.map((t) => ACC_TYPES[t]).find(Boolean) || null;
   if (has("accessory") || has("acc") || accType) {
     const tier = ACC_TIER_L.some((w) => has(w)) ? "l" : ACC_TIER_U.some((w) => has(w)) ? "u" : null;
-    if (!dungeon || !tier) return null;
-    const key = `${dungeon}_${tier}_accessory`;
-    if (!CATALOG[key]) return null;
 
     let detail = null;
     if (accType) {
@@ -196,13 +279,31 @@ function parseStructural(raw) {
       }
       detail = sub ? `${accType}@${sub}` : accType;
     }
-    return { itemKey: key, qty, detail };
+
+    const key = dungeon && tier ? `${dungeon}_${tier}_accessory` : null;
+    if (key && CATALOG[key]) return { itemKey: key, qty, detail };
+
+    // Offer every accessory that fits what WAS typed, so a missing dungeon or
+    // tier costs a click instead of a retype. The type and subtype survive on
+    // each option, because those were never in doubt.
+    const missing = [
+      !dungeon && "dungeon (`ddn`/`gdn`/`sdn`)",
+      !tier && "tier (`hc`/`legend` or `squad`/`unique`)",
+    ].filter(Boolean).join(" and ");
+    const reason = missing ? `accessory needs a ${missing}` : "no such accessory in the catalog";
+    const candidates = shortlist(
+      new RegExp(`^(${dungeon || "ddn|gdn|sdn"})_(${tier || "l|u"})_accessory$`),
+      detail,
+    );
+    return candidates ? { qty, candidates, reason } : { reason };
   }
 
-  if (has("armor") || has("weapon")) {
-    const kind = has("armor") ? "armor" : "weapon";
-    const key = `${dungeon}_${kind}`;
-    if (!CATALOG[key]) return null;
+  const kind = has("armor") || has("arm") ? "armor" : has("weapon") || has("wep") ? "weapon" : null;
+  if (kind) {
+    // A line that also names something outside the vocabulary is naming a
+    // SPECIFIC piece — "gdn wep voodoo doll" — and belongs to the named-equipment
+    // search, not here. Claiming it would swap a named item for a generic one.
+    if (tokens.some((t) => !STRUCT_VOCAB.has(t))) return null;
 
     const cls = CLASSES.find((c) => has(c.toLowerCase()));
     const partList = kind === "armor" ? ARMOR_PARTS : WEAPON_TYPES;
@@ -211,16 +312,27 @@ function parseStructural(raw) {
     if (cls && part) detail = `${cls}@${part}`;
     else if (cls) detail = cls;
     else if (part) detail = part;
-    return { itemKey: key, qty, detail };
+
+    const key = `${dungeon}_${kind}`;
+    if (CATALOG[key]) return { itemKey: key, qty, detail };
+
+    const reason = dungeon
+      ? `no ${dungeon.toUpperCase()} ${kind} in the catalog`
+      : `${kind} needs a dungeon (\`ddn\`/\`gdn\`)`;
+    const candidates = shortlist(new RegExp(`^(ddn|gdn|sdn)_${kind}$`), detail);
+    return candidates ? { qty, candidates, reason } : { reason };
   }
 
   const fam = FAMILIES.find((f) => f.words.some((w) => has(w)));
   if (fam) {
     const lu = has("u") || has("upper") || has("unique") ? "u"
       : has("l") || has("lower") || has("legend") ? "l" : null;
-    if (!lu) return null;
-    const key = `${fam.key}_${lu}`;
-    return CATALOG[key] ? { itemKey: key, qty, detail: null } : null;
+    const key = lu ? `${fam.key}_${lu}` : null;
+    if (key && CATALOG[key]) return { itemKey: key, qty, detail: null };
+
+    const reason = "which one — `l` (legend) or `u` (unique)?";
+    const candidates = shortlist(new RegExp(`^${fam.key}_[lu]$`));
+    return candidates ? { qty, candidates, reason } : { reason };
   }
 
   return null;
@@ -244,8 +356,14 @@ function parseGoldLine(raw) {
   };
 }
 
+// One failed line, as text. Kept next to the parser so every caller words it the
+// same way, and structured rather than pre-formatted so the failure log can key
+// on the raw line without parsing a sentence back apart.
+const formatParseError = (e) => `\`${e.raw}\` — ${e.reason}`;
+
 // Split on newlines and pipes; classify each line.
-// Returns { added: [{itemKey,qty,detail}], unresolved: [{raw,qty,candidates}], errors: [string] }.
+// Returns { added: [{itemKey,qty,detail}], unresolved: [{raw,qty,candidates}],
+//           errors: [{raw,reason}] }.
 function parseItemLines(text) {
   const added = [];
   const golds = [];
@@ -258,7 +376,7 @@ function parseItemLines(text) {
     const note = hashIdx >= 0 ? lineRaw.slice(hashIdx + 1).trim() || null : null;
     let raw = (hashIdx >= 0 ? lineRaw.slice(0, hashIdx) : lineRaw).trim();
     if (!raw) {
-      errors.push(lineRaw);
+      errors.push({ raw: lineRaw, reason: "there's a note here but no item" });
       continue;
     }
 
@@ -282,22 +400,15 @@ function parseItemLines(text) {
       unresolved.push({ raw, qty: named.qty, candidates: named.candidates, note, notForSale });
       continue;
     }
-    if (named && named.error) {
-      errors.push(`${raw} — ${named.error}`);
-      continue;
-    }
+
     // Structural (fragments, accessories, equipment, thorns/etc.)
     const s = parseStructural(raw);
     if (s && s.itemKey) {
       added.push({ itemKey: s.itemKey, qty: s.qty, detail: s.detail, note, notForSale });
       continue;
     }
-    if (s && s.candidates) {
-      unresolved.push({ raw, qty: s.qty, candidates: s.candidates, note, notForSale });
-      continue;
-    }
 
-    // Last resort: no-bracket keyword search of named equipment
+    // No-bracket keyword search of named equipment
     const fuzzy = matchNamedFuzzy(raw);
     if (fuzzy && fuzzy.itemKey) {
       added.push({ itemKey: fuzzy.itemKey, qty: fuzzy.qty, detail: null, note, notForSale });
@@ -307,15 +418,29 @@ function parseItemLines(text) {
       unresolved.push({ raw, qty: fuzzy.qty, candidates: fuzzy.candidates, note, notForSale });
       continue;
     }
-    if (fuzzy && fuzzy.error) {
-      errors.push(`${raw} — ${fuzzy.error}`);
+
+    // A structural shortlist comes LAST: it is a guess assembled from a category
+    // word, and a named item that actually exists beats any guess. "storm master
+    // zuu" is a real fragment, not an under-specified Storm Triangular rune.
+    if (s && s.candidates) {
+      // The reason rides along — "which tier?" is the whole question the picker
+      // is asking, and a bare list of two accessories does not ask it.
+      unresolved.push({ raw, qty: s.qty, candidates: s.candidates, reason: s.reason, note, notForSale });
       continue;
     }
 
-    errors.push(raw);
+    // Nothing matched. Every path above knows something about why, and the most
+    // specific one that spoke up gets to say it — a bare echo of the line taught
+    // the seller nothing and cost them another round trip.
+    const reason =
+      (s && s.reason) ||
+      (named && named.error) ||
+      (fuzzy && fuzzy.error) ||
+      "not a known item — try `<dungeon> (<part of the name>)`, e.g. `gdn (chakram)`";
+    errors.push({ raw, reason });
   }
 
   return { added, golds, unresolved, errors };
 }
 
-module.exports = { parseItemLines };
+module.exports = { parseItemLines, formatParseError, repairToken };

@@ -99,7 +99,7 @@ gdn unique accessory ring hybrid   (bentuk panjang juga boleh)
 
 ### Equipment biasa (DDN/GDN Armor & Weapon)
 Format: `<dungeon> <armor/weapon> <class> <part>`
-- Class: Kali, Academic, Sorceress, Warrior, Cleric, Archer
+- Class: Kali, Academic, Sorceress, Warrior, Cleric, Archer, Assassin
 - Part armor: Head/Top/Lower/Gloves/Shoes · weapon: Main/Second
 
 ```

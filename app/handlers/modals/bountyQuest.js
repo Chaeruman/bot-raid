@@ -1,6 +1,6 @@
 const { MessageFlags, ActionRowBuilder, StringSelectMenuBuilder } = require("discord.js");
-const { getChars, getBountyWeek, saveBountyWeek } = require("../../state");
-const { parseQuestLines, weekKey, weekLabel, questLabel, claimsLeft } = require("../../bounty");
+const { getChars, getBountyWeek, saveBountyWeek, recordParseFail } = require("../../state");
+const { parseQuestLines, weekKey, weekLabel, questLabel, claimsLeft, fixCandidates } = require("../../bounty");
 const { WEEKLY_CLAIMS } = require("../../data/bounty");
 const { MODAL_PREFIX } = require("../commands/bountyQuest");
 
@@ -62,11 +62,12 @@ async function addQuests(userId, charName, quests, { replace = false } = {}) {
 
 const FIX = "bounty-fix:"; // + <row>:<charName>
 
-// Resolvable means: we know the shortlist AND the rest of the quest. Rarity and
-// scroll are parsed before the nest is resolved, so every candidate below is a
-// complete quest — which is what lets the answer ride in the option value and
-// leaves nothing to store while someone decides.
-const isFixable = (e) => e.candidates?.length > 1 && e.rarity && e.scroll;
+// Resolvable means: the line leaves a SHORTLIST rather than a blank. fixCandidates
+// works out what is still open — the nest, the rarity, the scroll, or two of them
+// at once — and returns each surviving combination as a complete quest, which is
+// what lets the answer ride in the option value and leaves nothing to store while
+// someone decides. Two options or more, or there is nothing to pick between.
+const isFixable = (e) => fixCandidates(e).length > 1;
 
 // Five action rows to a message, so five ambiguous lines at once. More than
 // that in one paste is not a case worth carrying code for.
@@ -80,14 +81,11 @@ function buildPickers(charName, errors) {
           .setCustomId(`${FIX}${i}:${charName}`)
           .setPlaceholder(`${e.raw} — ${e.error}`.slice(0, 150))
           .addOptions(
-            e.candidates.slice(0, 25).map((poolKey) => {
-              const q = { poolKey, rarity: e.rarity, scroll: e.scroll, box: !!e.box };
-              return {
-                label: questLabel(q).slice(0, 100),
-                // The whole quest, so the handler needs no memory of this menu.
-                value: `${poolKey}|${e.rarity}|${e.scroll}|${e.box ? 1 : 0}`.slice(0, 100),
-              };
-            }),
+            fixCandidates(e).map((q) => ({
+              label: questLabel(q).slice(0, 100),
+              // The whole quest, so the handler needs no memory of this menu.
+              value: `${q.poolKey}|${q.rarity}|${q.scroll}|${q.box ? 1 : 0}`.slice(0, 100),
+            })),
           ),
       ),
     );
@@ -99,7 +97,7 @@ async function handleBountyQuestModal(interaction) {
   // in the customId — which also ends the "names may contain ':'" problem.
   const charName = interaction.fields.getStringSelectValues("char")[0];
 
-  const { added, errors, duplicates } = parseQuestLines(
+  const { added, errors, duplicates, fixes } = parseQuestLines(
     interaction.fields.getTextInputValue("lines"),
   );
 
@@ -152,6 +150,11 @@ async function handleBountyQuestModal(interaction) {
 
   if (repeats.length) lines.push("", `↩️ Skipped ${repeats.length} already on the board.`);
 
+  // A repaired typo is shown, never assumed: the quest above was saved on the
+  // strength of a guess, and the person who typed it is the only one who can
+  // tell whether the guess was right.
+  if (fixes.length) lines.push("", `🔧 Dibaca sebagai: ${fixes.join(", ")}`);
+
   if (overflow.length)
     lines.push(
       "",
@@ -163,6 +166,12 @@ async function handleBountyQuestModal(interaction) {
   // a sentence, because there is nothing to offer when a token is simply wrong.
   const pickers = buildPickers(charName, errors);
   const unfixable = errors.filter((e) => !isFixable(e));
+
+  // Same record the loot modal keeps, so both parsers are tuned off real input.
+  // A line that became a dropdown is not a failure, but it is friction — logged
+  // apart so "died" and "cost a click" stay tellable from each other.
+  for (const e of errors)
+    recordParseFail("bounty", e.raw, e.error, userId, isFixable(e) ? "needs_pick" : "failed");
 
   if (unfixable.length) {
     lines.push("", `❌ ${unfixable.length} line(s) not understood:`);

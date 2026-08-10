@@ -161,15 +161,46 @@ bad("3c. missing variant on a multi-variant nest", "ddn u wep");
 bad("3c. ambiguous variant with no nest", "hc u wep");
 bad("3c. bare ordinal never infers a nest", "1 u wep");
 bad("3c. variant that isn't on that nest", "gdn memo 1 u wep");
-bad("3c. unknown token", "ddnn hc u wep");
+bad("3c. unknown token", "blahblah hc u wep");
 bad("3c. two nests", "ddn gdn hc u wep");
 bad("3c. two rarities", "ddn hc u leg wep");
 bad("3c. empty line", "   ");
 bad("3c. disabled nest is unusable", "mire mutant u wep");
 check("3c. a missing variant lists the choices",
   (P("ddn u wep").hint || "").includes("Memoria 1"));
-check("3c. an unknown token suggests real variants",
-  (P("ddnn hc u wep").hint || "").toLowerCase().includes("desert"));
+
+// 3f. Typo repair. A misspelt word is the single commonest way a line dies, and
+//     every one of these is unambiguous — there is exactly one word it could be.
+ok("3f. a slipped key on the nest", "ddnn hc u wep",
+  { poolKey: "ddn:hc", rarity: "unique", scroll: "weapon" });
+ok("3f. a misspelt rarity", "ddn hc legendry wep",
+  { poolKey: "ddn:hc", rarity: "legendary", scroll: "weapon" });
+ok("3f. a misspelt scroll", "ddn hc u wepon",
+  { poolKey: "ddn:hc", rarity: "unique", scroll: "weapon" });
+ok("3f. a misspelt variant", "ddn hardcor u wep",
+  { poolKey: "ddn:hc", rarity: "unique", scroll: "weapon" });
+// Repairs are reported, never silent: the quest was saved on a guess, and only
+// the person who typed it can tell whether the guess was right.
+check("3f. the repair is named", (P("ddn hc legendry wep").fixes || []).join().includes("legendary"));
+eq("3f. a clean line reports none", (P("ddn hc u wep").fixes || []).length, 0);
+eq("3f. and the paste collects them", parseQuestLines("ddnn hc u wepon").fixes.length, 2);
+
+// Two characters is where every word is one edit from another, so nothing that
+// short is ever "corrected" — `u` and `i` mean completely different things.
+bad("3f. short tokens are left alone", "ddn hc u xy");
+// A tie is not an answer. "adn" is one edit from ddn, gdn AND sdn, and picking
+// one files a week of quests under a nest nobody typed.
+bad("3f. an equidistant typo asks instead of guessing", "adn hc u wep");
+check("3f. and says so with the real candidates",
+  (P("adn hc u wep").hint || "").includes("(nest)"));
+// A hint has to point at the part of the line that is wrong. Suggesting nest
+// names for a misspelt scroll is a wrong answer dressed as help.
+check("3f. an unknown token suggests the right KIND of word",
+  (P("ddn hc u wepan").hint || "").includes("(scroll)"));
+// Both wrong words are named. Reporting only the first means submitting twice
+// to learn about the second.
+check("3f. every unknown token is named",
+  ["blahblah", "zzzzzz"].every((t) => (P("ddn hc blahblah zzzzzz").error || "").includes(t)));
 
 // 3d. Multi-line input, and exact repeats dropped rather than stored twice.
 const multi = parseQuestLines("ddn hc u wep\ngdn cl leg acc box\n\nnonsense here\nddn hc u wep");
@@ -1005,6 +1036,7 @@ pending.push((async () => {
 //     WHOLE quest, so nothing is stored while the menu waits — a menu left
 //     unanswered for a week costs nothing and expires on its own.
 const { buildPickers, isFixable, FIX } = require("./handlers/modals/bountyQuest");
+const { fixCandidates } = require("./bounty");
 
 const errs = (text) => parseQuestLines(text).errors;
 
@@ -1014,10 +1046,16 @@ check("40. an ambiguous nest is fixable", isFixable(amb));
 eq("40. with every candidate", amb.candidates.join(","), "ddn:hc,gdn:hc,sdn:hc");
 // A nest with no variant is the same shape of question.
 check("40. so is a missing variant", isFixable(errs("gdn u wep")[0]));
-// These have no shortlist to offer — a wrong token could mean anything, and a
-// missing rarity cannot be guessed from what is there.
+// A missing reward is the same question from the other side: the nest is known
+// and three rarities times four scrolls is twelve options, which is a click.
+check("40. a missing rarity is fixable too", isFixable(errs("gdn hc")[0]));
+eq("40. and offers every completion", fixCandidates(errs("gdn hc")[0]).length, 12);
+eq("40. narrowing to one axis narrows the list", fixCandidates(errs("gdn hc u")[0]).length, 4);
+// A wrong token has no shortlist at all — it could have meant anything.
 check("40. a bad token is not", !isFixable(errs("blah u wep")[0]));
-check("40. nor is a missing rarity", !isFixable(errs("gdn hc")[0]));
+// Nor does a line so bare the product overflows a select: `hc` alone is three
+// nests times three rarities times four scrolls, and 36 options is not a menu.
+check("40. nor is a line with nothing pinned down", !isFixable(errs("hc")[0]));
 
 const rows = buildPickers("Chelssea", errs("hc u wep\ngdn leg acc box\nblah u wep"));
 eq("40. one menu per fixable line", rows.length, 2);

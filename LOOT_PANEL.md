@@ -112,7 +112,7 @@ gdn armor warrior head
 ddn weapon kali main
 ```
 
-Class: Kali, Academic, Sorceress, Warrior, Cleric, Archer. Part armor: Head/Top/Lower/Gloves/Shoes; weapon: Main/Second.
+Class: Kali, Academic, Sorceress, Warrior, Cleric, Archer, Assassin. Part armor: Head/Top/Lower/Gloves/Shoes; weapon: Main/Second.
 
 ### Fragment
 
