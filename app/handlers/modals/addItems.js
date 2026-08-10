@@ -80,7 +80,12 @@ async function handleAddItemsModal(interaction) {
           else goldWarnings.push(`\`${g.amount}/7\` — \`@${g.excludeName}\` is ambiguous (${hits.length} members)`);
         }
       }
-      panel.goldEntries.push({ amount: g.amount, splitCount: g.splitCount, excludedUserId });
+      panel.goldEntries.push({
+        amount: g.amount,
+        splitCount: g.splitCount,
+        excludedUserId,
+        bonusSource: !!g.bonusSource,
+      });
     }
   }
 
@@ -101,7 +106,10 @@ async function handleAddItemsModal(interaction) {
     for (const g of panel.goldEntries.slice(-golds.length)) {
       const per = Math.floor(g.amount / g.splitCount).toLocaleString();
       const excl = g.excludedUserId ? `, <@${g.excludedUserId}> excluded` : "";
-      lines.push(`• ${g.amount.toLocaleString()} ÷${g.splitCount}${excl} = ${per}/person`);
+      // Echoed back so a "!" that did not register is visible immediately, not
+      // at payout time when the split is already wrong.
+      const src = g.bonusSource ? " 🎁 sumber bonus" : "";
+      lines.push(`• ${g.amount.toLocaleString()} ÷${g.splitCount}${excl} = ${per}/person${src}`);
     }
   }
   if (goldWarnings.length) {

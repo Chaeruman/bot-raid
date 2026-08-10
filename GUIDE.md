@@ -170,6 +170,17 @@ Hasil dibulatkan ke bawah. Koma & akhiran `g` ditoleransi.
 - **💰 Add Gold** (tombol) — alur terpandu: pilih HC (÷7) / Normal (÷8), untuk ÷7 pilih member yang dikecualikan, lalu isi jumlah.
 - **Lewat Type Items** — `gold 294/7 @nama` / `258/8` (lihat bagian 5).
 - **🗑️ Remove Gold** — hapus entry gold.
+- **Sumber dana bonus** — menandai gold mana yang dipakai membayar Bonus Gold.
+  Bonus diambil dari situ **sebelum** dibagi, jadi yang menanggung adalah gold
+  run (biasanya GDN Classic), bukan kantong seller. Dua cara, artinya sama:
+  - **Type Items:** `!` di depan, mis. `!258/8` (juga `!gold 258/8` /
+    `gold !258/8`, dan jalan untuk ÷7 maupun ÷8).
+  - **Tombol 💰 Add Gold:** dropdown *"Sumber Bonus Gold?"* — kosongkan kalau
+    bukan.
+  - Tanpa ditandai, bonus tetap terbayar tapi ditanggung seller — panel akan
+    bilang begitu, jadi tidak ada yang diam-diam.
+  - Kalau gold bertanda lebih kecil dari total bonus, sisanya ditanggung seller
+    dan diberi peringatan.
 - **🎁 Bonus Gold** — gold tambahan untuk **orang tertentu saja**, bukan dibagi.
   Dipakai waktu mail 36g HC/CL dari game tidak sampai ke sebagian orang: pilih
   siapa saja yang kurang, isi jumlahnya (kosong = 36), dan gold-nya ikut

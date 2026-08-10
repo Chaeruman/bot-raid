@@ -31,7 +31,8 @@ if (golds.length) {
   console.log("💰 Gold:");
   for (const g of golds) {
     const excl = g.excludeName ? ` (excl @${g.excludeName})` : "";
-    console.log(`   • ${g.amount.toLocaleString()} ÷${g.splitCount}${excl} = ${Math.floor(g.amount / g.splitCount).toLocaleString()}/person`);
+    const src = g.bonusSource ? " 🎁 bonus source" : "";
+    console.log(`   • ${g.amount.toLocaleString()} ÷${g.splitCount}${excl}${src} = ${Math.floor(g.amount / g.splitCount).toLocaleString()}/person`);
   }
 }
 

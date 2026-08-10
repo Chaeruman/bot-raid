@@ -4,6 +4,35 @@ const { CATALOG } = require("../items");
 const STAMP_RATE_GOLD = 5; // gold per stamp (market fee) — panels store their own rate at creation, see panel.stampRate
 const MAIL_TAX_RATE = 0.003; // 0.3% mail tax, deducted from the final salary
 
+const bonusTotal = (panel) => Object.values(panel.bonuses || {}).reduce((sum, v) => sum + v, 0);
+
+// The bonuses come OUT of the run's own gold — usually the GDN Classic drop,
+// marked with a leading "!" when it is typed. So the marked entries are drained
+// by the bonus pot BEFORE anything is split, and what is left is the pool.
+//
+// This is what makes the party collectively fund the compensation instead of
+// the seller: total gold out is unchanged, it is just shared differently. With
+// nothing marked, every entry passes through untouched and the seller covers it,
+// which is what panels made before this existed still do.
+function fundedGoldEntries(panel) {
+  let remaining = bonusTotal(panel);
+  if (!remaining) return panel.goldEntries;
+  return panel.goldEntries.map((g) => {
+    if (!g.bonusSource || remaining <= 0) return g;
+    const take = Math.min(remaining, g.amount);
+    remaining -= take;
+    return { ...g, amount: g.amount - take };
+  });
+}
+
+// Bonus gold the marked entries could not cover. Not an error — the seller can
+// always top it up themselves — but it has to be SAID, because the difference
+// between "the party paid" and "you paid" is invisible in the numbers.
+function bonusShortfall(panel) {
+  const marked = panel.goldEntries.filter((g) => g.bonusSource).reduce((sum, g) => sum + g.amount, 0);
+  return Math.max(0, bonusTotal(panel) - marked);
+}
+
 // Exact salary for one member: ÷8 pool share + ÷7 HC gold, minus any ÷7 entry
 // they're excluded from, minus 0.3% mail tax. Pass uid=null for the headline
 // (non-excluded) figure.
@@ -18,14 +47,16 @@ function memberSalary(panel, uid) {
     0,
   );
   const itemNet = totalItemGold - stampFee;
-  const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
+  // Post-funding: a marked drop has already had the bonus pot taken out of it.
+  const entries = fundedGoldEntries(panel);
+  const gold8Total = entries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
   // `!uid` first, and it is not a tidy-up. The headline figure is computed with
   // uid = null, and an entry that excludes nobody is STORED as
   // excludedUserId: null — so `g.excludedUserId !== uid` read null !== null and
   // silently dropped every ÷7 gold drop that had no exclusion, which is most of
   // them. The panel listed the gold, the formula printed it, and nobody was paid
   // it. Never compare an id against a sentinel that is also a real value.
-  const gold7PerPerson = panel.goldEntries
+  const gold7PerPerson = entries
     .filter((g) => g.splitCount === 7 && (!uid || g.excludedUserId !== uid))
     .reduce((sum, g) => sum + Math.floor(g.amount / 7), 0);
   // Manual top-up for ONE member, for when the game's own 36g HC/CL mail never
@@ -65,9 +96,15 @@ async function updateThreadTitle(thread, panel) {
 
   const emoji = panel.closed ? "✅" : "💵";
   // Derive the base from the CURRENT thread name (minus any prefix we added before),
-  // so manual renames are respected and the prefix never stacks.
-  const base = thread.name.replace(/^(?:💵|✅)\s*[\d,]+g\s*—\s*/u, "");
-  const name = `${emoji} ${salaryPerPerson(panel).toLocaleString()}g — ${base}`.slice(0, 100);
+  // so manual renames are respected and the prefix never stacks. The gold figure
+  // is optional in the pattern because the title below sometimes omits it.
+  const base = thread.name.replace(/^(?:💵|✅)\s*(?:[\d,]+g\s*—\s*)?/u, "");
+  // A panel that owes only per-member bonuses has no per-person figure — the
+  // headline is genuinely 0 and nobody is owed it. "0g" in the thread list
+  // advertises nothing and reads like a broken payout, so the marker goes up
+  // without a number until there is one worth showing.
+  const total = salaryPerPerson(panel);
+  const name = (total > 0 ? `${emoji} ${total.toLocaleString()}g — ${base}` : `${emoji} ${base}`).slice(0, 100);
 
   if (thread.name !== name) {
     try {
@@ -100,11 +137,20 @@ function itemsText(panel) {
 
 function goldText(panel) {
   if (panel.goldEntries.length === 0) return null;
+  const funded = fundedGoldEntries(panel);
   return panel.goldEntries
-    .map((g) => {
-      const perPerson = Math.floor(g.amount / g.splitCount);
+    .map((g, i) => {
+      // What is left after the bonus pot was taken out, which is what actually
+      // gets split. Printing the typed number alone would be a lie by omission.
+      const left = funded[i].amount;
+      const perPerson = Math.floor(left / g.splitCount);
       const excl = g.excludedUserId ? `, <@${g.excludedUserId}> tidak dapat` : "";
-      return `• ${g.amount.toLocaleString()} (÷${g.splitCount}${excl} = ${perPerson.toLocaleString()}/person)`;
+      const taken =
+        g.bonusSource && left !== g.amount
+          ? ` − ${(g.amount - left).toLocaleString()} bonus = ${left.toLocaleString()}`
+          : "";
+      const mark = g.bonusSource ? " 🎁" : "";
+      return `• ${g.amount.toLocaleString()}${taken}${mark} (÷${g.splitCount}${excl} = ${perPerson.toLocaleString()}/person)`;
     })
     .join("\n")
     .slice(0, 1024);
@@ -124,7 +170,10 @@ function summaryText(panel) {
     0,
   );
   const itemNet = totalItemGold - stampFee;
-  const gold8Total = panel.goldEntries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
+  // The same post-funding view memberSalary uses. Reading the raw entries here
+  // would print a formula that disagrees with the total underneath it.
+  const entries = fundedGoldEntries(panel);
+  const gold8Total = entries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
   const excludedUids = panel.goldEntries.filter((g) => g.splitCount === 7 && g.excludedUserId).map((g) => g.excludedUserId);
   const pool = itemNet + gold8Total;
 
@@ -150,7 +199,7 @@ function summaryText(panel) {
         : numParts.length > 1 ? `(${base})` : base;
       formulaParts.push(`${numerator} ÷ 8`);
     }
-    for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
+    for (const g of entries.filter((g) => g.splitCount === 7)) {
       formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
     }
     // A bonus-only panel has nothing to put in the formula, and printing
@@ -167,6 +216,22 @@ function summaryText(panel) {
         .filter(Boolean)
         .join(", ");
       lines.push(`• **Gaji <@${uid}>: ${memberSalary(panel, uid).toLocaleString()}** (${why})`);
+    }
+
+    // Where the bonus money came from. "The party paid" and "the seller paid"
+    // produce identical member numbers and are not the same event, so the panel
+    // has to say which one happened.
+    const bonusPot = Object.values(bonuses).reduce((sum, v) => sum + v, 0);
+    if (bonusPot > 0) {
+      const short = bonusShortfall(panel);
+      const funded = bonusPot - short;
+      if (funded > 0)
+        lines.push(`• 🎁 Bonus **${funded.toLocaleString()}g** diambil dari gold bertanda \`!\` (sebelum dibagi)`);
+      if (short > 0)
+        lines.push(
+          `• ⚠️ **${short.toLocaleString()}g** bonus belum ada sumbernya — ditanggung seller. ` +
+            "Tandai gold-nya dengan `!` (mis. `!258/8`) kalau mau diambil dari gold run.",
+        );
     }
   }
 
@@ -291,6 +356,9 @@ module.exports = {
   salaryPerPerson,
   memberSalary,
   allItemsSold,
+  fundedGoldEntries,
+  bonusShortfall,
+  updateThreadTitle,
   STAMP_RATE_GOLD,
   MAIL_TAX_RATE,
 };

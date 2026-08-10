@@ -20,7 +20,16 @@ async function handleGoldEntryModal(interaction) {
     return interaction.reply({ content: "❌ Invalid gold amount. Enter a positive number.", flags: MessageFlags.Ephemeral });
   }
 
-  panel.goldEntries.push({ amount, splitCount, excludedUserId });
+  // A modal opened before this field shipped can still be submitted after the
+  // deploy, so a field that isn't there means "no" rather than a crash.
+  let bonusSource = false;
+  try {
+    bonusSource = interaction.fields.getStringSelectValues("bonus_source")[0] === "yes";
+  } catch {
+    /* older modal, no such field */
+  }
+
+  panel.goldEntries.push({ amount, splitCount, excludedUserId, bonusSource });
   saveState();
 
   await interaction.deferUpdate();

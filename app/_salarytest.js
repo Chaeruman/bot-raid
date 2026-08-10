@@ -46,7 +46,10 @@ console.log("✅ exact match wins over substring match for @tag");
 // which is most of them. The panel listed the gold, the formula printed it, and
 // nobody was paid it. The case at the top only ever passed because its entry
 // names someone.
-const { salaryPerPerson, buildLootEmbed, STAMP_RATE_GOLD } = require("./builders/lootPanel");
+const {
+  salaryPerPerson, buildLootEmbed, STAMP_RATE_GOLD,
+  bonusShortfall, fundedGoldEntries, updateThreadTitle,
+} = require("./builders/lootPanel");
 
 const goldPanel = (excludedUserId) => ({
   lootMsgId: "p", threadId: "t", eventTitle: "GDN", hostId: "h",
@@ -105,6 +108,84 @@ assert.ok(
 assert.strictEqual((bothSummary.match(/Gaji <@b>/g) || []).length, 1, bothSummary);
 console.log("✅ the summary names every member paid off-headline, with the reason");
 
+// ── Bonuses funded from the run's own gold ───────────────────────────────────
+// A "!" on a gold line marks it as the pot the bonuses come out of. The money
+// then leaves the pool BEFORE it is split, which is what makes the party pay for
+// the compensation instead of the seller. Total gold out is unchanged — it is
+// only shared differently — so this is checked by conservation, not by eyeball.
+const srcPanel = (bonuses, bonusSource) => ({
+  lootMsgId: "p", threadId: "t", eventTitle: "GDN", hostId: "h",
+  members: ["a", "b", "c", "d", "e", "f", "g", "h"], sellerId: "a", payments: {}, closed: false,
+  stampRate: STAMP_RATE_GOLD,
+  items: [],
+  goldEntries: [{ amount: 800, splitCount: 8, excludedUserId: null, bonusSource }],
+  bonuses,
+});
+
+// Unmarked: the pool is untouched and the seller funds the bonus out of pocket.
+assert.strictEqual(memberSalary(srcPanel({ b: 80 }, false), "a"), Math.floor(100 * 0.997), "unmarked leaves the pool alone");
+assert.strictEqual(memberSalary(srcPanel({ b: 80 }, false), "b"), Math.floor(180 * 0.997), "and pays the bonus on top");
+
+// Marked: 800 − 80 = 720 → 90 each, and "b" gets 90 + 80.
+assert.strictEqual(memberSalary(srcPanel({ b: 80 }, true), "a"), Math.floor(90 * 0.997), "marked shrinks everyone's share");
+assert.strictEqual(memberSalary(srcPanel({ b: 80 }, true), "b"), Math.floor(170 * 0.997), "the bonus holder nets share + bonus");
+assert.strictEqual(salaryPerPerson(srcPanel({ b: 80 }, true)), Math.floor(90 * 0.997), "the headline drops with it");
+
+// The pool shrinks by exactly the bonus pot — no more (deducted twice) and no
+// less (deducted once but also paid by the seller).
+{
+  const p = srcPanel({ b: 80, c: 40 }, true);
+  assert.strictEqual(fundedGoldEntries(p)[0].amount, 800 - 120, "deducted exactly once");
+  // And the STORED entry is untouched. Mutating it would shrink the pool again
+  // on every redraw and saveState would persist the loss — a panel that quietly
+  // pays less each time anyone touches it.
+  assert.strictEqual(p.goldEntries[0].amount, 800, "the stored gold entry is never mutated");
+  buildLootEmbed(p);
+  buildLootEmbed(p);
+  assert.strictEqual(p.goldEntries[0].amount, 800, "still untouched after two redraws");
+
+  const share = Math.floor((800 - 120) / 8);
+  assert.strictEqual(memberSalary(p, "c"), Math.floor((share + 40) * 0.997));
+  assert.strictEqual(memberSalary(p, "d"), Math.floor(share * 0.997));
+}
+
+// Marked gold smaller than the bonus pot: it drains to zero and the rest falls
+// back on the seller. Silently paying a negative share would be the alternative.
+{
+  const p = srcPanel({ b: 1000 }, true);
+  assert.strictEqual(memberSalary(p, "a"), 0, "a fully drained pool pays nobody a share");
+  assert.strictEqual(memberSalary(p, "b"), Math.floor(1000 * 0.997), "the bonus is still paid in full");
+  assert.strictEqual(bonusShortfall(p), 200, "and the uncovered part is reported");
+}
+assert.strictEqual(bonusShortfall(srcPanel({ b: 80 }, true)), 0, "a covered bonus has no shortfall");
+assert.strictEqual(bonusShortfall(srcPanel({ b: 80 }, false)), 80, "an unmarked panel is all shortfall");
+console.log("✅ bonuses come out of the marked gold, and the books balance");
+
+// The panel has to SAY which happened: "the party paid" and "the seller paid"
+// produce identical member numbers and are not the same event.
+const srcSummary = (p) => buildLootEmbed(p).data.fields.find((f) => f.name.includes("Summary")).value;
+assert.ok(srcSummary(srcPanel({ b: 80 }, true)).includes("diambil dari gold bertanda"), "funded is named");
+assert.ok(!srcSummary(srcPanel({ b: 80 }, true)).includes("ditanggung seller"), "and not warned about");
+assert.ok(srcSummary(srcPanel({ b: 80 }, false)).includes("ditanggung seller"), "unfunded is warned about");
+// The gold field shows the deduction, or the typed number would read as the
+// number that got split.
+const goldField = (p) => buildLootEmbed(p).data.fields.find((f) => f.name.includes("Gold")).value;
+assert.ok(goldField(srcPanel({ b: 80 }, true)).includes("− 80 bonus = 720"), goldField(srcPanel({ b: 80 }, true)));
+assert.ok(goldField(srcPanel({ b: 80 }, true)).includes("90/person"), "and the real per-person figure");
+assert.ok(!goldField(srcPanel({ b: 80 }, false)).includes("bonus"), "an unmarked drop is printed plainly");
+console.log("✅ the panel shows where the bonus money came from");
+
+// The "!" prefix itself, at the parser.
+const { parseItemLines: pil } = require("./utils/parseItems");
+assert.strictEqual(pil("!258/8").golds[0].bonusSource, true, "leading !");
+assert.strictEqual(pil("gold !258/8").golds[0].bonusSource, true, "! after the gold word");
+assert.strictEqual(pil("!gold 258/8").golds[0].bonusSource, true, "! before it");
+assert.strictEqual(pil("258/8").golds[0].bonusSource, false, "no mark by default");
+assert.strictEqual(pil("!294/7 @ol").golds[0].bonusSource, true, "works on ÷7 too");
+assert.strictEqual(pil("!294/7 @ol").golds[0].excludeName, "ol", "and the exclusion still parses");
+assert.strictEqual(pil("!258/8").golds[0].amount, 258, "the ! never reaches the amount");
+console.log("✅ ! prefix parses on every gold-line shape");
+
 // A panel with nothing but a bonus is still a real payout, so Mark Paid has to
 // appear — otherwise the seller has no way to send it.
 const { allItemsSold: sold } = require("./builders/lootPanel");
@@ -119,3 +200,35 @@ const summary = buildLootEmbed(goldPanel(null)).data.fields.find((f) => f.name.i
 assert.ok(summary.includes("258 ÷ 7"), "the formula names the gold drop");
 assert.ok(summary.includes("= **64**"), `and the total agrees with it: ${summary}`);
 console.log("✅ printed formula and printed total agree");
+
+// ── Thread title ─────────────────────────────────────────────────────────────
+// A bonus-only panel counts as payable, so Mark Paid shows — but it has no
+// per-person figure, and renaming the thread to "💵 0g — …" made a real payout
+// look broken in the thread list.
+//
+// Last in the file and explicitly awaited: updateThreadTitle is async, and an
+// un-awaited assertion is one that can fail after the script says it passed.
+(async () => {
+  let renamed = null;
+  const run = async (panel, name) => {
+    renamed = name;
+    await updateThreadTitle({ name, setName: async (n) => { renamed = n; } }, { ...panel, ownThread: true });
+    return renamed;
+  };
+
+  const bonusOnly = { items: [], goldEntries: [], bonuses: { b: 36 }, closed: false };
+  assert.strictEqual(await run(bonusOnly, "Marathon GDN"), "💵 Marathon GDN", "no 0g in the title");
+
+  // With real gold there IS a per-person figure, and it goes back in.
+  const withGold = srcPanel({ b: 80 }, true);
+  assert.strictEqual(await run(withGold, "Marathon GDN"), "💵 89g — Marathon GDN");
+
+  // The prefix never stacks, whichever of the two forms is already there.
+  assert.strictEqual(await run(withGold, "💵 Marathon GDN"), "💵 89g — Marathon GDN", "bare marker replaced");
+  assert.strictEqual(await run(withGold, "💵 12g — Marathon GDN"), "💵 89g — Marathon GDN", "old figure replaced");
+  assert.strictEqual(await run(bonusOnly, "💵 12g — Marathon GDN"), "💵 Marathon GDN", "dropped when it goes to 0");
+  console.log("✅ thread title never advertises a 0g payout, and never stacks its prefix");
+})().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

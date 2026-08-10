@@ -338,12 +338,21 @@ function parseStructural(raw) {
   return null;
 }
 
-// Gold line: "gold 294/7 @ol", "258/8", "gold 1,000,000/8".
+// Gold line: "gold 294/7 @ol", "258/8", "gold 1,000,000/8", "!258/8".
 // split must be 7 or 8 (HC ÷7 / normal ÷8). For ÷7, an optional trailing "@name"
 // marks the excluded member (resolved to a uid later, where member names are known).
-// Returns { amount, splitCount, excludeName }.
+//
+// A leading "!" marks the drop as the pot the per-member bonuses are paid out
+// of — the compensation for a missing 36g mail comes from the run's own gold,
+// not from the seller, so that gold has to leave the pool before it is split.
+// Accepted before or after the optional "gold" word, since both read naturally.
+//
+// Returns { amount, splitCount, excludeName, bonusSource }.
 function parseGoldLine(raw) {
-  const cleaned = raw.replace(/,/g, "");
+  let cleaned = raw.replace(/,/g, "").trim();
+  const bonusSource = /^!/.test(cleaned) || /^gold\s+!/i.test(cleaned);
+  if (bonusSource) cleaned = cleaned.replace(/^!/, "").replace(/^(gold\s+)!/i, "$1").trim();
+
   const m = cleaned.match(/^(?:gold\s+)?(\d+)\s*\/\s*(7|8)\b(.*)$/i);
   if (!m) return null;
   const amount = parseInt(m[1], 10);
@@ -353,6 +362,7 @@ function parseGoldLine(raw) {
     amount,
     splitCount: parseInt(m[2], 10),
     excludeName: tag ? tag[1].toLowerCase() : null,
+    bonusSource,
   };
 }
 

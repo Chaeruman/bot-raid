@@ -1,5 +1,6 @@
-const { ActionRowBuilder, StringSelectMenuBuilder, ModalBuilder, TextInputBuilder, TextInputStyle, MessageFlags } = require("discord.js");
+const { ActionRowBuilder, StringSelectMenuBuilder, MessageFlags } = require("discord.js");
 const { showGoldExcludeSelect } = require("../../selectMenus/loot/goldExclude");
+const { buildGoldModal } = require("../../../builders/goldModal");
 const { setPendingEphemeral } = require("../../../state");
 
 async function handleAddGold(interaction, panel) {
@@ -35,22 +36,7 @@ async function handleAddGold(interaction, panel) {
   }
 
   // Normal (÷8): langsung modal, tidak ada yang dikecualikan
-  const modal = new ModalBuilder()
-    .setCustomId(`loot-modal:gold:${panel.lootMsgId}:8:none`)
-    .setTitle("Add Gold (÷8)");
-
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId("amount")
-        .setLabel("Jumlah gold (dibagi 8 orang)")
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("e.g. 100000")
-        .setRequired(true),
-    ),
-  );
-
-  return interaction.showModal(modal);
+  return interaction.showModal(buildGoldModal(panel, 8));
 }
 
 module.exports = { handleAddGold };

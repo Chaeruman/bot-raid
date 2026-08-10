@@ -1,4 +1,4 @@
-const { ModalBuilder, TextInputBuilder, TextInputStyle, ActionRowBuilder } = require("discord.js");
+const { buildGoldModal } = require("../../../builders/goldModal");
 
 async function showGoldExcludeSelect(interaction, panel, splitCount, useUpdate = false) {
   const { ActionRowBuilder: AR, StringSelectMenuBuilder } = require("discord.js");
@@ -29,23 +29,7 @@ async function showGoldExcludeSelect(interaction, panel, splitCount, useUpdate =
 
 async function handleGoldExclude(interaction, panel, splitCount) {
   const excludedUserId = interaction.values[0];
-
-  const modal = new ModalBuilder()
-    .setCustomId(`loot-modal:gold:${panel.lootMsgId}:${splitCount}:${excludedUserId}`)
-    .setTitle(`Add Gold (÷${splitCount})`);
-
-  modal.addComponents(
-    new ActionRowBuilder().addComponents(
-      new TextInputBuilder()
-        .setCustomId("amount")
-        .setLabel(`Jumlah gold (dibagi ${splitCount} orang)`)
-        .setStyle(TextInputStyle.Short)
-        .setPlaceholder("e.g. 100000")
-        .setRequired(true),
-    ),
-  );
-
-  return interaction.showModal(modal);
+  return interaction.showModal(buildGoldModal(panel, splitCount, excludedUserId));
 }
 
 module.exports = { showGoldExcludeSelect, handleGoldExclude };

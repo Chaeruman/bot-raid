@@ -72,3 +72,28 @@ for (const p of [
   assert.ok(labels(buildLootComponents(p)).includes("🔄 Refresh"), "refresh is always offered");
 }
 console.log("✅ refresh button present on every panel shape");
+
+// The Add Gold modal. It reaches the user by three different routes (÷8 direct,
+// the marathon type picker, the ÷7 exclude picker) and used to be copied into
+// all three — so a field added to one of them would silently not exist on the
+// other two. One builder now, and this pins its shape.
+const { buildGoldModal } = require("./builders/goldModal");
+
+const modalFields = (m) => m.toJSON().components.map((c) => c.component.custom_id);
+const p = { lootMsgId: "p1" };
+
+assert.deepStrictEqual(modalFields(buildGoldModal(p, 8)), ["amount", "bonus_source"]);
+assert.deepStrictEqual(modalFields(buildGoldModal(p, 7, "u1")), ["amount", "bonus_source"]);
+
+// The customId carries everything the handler needs, since a modal cannot see
+// what opened it.
+assert.strictEqual(buildGoldModal(p, 8).toJSON().custom_id, "loot-modal:gold:p1:8:none");
+assert.strictEqual(buildGoldModal(p, 7, "u1").toJSON().custom_id, "loot-modal:gold:p1:7:u1");
+
+// Optional, so "not the bonus pot" — the common case — costs no interaction. A
+// required select here would make every gold entry answer a question about a
+// feature most runs never use.
+const src = buildGoldModal(p, 8).toJSON().components[1].component;
+assert.strictEqual(src.required, false, "the bonus-source select is optional");
+assert.strictEqual(src.options.length, 1, "one option: picking it means yes, blank means no");
+console.log("✅ Add Gold modal has the bonus-source option on every route");

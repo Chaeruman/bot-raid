@@ -14,6 +14,38 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.30.0] — 2026-08-10
+
+### Added
+- **Sumber dana Bonus Gold** — menandai gold mana yang dipakai membayar Bonus
+  Gold, lewat dua jalan yang artinya sama:
+  - **Prefix `!` di Type Items**: `!258/8` (juga `!gold 258/8` / `gold !258/8`,
+    dan jalan untuk ÷7 maupun ÷8).
+  - **Pilihan di tombol 💰 Add Gold**: dropdown "Sumber Bonus Gold?" — opsional,
+    kosong berarti bukan. Muncul di ketiga jalur Add Gold (÷8 langsung, pemilih
+    tipe marathon, dan pemilih member ÷7).
+  - Bonus **keluar dari pool itu sebelum dibagi**, jadi yang menanggung
+    kompensasi adalah gold run — biasanya GDN Classic — bukan kantong seller.
+    Total gold yang keluar tidak berubah, cuma pembagiannya.
+  - Panel menampilkan pengurangannya terang-terangan (`800 − 80 bonus = 720 🎁`)
+    dan menyebut di Summary bahwa bonus diambil dari gold bertanda.
+  - Kalau gold bertanda tidak cukup, sisanya ditanggung seller dan diberi
+    peringatan — "party yang bayar" dan "seller yang bayar" menghasilkan angka
+    per-orang yang identik, jadi panel harus bilang yang mana yang terjadi.
+  - Tanpa ditandai, perilakunya sama seperti sebelumnya (bonus di atas pool).
+
+### Changed
+- Modal **Add Gold** disatukan jadi satu builder (`builders/goldModal.js`).
+  Sebelumnya disalin identik di tiga tempat, jadi menambah satu field berarti
+  mengedit tiga file — dan yang terlewat akan diam-diam kehilangan field itu.
+
+### Fixed
+- **Judul thread jadi `💵 0g — …` untuk panel yang baru berisi bonus.** Panel
+  bonus-saja memang tidak punya angka per-orang — hanya orang tertentu yang
+  dapat — jadi `0g` di daftar thread bukan informasi, melainkan terlihat seperti
+  pembayaran rusak. Sekarang penanda dipasang tanpa angka sampai ada angka yang
+  layak ditampilkan.
+
 ## [1.29.0] — 2026-08-10
 
 ### Added
