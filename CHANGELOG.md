@@ -14,6 +14,27 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.29.0] — 2026-08-10
+
+### Added
+- **🎁 Bonus Gold** — tombol baru di loot panel untuk menambah gold ke
+  **orang tertentu saja**, bukan dibagi rata. Untuk kasus bug game di mana mail
+  36g HC/CL tidak sampai ke sebagian orang, dan kekurangannya dititipkan ke
+  pengiriman gaji supaya seller cukup kirim satu mail.
+  - Satu modal: select member (bisa banyak, isinya hanya member panel itu) +
+    jumlah gold. Kosong = **36**.
+  - **Mengganti, bukan menambah.** Submit ulang dengan angka sama tidak
+    melipatgandakan — modal bisa ke-submit dua kali kalau koneksi lambat, dan
+    versi yang menjumlah akan diam-diam menggandakan uang orang. Isi `0` untuk
+    membatalkan.
+  - Masuk ke `memberSalary()`, jadi otomatis ikut ke `/kirim-gaji`, Mark Paid,
+    dan catatan gaji — tidak ada jalur pembayaran yang perlu tahu soal ini.
+  - Kena mail tax 0.3% sama seperti komponen gaji lain, karena berangkat di
+    mail yang sama.
+  - Yang gajinya beda dari angka umum (bonus dan/atau tidak dapat HC) dapat
+    barisnya sendiri di Summary panel, lengkap dengan alasannya — uang yang
+    tidak kelihatan adalah bug yang menunggu giliran.
+
 ## [1.28.0] — 2026-08-10
 
 ### Added

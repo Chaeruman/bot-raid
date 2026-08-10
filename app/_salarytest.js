@@ -69,6 +69,50 @@ assert.strictEqual(memberSalary(goldPanel("b"), "b"), 28, "the named member lose
 assert.strictEqual(memberSalary(goldPanel("b"), "a"), 64, "and nobody else does");
 console.log("✅ a divided-by-7 gold drop with nobody excluded is still paid");
 
+// ── Per-member bonus gold ────────────────────────────────────────────────────
+// A manual top-up for one member, for when the game's own 36g mail never
+// arrived. It must reach that member and NOBODY else — the headline figure and
+// everyone's salary have to be untouched, or a compensation quietly becomes a
+// raise for the whole party.
+const bonusPanel = (bonuses) => ({ ...goldPanel(null), bonuses });
+
+assert.strictEqual(memberSalary(bonusPanel({ b: 36 }), "b"), 100, "the named member gets it");
+assert.strictEqual(memberSalary(bonusPanel({ b: 36 }), "a"), 64, "and nobody else does");
+assert.strictEqual(salaryPerPerson(bonusPanel({ b: 36 })), 64, "the headline stays the headline");
+// Taxed like every other component, because it goes out in the same mail:
+// gross 65 + 36 = 101 → x0.997 = 100.6 → 100.
+assert.strictEqual(memberSalary(bonusPanel({ b: 36 }), "b"), Math.floor((65 + 36) * 0.997));
+// Panels that predate the feature have no `bonuses` field at all.
+assert.strictEqual(memberSalary(goldPanel(null), "a"), 64, "an old panel is unaffected");
+assert.strictEqual(memberSalary(bonusPanel({}), "a"), 64, "so is an empty bonus map");
+// Excluded from HC *and* owed a bonus is one member with two adjustments.
+const both = { ...goldPanel("b"), bonuses: { b: 36 } };
+assert.strictEqual(memberSalary(both, "b"), Math.floor((29 + 36) * 0.997), "both adjustments apply");
+console.log("✅ bonus gold reaches one member only, taxed like the rest");
+
+// Invisible money is the failure mode here: the summary has to name anyone who
+// is not paid the headline, and say why.
+const bonusSummary = buildLootEmbed(bonusPanel({ b: 36 })).data.fields.find((f) => f.name.includes("Summary")).value;
+assert.ok(bonusSummary.includes("+36 bonus"), `the bonus is named: ${bonusSummary}`);
+assert.ok(bonusSummary.includes("100"), `and the resulting salary shown: ${bonusSummary}`);
+const bothSummary = buildLootEmbed(both).data.fields.find((f) => f.name.includes("Summary")).value;
+assert.ok(
+  bothSummary.includes("tidak dapat HC") && bothSummary.includes("+36 bonus"),
+  `both reasons on one line: ${bothSummary}`,
+);
+// One line per member, not one per reason — "b" appears once however many
+// adjustments they carry.
+assert.strictEqual((bothSummary.match(/Gaji <@b>/g) || []).length, 1, bothSummary);
+console.log("✅ the summary names every member paid off-headline, with the reason");
+
+// A panel with nothing but a bonus is still a real payout, so Mark Paid has to
+// appear — otherwise the seller has no way to send it.
+const { allItemsSold: sold } = require("./builders/lootPanel");
+assert.strictEqual(sold({ items: [], goldEntries: [], bonuses: { b: 36 } }), true, "bonus alone is payable");
+assert.strictEqual(sold({ items: [], goldEntries: [], bonuses: {} }), false, "an empty one is not");
+assert.strictEqual(sold({ items: [], goldEntries: [] }), false, "nor is a panel with no field at all");
+console.log("✅ a bonus-only panel is payment-ready");
+
 // The formula and the total come from different code paths. Disagreeing
 // silently is what kept this invisible: the panel showed the gold either way.
 const summary = buildLootEmbed(goldPanel(null)).data.fields.find((f) => f.name.includes("Summary")).value;

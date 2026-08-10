@@ -46,6 +46,9 @@ async function handleModal(interaction) {
   if (interaction.customId.startsWith("loot-modal:gold:")) {
     return handleGoldEntryModal(interaction);
   }
+  if (interaction.customId.startsWith("loot-modal:bonus_gold:")) {
+    return require("./bonusGold").handleBonusGoldModal(interaction);
+  }
   if (interaction.customId.startsWith("loot-modal:seller_ign:")) {
     return handleSellerIgnModal(interaction);
   }

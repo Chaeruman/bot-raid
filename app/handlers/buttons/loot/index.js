@@ -4,6 +4,7 @@ const { refreshLootPanel } = require("../../../builders/lootPanel");
 const { handleSelectSeller } = require("./selectSeller");
 const { handleAddItem, handleBrowseItem } = require("./addItem");
 const { handleAddGold } = require("./addGold");
+const { handleBonusGold } = require("./bonusGold");
 const { handleSetPrice, handleSetPriceOne } = require("./setPrice");
 const { handleMarkPaid } = require("./markPaid");
 const { handleCloseLoot } = require("./closeLoot");
@@ -33,6 +34,7 @@ async function handleLootButton(interaction) {
     case "add_item":      return handleAddItem(interaction, panel);
     case "browse_item":   return handleBrowseItem(interaction, panel);
     case "add_gold":      return handleAddGold(interaction, panel);
+    case "bonus_gold":    return handleBonusGold(interaction, panel);
     case "set_price":     return handleSetPrice(interaction, panel);
     case "price_one":     return handleSetPriceOne(interaction, panel);
     case "remove_item":   return handleRemoveItem(interaction, panel);

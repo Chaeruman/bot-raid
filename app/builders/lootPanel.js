@@ -28,7 +28,13 @@ function memberSalary(panel, uid) {
   const gold7PerPerson = panel.goldEntries
     .filter((g) => g.splitCount === 7 && (!uid || g.excludedUserId !== uid))
     .reduce((sum, g) => sum + Math.floor(g.amount / 7), 0);
-  const gross = Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson;
+  // Manual top-up for ONE member, for when the game's own 36g HC/CL mail never
+  // arrived and the missing gold has to ride along with their salary instead.
+  // It is per-member by definition, so the headline figure (uid = null) never
+  // carries it — and it sits inside `gross` so the same 0.3% mail tax applies,
+  // because it goes out in the same mail as everything else here.
+  const bonus = uid ? panel.bonuses?.[uid] || 0 : 0;
+  const gross = Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson + bonus;
   // An item priced below its own stamp fee can drag this negative — nobody
   // owes the seller money, so floor the payout at 0.
   return Math.max(0, Math.floor(gross * (1 - MAIL_TAX_RATE)));
@@ -43,7 +49,11 @@ function allItemsSold(panel) {
   // (a sellable item or a raw gold entry) — a pure-gacha panel with only
   // gold drops counts as ready even though panel.items has zero sellable rows.
   const sellable = panel.items.filter((i) => !i.notForSale);
-  const hasPayout = sellable.length > 0 || panel.goldEntries.length > 0;
+  // A bonus counts as a payout on its own: a run that dropped nothing but left
+  // someone short a mail still has real gold to send, and without this the
+  // seller would have no Mark Paid button to send it with.
+  const hasPayout =
+    sellable.length > 0 || panel.goldEntries.length > 0 || Object.keys(panel.bonuses || {}).length > 0;
   return hasPayout && sellable.every((i) => i.price != null);
 }
 
@@ -101,7 +111,8 @@ function goldText(panel) {
 }
 
 function summaryText(panel) {
-  if (panel.items.length === 0 && panel.goldEntries.length === 0) return null;
+  const bonuses = panel.bonuses || {};
+  if (panel.items.length === 0 && panel.goldEntries.length === 0 && Object.keys(bonuses).length === 0) return null;
 
   const lines = [];
   const sellableItems = panel.items.filter((i) => !i.notForSale);
@@ -122,7 +133,12 @@ function summaryText(panel) {
     lines.push(`• Total stamps: **${totalStamps}** (${stampFee.toLocaleString()}g fee)`);
   }
 
-  if (soldItems.length > 0 || panel.goldEntries.length > 0) {
+  // Everyone who is NOT paid the headline figure, whatever the reason — being
+  // quietly paid a different number than the one printed above is exactly the
+  // failure this block exists to prevent.
+  const special = [...new Set([...excludedUids, ...Object.keys(bonuses)])];
+
+  if (soldItems.length > 0 || panel.goldEntries.length > 0 || special.length > 0) {
     const formulaParts = [];
     if (pool > 0) {
       const numParts = [];
@@ -137,10 +153,20 @@ function summaryText(panel) {
     for (const g of panel.goldEntries.filter((g) => g.splitCount === 7)) {
       formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
     }
-    const total = memberSalary(panel, null);
-    lines.push(`• **Gaji/orang:** (${formulaParts.join(" + ")}) − 0.3% tax = **${total.toLocaleString()}**`);
-    for (const uid of excludedUids) {
-      lines.push(`• **Gaji <@${uid}>: ${memberSalary(panel, uid).toLocaleString()}** (tidak dapat HC)`);
+    // A bonus-only panel has nothing to put in the formula, and printing
+    // "( ) − 0.3% tax = 0" over a real payout would be worse than saying nothing.
+    if (formulaParts.length) {
+      const total = memberSalary(panel, null);
+      lines.push(`• **Gaji/orang:** (${formulaParts.join(" + ")}) − 0.3% tax = **${total.toLocaleString()}**`);
+    }
+    for (const uid of special) {
+      const why = [
+        excludedUids.includes(uid) && "tidak dapat HC",
+        bonuses[uid] && `+${bonuses[uid].toLocaleString()} bonus`,
+      ]
+        .filter(Boolean)
+        .join(", ");
+      lines.push(`• **Gaji <@${uid}>: ${memberSalary(panel, uid).toLocaleString()}** (${why})`);
     }
   }
 
@@ -216,6 +242,9 @@ function buildLootComponents(panel) {
     row2.push(btn("price_one", "🏷️ Price One", ButtonStyle.Secondary).setDisabled(!hasItems));
     row2.push(btn("add_gold", "💰 Add Gold", ButtonStyle.Secondary));
     if (hasGold) row2.push(btn("remove_gold", "🗑️ Remove Gold", ButtonStyle.Secondary));
+    // Per-member top-up, so it needs members to aim at. Fills row2 to Discord's
+    // five — a sixth gold button needs a row of its own.
+    row2.push(btn("bonus_gold", "🎁 Bonus Gold", ButtonStyle.Secondary).setDisabled(!hasMembers));
   }
 
   const row3 = [btn("add_member", "👥 Add Member", ButtonStyle.Secondary)];

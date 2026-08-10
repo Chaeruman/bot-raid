@@ -45,7 +45,7 @@ Setelah **Done Run**, pesan signup menampilkan link thread (`Thread: #…`) di b
 
 ```
 Baris 1  [👤 Seller] [✍️ Type Items] [📋 Browse Item] [🗑️ Remove Item]
-Baris 2  [🏷️ Price All] [🏷️ Price One] [💰 Add Gold] [🗑️ Remove Gold]
+Baris 2  [🏷️ Price All] [🏷️ Price One] [💰 Add Gold] [🗑️ Remove Gold] [🎁 Bonus Gold]
 Baris 3  [👥 Add Member] [➖ Remove Member]
 Baris 4  [✅ Mark Paid] [🔒 Close Panel]
 ```
@@ -170,6 +170,16 @@ Hasil dibulatkan ke bawah. Koma & akhiran `g` ditoleransi.
 - **💰 Add Gold** (tombol) — alur terpandu: pilih HC (÷7) / Normal (÷8), untuk ÷7 pilih member yang dikecualikan, lalu isi jumlah.
 - **Lewat Type Items** — `gold 294/7 @nama` / `258/8` (lihat bagian 5).
 - **🗑️ Remove Gold** — hapus entry gold.
+- **🎁 Bonus Gold** — gold tambahan untuk **orang tertentu saja**, bukan dibagi.
+  Dipakai waktu mail 36g HC/CL dari game tidak sampai ke sebagian orang: pilih
+  siapa saja yang kurang, isi jumlahnya (kosong = 36), dan gold-nya ikut
+  terkirim bareng gaji mereka.
+  - Sifatnya **mengganti**, bukan menambah — kirim ulang 36 ke orang yang sama
+    tetap 36, jadi submit dobel tidak melipatgandakan uang. Isi **0** untuk
+    membatalkan bonus.
+  - Kena mail tax 0.3% sama seperti komponen gaji lain.
+  - Yang dapat bonus muncul barisnya sendiri di **Summary** panel, lengkap
+    dengan gaji akhirnya — angka `Gaji/orang` di atasnya tetap angka umum.
 
 ---
 

@@ -102,6 +102,7 @@ async function handleDoneRun(interaction, event) {
     sellerId: null,
     items: [],
     goldEntries: [],
+    bonuses: {}, // uid → flat gold added to that member's salary only
     payments: Object.fromEntries(members.map((uid) => [uid, false])),
     closed: false,
     stampRate: STAMP_RATE_GOLD,
