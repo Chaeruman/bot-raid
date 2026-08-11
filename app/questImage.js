@@ -47,12 +47,16 @@ const REFS = [["wep", "scroll-wep.png"], ["arm", "scroll-armor.png"],
 const HAS_REFS = REFS.length === 4;
 
 const SCROLL_RULE = HAS_REFS
-  ? `- The scroll type comes from the reward icons. Four labelled reference
-  icons are attached BEFORE the screenshot. Match each quest's reward icon
-  against them — they differ only by the small emblem in the top-left corner,
-  so compare that corner. Append the matching alias.
-- If a reward icon matches none of the four clearly, leave the scroll off.
-  A missing word costs one keystroke; a wrong one is stored as fact.`
+  ? `- The scroll type comes from the reward icons on the right of each quest.
+  A quest shows TWO OR THREE reward icons and only ONE of them is a scroll
+  bundle — the others are potions, boxes or coins. Four labelled reference
+  icons are attached above; all four are scroll bundles and they share that
+  shape. So: find the icon with that shape first, and ignore the rest.
+- Then decide WHICH of the four it is. They differ only by the small emblem in
+  the top-left corner of the icon, so compare that corner and nothing else.
+- If no reward icon has the scroll-bundle shape, or the emblem is not legible,
+  leave the scroll off. A missing word costs one keystroke; a wrong one is
+  stored as fact and never questioned again.`
   : `- Leave the scroll type off entirely. Do not guess it.`;
 
 const PROMPT = `This is a Dragon Nest Group Bounty screenshot. It is one of two screens:
@@ -87,17 +91,26 @@ ${SCROLL_RULE}
   panel on the right; it repeats one card you already have.
 - Output nothing else. No prose, no code fence. Empty output is a valid answer.`;
 
-// Said once, for one screenshot or six: bands are just more overlapping views,
-// so the same merge rule covers both. It has to state the rule in BOTH
-// directions — an overlap must collapse, a genuine repeat must not.
+// Merging by NAME collapsed a real pair: two Typhoon Kim Hell entries became
+// one, because the model saw the same name in both screenshots and assumed one
+// quest. Position is what separates them — that quest sat above Typhoon Kim
+// Challenge in the first shot and below it in the second, which no single row
+// can do. So the instruction is to rebuild the list first and merge by place.
 const MERGE_NOTE = [
   "Now read the images below. Each screenshot is followed by magnified crops of",
-  "itself. They are all overlapping views of ONE scrolling list, in order.",
-  "Merge them into a single list: a quest visible in more than one image is the",
-  "SAME quest and is reported once. Report a quest twice only when a single",
-  "image shows it twice. Read the reward icons from the magnified crops, where",
-  "the corner emblem is legible.",
-].join(" ");
+  "itself. They are ordered, overlapping views of ONE scrolling list.",
+  "",
+  "First rebuild the whole list:",
+  "- Find where consecutive screenshots overlap by matching their shared rows in",
+  "  sequence, not by name alone.",
+  "- Then write out the reconstructed list from top to bottom.",
+  "",
+  "One entry per POSITION in that list, not per name. The same nest can hold two",
+  "positions: if a quest sits above another quest in one screenshot and below the",
+  "same quest in the next, those are two separate entries and BOTH are reported.",
+  "",
+  "Read the reward icons from the magnified crops, where the emblem is legible.",
+].join("\n");
 
 const BAND = 340;      // rows are ~130px tall in a 1080p shot, so a band holds 2
 const OVERLAP = 0.75;  // step, as a fraction of BAND — no row falls between bands

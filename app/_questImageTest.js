@@ -75,9 +75,14 @@ for (const r of REFS) {
 }
 // With references present the model is told to compare them; guessing is still
 // forbidden, because a wrong reward is stored as fact and never questioned.
-assert.ok(/reference\n?\s*icons are attached BEFORE/.test(PROMPT), "the references are announced");
+assert.ok(/reference\n?\s*icons are attached above/.test(PROMPT), "the references are announced");
 assert.ok(/top-left corner/.test(PROMPT), "and where they differ is named");
 assert.ok(/leave the scroll off/.test(PROMPT), "no match still means omit");
+// A quest shows two or three rewards and only one is a scroll. Without saying
+// so, "wep" came back for an accessory — a potion was being matched against
+// scroll references, and the nearest of four always wins.
+assert.ok(/TWO OR THREE reward icons and only ONE/.test(PROMPT), "the scroll is picked out first");
+assert.ok(/potions, boxes or coins/.test(PROMPT), "and the others are named as not it");
 console.log("✅ four scroll references load and the prompt points at them");
 // Non-nest cards are the majority of a real board — 30 of ~40 in the samples.
 for (const junk of ["Abyss Stage", "FTG Stage"])
@@ -180,9 +185,13 @@ console.log("✅ both messages are cleared on submit, and only once something sa
 // double-counts; deduped, a genuinely repeated quest vanishes — and repeats are
 // real, one character held two Gigantes Challenge. Only one call seeing both
 // can tell those apart, so the merge instruction must exist and must say both.
-assert.match(MERGE_NOTE, /SAME quest and is reported once/, "the overlap is merged");
-assert.match(MERGE_NOTE, /twice only when a single image shows it twice/, "a real repeat survives");
-assert.match(MERGE_NOTE, /overlapping views of ONE scrolling list/, "and the images are one list");
+assert.match(MERGE_NOTE, /overlapping views of ONE scrolling list/, "the images are one list");
+// Merging by name collapsed two real Typhoon Kim Hell entries into one. Order
+// is what separates them, so the list is rebuilt before anything is counted.
+assert.match(MERGE_NOTE, /First rebuild the whole list/, "the list is reconstructed first");
+assert.match(MERGE_NOTE, /One entry per POSITION in that list, not per name/, "and merged by place");
+assert.match(MERGE_NOTE, /BOTH are reported/, "so a real repeat survives");
+assert.match(MERGE_NOTE, /not by name alone/, "and the overlap is found by sequence");
 // Every attachment goes, not just the first — that was the bug this fixes.
 assert.match(src, /message\.attachments\.values\(\)\]\.filter\(isBoard\)/, "all attachments are taken");
 assert.match(src, /\.slice\(0, 4\)/, "and capped");
