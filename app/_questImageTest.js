@@ -1,6 +1,6 @@
 // Run: node app/_questImageTest.js — no network, no key needed.
 const assert = require("assert");
-const { PROMPT, isBoard, readBoard } = require("./questImage");
+const { PROMPT, isBoard, readBoard, pickText } = require("./questImage");
 const { parseQuestLines, VARIANT_LIST } = require("./bounty");
 
 // The whole design rests on one claim: the format the model is told to emit is
@@ -50,6 +50,26 @@ const lines = "gdn hc leg\nsdn core u";
 const reply = `Kebaca dari gambar:\n\`\`\`\n${lines}\`\`\`Cek dulu, betulkan yang salah.`;
 assert.strictEqual((reply.match(FENCE) || [, ""])[1].trim(), lines, "round-trips through the reply");
 console.log("✅ the reply round-trips the suggestion back to the modal");
+
+// Every model Google now offers has thinking on, and a thought arrives as just
+// another text part. Joined blindly, the model's reasoning lands in the quest
+// box — which parses as garbage and reads as the bot talking to itself.
+assert.strictEqual(
+  pickText({ candidates: [{ content: { parts: [
+    { text: "The purple card is Archbishop...", thought: true },
+    { text: "abn challenge u\ngn hell leg" },
+  ] } }] }),
+  "abn challenge u\ngn hell leg",
+);
+// Fences, blank lines and stray indentation all come off.
+assert.strictEqual(
+  pickText({ candidates: [{ content: { parts: [{ text: "```\n  gdn hc leg  \n\n```" }] } }] }),
+  "gdn hc leg",
+);
+// An empty board is a valid answer, not a crash.
+assert.strictEqual(pickText({}), "");
+assert.strictEqual(pickText({ candidates: [{ content: { parts: [] } }] }), "");
+console.log("✅ the model's thinking never reaches the quest box");
 
 // A non-image attachment must never reach a paid API call.
 assert.ok(isBoard({ contentType: "image/png", size: 100 }));

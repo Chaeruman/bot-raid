@@ -26,6 +26,12 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
     bukan data salah.
   - Butuh env `GEMINI_API_KEY` (opsional `GEMINI_MODEL`) dan **Message Content
     Intent**. Tanpa itu fitur ini diam dan sisa bot jalan normal.
+  - Model default `gemini-flash-latest` — alias, bukan versi yang dipatok.
+    `gemini-2.5-flash` pensiun di tengah pengujian dan menjawab 404 "no longer
+    available to new users"; alias tidak bisa kena itu.
+  - Bagian `thought` dari jawaban model dibuang. Semua model Gemini sekarang
+    `thinking: true`, dan penalarannya datang sebagai text part biasa — kalau
+    ikut digabung, isi pikiran model masuk ke kotak quest.
   - Tanpa dependency baru — `fetch` bawaan Node, `yarn.lock` tidak tersentuh.
   - Diukur dulu: Tesseract lokal cuma dapat 6 dari 11 quest pada 8 screenshot
     asli, karena yang orang kirim lebarnya ±590px. Upscale tidak menambah

@@ -9,7 +9,9 @@ const { VARIANT_LIST } = require("./bounty");
 const { RARITY } = require("./data/bounty");
 
 const PREFIX = "bounty-img:";
-const MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+// An alias, not a pinned version: gemini-2.5-flash was retired mid-testing and
+// answered 404 "no longer available to new users". GEMINI_MODEL overrides.
+const MODEL = process.env.GEMINI_MODEL || "gemini-flash-latest";
 const KEY = () => process.env.GEMINI_API_KEY;
 
 // The model may only answer in words the parser already knows, so a
@@ -65,8 +67,16 @@ async function readBoard(buffer, mimeType = "image/png") {
   );
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
 
-  const json = await res.json();
-  const text = (json.candidates?.[0]?.content?.parts || []).map((p) => p.text || "").join("");
+  return pickText(await res.json());
+}
+
+// Every current Gemini model thinks, and a thinking part is still a text part.
+// Joining the lot would paste the model's reasoning into the quest box.
+function pickText(json) {
+  const text = (json.candidates?.[0]?.content?.parts || [])
+    .filter((p) => !p.thought)
+    .map((p) => p.text || "")
+    .join("");
   return text.replace(/```/g, "").split("\n").map((l) => l.trim()).filter(Boolean).join("\n");
 }
 
@@ -133,4 +143,4 @@ async function handleImageButton(interaction) {
   return interaction.showModal(buildQuestModal(chars, false, prefill));
 }
 
-module.exports = { readBoard, handleImage, handleImageButton, isBoard, PREFIX, PROMPT };
+module.exports = { readBoard, pickText, handleImage, handleImageButton, isBoard, PREFIX, PROMPT };
