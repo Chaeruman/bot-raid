@@ -34,10 +34,12 @@ ${MENU}
 rarity: ${RARITIES}
 
 Rules:
-- The card colour gives the rarity: purple=unique, pink/red=legendary.
-- SKIP orange cards (Epic) entirely.
-- A yellow glowing border means that card is selected. It is not a rarity —
-  read the card's own colour underneath it.
+- Every card PRINTS its rarity in brackets above the quest text: [Magic]
+  [Rare] [Epic] [Unique] [Legendary]. Read that word. Never infer rarity from
+  the card colour — the colours are washed out and mislead.
+- Report ONLY [Unique] and [Legendary] cards. SKIP [Epic], [Rare] and [Magic]
+  even when the card names a nest.
+- A yellow glowing border means that card is selected. It is not a rarity.
 - Ignore the detail panel on the right; it repeats one card you already have.
 - SKIP every card that is not a nest: "Abyss Stage", "FTG Stage", "any stage with FTG cost".
 - A card can appear twice; report it twice.

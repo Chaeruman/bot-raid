@@ -21,7 +21,11 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
   - Nest dan rarity dibaca dari gambar; **jenis scroll tidak** — papan tidak
     menampilkannya (hanya panel detail, satu quest saja), jadi satu kata per
     baris tetap diketik manual.
-  - Kartu Epic dan kartu non-nest (Abyss / FTG Stage) dibuang.
+  - Rarity dibaca dari label `[...]` yang tertulis di kartu, bukan ditebak
+    dari warnanya. Warna kartu di screenshot asli pucat dan menyesatkan —
+    Archbishop Hell yang Epic sempat masuk sebagai Unique gara-gara itu.
+  - Kartu `[Epic]`, `[Rare]`, `[Magic]` dan kartu non-nest (Abyss / FTG
+    Stage) dibuang. Cuma Unique / Legendary / Rare Legendary yang dilacak.
   - Tidak ada yang masuk DB tanpa lewat modal. Salah baca = satu koreksi,
     bukan data salah.
   - Butuh env `GEMINI_API_KEY` (opsional `GEMINI_MODEL`) dan **Message Content

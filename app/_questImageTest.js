@@ -31,10 +31,17 @@ assert.deepStrictEqual(complete.errors, [], "adding the scroll type completes ev
 assert.strictEqual(complete.added.length, VARIANT_LIST.length);
 console.log(`✅ all ${VARIANT_LIST.length} nests resolve; only the scroll type is left to type`);
 
-// Epic is not a rarity this bot tracks, so the model must be told to drop those
-// cards. Without it, every orange card becomes an unparseable line.
-assert.ok(/SKIP orange cards/i.test(PROMPT), "the prompt drops Epic");
-assert.ok(!/\bepic\s*=/i.test(PROMPT), "Epic is never offered as a rarity");
+// Rarity is PRINTED on the card. Inferring it from the card colour is what put
+// an Epic Archbishop into the box as Unique — the colours wash out, the label
+// does not. This asserts the instruction, not the model.
+assert.ok(/PRINTS its rarity/.test(PROMPT), "the prompt reads the printed label");
+assert.ok(/Never infer rarity from/i.test(PROMPT), "and forbids guessing from colour");
+
+// Only three rarities exist in the data; the board shows five. The two extra
+// have to be dropped by name, or a nest card wearing one becomes a bad line.
+for (const skip of ["[Epic]", "[Rare]", "[Magic]"])
+  assert.ok(PROMPT.includes(skip), `the prompt drops ${skip}`);
+assert.ok(!/\b(epic|magic)\s*=/i.test(PROMPT), "and never offers one as a rarity to emit");
 // Non-nest cards are the majority of a real board — 30 of ~40 in the samples.
 for (const junk of ["Abyss Stage", "FTG Stage"])
   assert.ok(PROMPT.includes(junk), `the prompt names ${junk} as skippable`);
