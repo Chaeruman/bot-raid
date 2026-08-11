@@ -18,9 +18,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 - **Baca quest dari screenshot papan bounty.** Lempar gambar papan ke thread
   bounty-mu sendiri, bot membalas dengan hasil bacanya dan tombol **🎯 Add
   quest** yang membuka modal biasa dalam keadaan sudah terisi.
-  - Nest dan rarity dibaca dari gambar; **jenis scroll tidak** — papan tidak
-    menampilkannya (hanya panel detail, satu quest saja), jadi satu kata per
-    baris tetap diketik manual.
+  - Dua layar diterima: papan pin, dan **Weekly Events → Group Bounty**. Yang
+    kedua jauh lebih akurat — satu baris per quest, rarity di depan nama
+    lengkapnya, tanpa kata terpotong dan tanpa kolom.
+  - **Jenis scroll ikut dibaca** dari ikon reward, dengan empat ikon referensi
+    berlabel (`app/assets/scroll-*.png`) ikut dikirim tiap panggilan; model
+    mencocokkan artwork ke artwork, bukan ke deskripsi. Kalau tidak ada yang
+    cocok jelas, dikosongkan — bukan ditebak.
   - Rarity dibaca dari label `[...]` yang tertulis di kartu, bukan ditebak
     dari warnanya. Warna kartu di screenshot asli pucat dan menyesatkan —
     Archbishop Hell yang Epic sempat masuk sebagai Unique gara-gara itu.
@@ -32,6 +36,12 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
     merepotkan daripada satu klik.
   - Tidak ada yang masuk DB tanpa lewat modal. Salah baca = satu koreksi,
     bukan data salah.
+  - **Setelah submit**, gambar dan balasan bot-nya sama-sama dihapus, dan
+    hanya kalau ada quest yang benar-benar tersimpan. Modal yang ditutup
+    meninggalkan keduanya utuh; paste yang gagal total menyisakan tombolnya,
+    supaya hasil bacanya tidak ikut hilang bersama kesempatan membetulkannya.
+    Bot perlu **Manage Messages** di channel bounty; tanpa itu alurnya tetap
+    jalan, pesannya cuma tidak terhapus.
   - Butuh env `GEMINI_API_KEY` (opsional `GEMINI_MODEL`) dan **Message Content
     Intent**. Tanpa itu fitur ini diam dan sisa bot jalan normal.
   - Model default `gemini-flash-latest` — alias, bukan versi yang dipatok.

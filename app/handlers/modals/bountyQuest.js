@@ -92,7 +92,9 @@ function buildPickers(charName, errors) {
 }
 
 async function handleBountyQuestModal(interaction) {
-  const replace = interaction.customId.slice(MODAL_PREFIX.length) === "r";
+  const mode = interaction.customId.slice(MODAL_PREFIX.length);
+  const replace = mode === "r";
+  const fromImage = mode === "i";
   // The character comes from the modal's own select, so no name is ever carried
   // in the customId — which also ends the "names may contain ':'" problem.
   const charName = interaction.fields.getStringSelectValues("char")[0];
@@ -188,6 +190,17 @@ async function handleBountyQuestModal(interaction) {
     components: pickers,
     flags: MessageFlags.Ephemeral,
   };
+
+  // Opened from a screenshot read. That message is not a panel and must not be
+  // redrawn as one — it and the picture above it are cleared instead, but only
+  // once something was actually saved. A paste that all failed still needs its
+  // button, or the read is gone along with the chance to fix it.
+  if (fromImage) {
+    if (saved.length)
+      await require("../../questImage").clearRead(interaction.message).catch(() => {});
+    await require("../../bountyThread").refreshThread(interaction.client, userId).catch(() => {});
+    return interaction.reply(payload);
+  }
 
   // Opened from the panel: redraw it so the new quests show, and put the parse
   // result underneath. From the slash command there is no panel to redraw.

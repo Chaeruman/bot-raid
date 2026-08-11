@@ -1,15 +1,15 @@
 // Run: node app/_questImageTest.js — no network, no key needed.
 const assert = require("assert");
-const { PROMPT, isBoard, readBoard, pickText, splitId, PREFIX } = require("./questImage");
+const { PROMPT, isBoard, readBoard, pickText, splitId, PREFIX, REFS, HAS_REFS } = require("./questImage");
 const { buildQuestModal } = require("./handlers/commands/bountyQuest");
 const { parseQuestLines, VARIANT_LIST } = require("./bounty");
 
 // The whole design rests on one claim: the format the model is told to emit is
 // the format the parser already eats. If that drifts, every read silently
 // becomes a parse error, so it is checked against every nest there is.
-// A board screenshot cannot show the scroll type, so a read is deliberately one
-// word short of a storable quest. What it MUST get right is the nest and the
-// rarity — those are the parts that are painful to type and easy to typo.
+// The scroll type is optional in the output: it only exists as a reward icon,
+// so a read may be one word short of a storable quest. Both shapes have to
+// behave — the short one resolving nest and rarity, the full one storing.
 const sample = VARIANT_LIST
   .map((v) => `${v.nestAliases[0]} ${v.variantAliases[0]} u`)
   .join("\n");
@@ -30,7 +30,7 @@ assert.deepStrictEqual(
 const complete = parseQuestLines(sample.split("\n").map((l) => `${l} wep`).join("\n"));
 assert.deepStrictEqual(complete.errors, [], "adding the scroll type completes every line");
 assert.strictEqual(complete.added.length, VARIANT_LIST.length);
-console.log(`✅ all ${VARIANT_LIST.length} nests resolve; only the scroll type is left to type`);
+console.log(`✅ all ${VARIANT_LIST.length} nests resolve, with or without the scroll type`);
 
 // Rarity is PRINTED on the card. Inferring it from the card colour is what put
 // an Epic Archbishop into the box as Unique — the colours wash out, the label
@@ -43,6 +43,32 @@ assert.ok(/Never infer rarity from/i.test(PROMPT), "and forbids guessing from co
 for (const skip of ["[Epic]", "[Rare]", "[Magic]"])
   assert.ok(PROMPT.includes(skip), `the prompt drops ${skip}`);
 assert.ok(!/\b(epic|magic)\s*=/i.test(PROMPT), "and never offers one as a rarity to emit");
+
+// Two screens show the same quests. The Weekly Events list is one clean row per
+// quest — no wrapped words, no columns, rarity inline — so it must be accepted,
+// not just the pinboard the reader was first written against.
+assert.ok(/Weekly Events list/.test(PROMPT), "the list layout is described");
+assert.ok(/pinboard/.test(PROMPT), "and so is the pinboard");
+for (const s of ["wep", "arm", "acc", "wtd"])
+  assert.ok(new RegExp(`\\b${s} =`).test(PROMPT), `${s} is spelled out for the model`);
+
+// ── The four scroll reference icons ─────────────────────────────────────────
+// They ship with the repo, so all four must load. Losing one silently would
+// leave the model matching against an incomplete set and quietly mislabelling
+// the missing type as its nearest neighbour.
+assert.strictEqual(HAS_REFS, true, "all four scroll icons loaded");
+assert.deepStrictEqual(REFS.map((r) => r.alias), ["wep", "arm", "acc", "wtd"]);
+for (const r of REFS) {
+  assert.ok(r.data.length > 1000, `${r.alias} icon is real data`);
+  // base64 PNG magic — a text file renamed .png would silently teach nothing.
+  assert.ok(r.data.startsWith("iVBORw0KGgo"), `${r.alias} is a PNG`);
+}
+// With references present the model is told to compare them; guessing is still
+// forbidden, because a wrong reward is stored as fact and never questioned.
+assert.ok(/reference\n?\s*icons are attached BEFORE/.test(PROMPT), "the references are announced");
+assert.ok(/top-left corner/.test(PROMPT), "and where they differ is named");
+assert.ok(/leave the scroll off/.test(PROMPT), "no match still means omit");
+console.log("✅ four scroll references load and the prompt points at them");
 // Non-nest cards are the majority of a real board — 30 of ~40 in the samples.
 for (const junk of ["Abyss Stage", "FTG Stage"])
   assert.ok(PROMPT.includes(junk), `the prompt names ${junk} as skippable`);
@@ -90,7 +116,7 @@ assert.deepStrictEqual(splitId(`${PREFIX}123:odd:name`), ["123", "odd:name"], "o
 // hang the quest on the wrong character with nobody looking.
 const roster = [{ name: "DarkJokowi", role: "FU" }, { name: "KucingTayo", role: "Healer" }];
 const defaults = (name) =>
-  buildQuestModal(roster, false, "", name).toJSON()
+  buildQuestModal(roster, false, { charName: name }).toJSON()
     .components[0].component.options.filter((o) => o.default).map((o) => o.value);
 assert.deepStrictEqual(defaults("DarkJokowi"), ["DarkJokowi"]);
 assert.deepStrictEqual(defaults("darkjokowi"), ["DarkJokowi"], "case does not matter");
@@ -99,6 +125,44 @@ assert.deepStrictEqual(defaults("DarkJoko"), [], "a near-miss preselects nothing
 assert.deepStrictEqual(defaults(""), [], "and so does an empty message");
 assert.deepStrictEqual(defaults("on char DarkJokowi"), [], "a sentence is not a character name");
 console.log("✅ only an exact roster name preselects the character");
+
+// The mode letter is how the submit handler tells a screenshot read from a
+// panel. Get it wrong and the read reply is redrawn as a bounty panel.
+const modeOf = (replace, fromImage) =>
+  buildQuestModal(roster, replace, { fromImage }).toJSON().custom_id.slice(-1);
+assert.strictEqual(modeOf(false, false), "a", "panel/slash append");
+assert.strictEqual(modeOf(true, false), "r", "replace");
+assert.strictEqual(modeOf(false, true), "i", "screenshot read");
+assert.strictEqual(modeOf(true, true), "i", "the image flow never replaces");
+console.log("✅ the modal carries which flow opened it");
+
+// ── Deleting the screenshot ─────────────────────────────────────────────────
+// It happens on the button, never on the read, and never before the modal is
+// open. Deleting a picture nobody has looked at yet destroys the only copy of
+// a read that may have been wrong.
+const src = require("fs").readFileSync(`${__dirname}/questImage.js`, "utf8");
+const modalSrc = require("fs").readFileSync(`${__dirname}/handlers/modals/bountyQuest.js`, "utf8");
+const clearSrc = src.slice(src.indexOf("async function clearRead"));
+const beforeClear = src.slice(0, src.indexOf("async function clearRead"));
+
+// Neither reading the picture nor opening the modal may delete anything. A
+// modal someone closes has to leave both messages standing.
+assert.ok(!beforeClear.includes(".delete("), "nothing is deleted before the modal is submitted");
+// Both go, not just the picture: a surviving reply keeps a button that reopens
+// a modal prefilled with quests already saved.
+assert.match(clearSrc, /messages\.delete\(/, "the picture goes");
+assert.match(clearSrc, /message\.delete\(/, "and so does the read reply");
+// Missing Manage Messages must not break a flow that already succeeded.
+assert.strictEqual((clearSrc.match(/\.catch\(/g) || []).length, 2, "both deletes are caught");
+// Only after something was saved — a paste that all failed keeps its button.
+assert.match(modalSrc, /if \(saved\.length\)\s*\n?\s*await require\("\.\.\/\.\.\/questImage"\)\.clearRead/);
+// And the read reply must never be redrawn as a panel, which is what
+// isFromMessage() would otherwise do to it.
+assert.ok(
+  modalSrc.indexOf("if (fromImage)") < modalSrc.indexOf("if (interaction.isFromMessage())"),
+  "the image branch is taken before the panel branch",
+);
+console.log("✅ both messages are cleared on submit, and only once something saved");
 
 // A non-image attachment must never reach a paid API call.
 assert.ok(isBoard({ contentType: "image/png", size: 100 }));

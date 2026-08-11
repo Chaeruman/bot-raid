@@ -4,6 +4,8 @@
 //
 // ponytail: no SDK, one fetch. Tesseract got 6/11 on real screenshots because
 // the ones people actually post are ~590px wide; upscaling adds no pixels.
+const fs = require("fs");
+const path = require("path");
 const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { VARIANT_LIST } = require("./bounty");
 const { RARITY } = require("./data/bounty");
@@ -24,26 +26,60 @@ const RARITIES = Object.entries(RARITY)
   .map(([, r]) => `${r.aliases[r.aliases.length - 1]} = ${r.label}`)
   .join(", ");
 
-const PROMPT = `This is a Dragon Nest bounty board screenshot. Each card shows a quest.
+// The scroll type exists only as a reward icon, and the four artworks differ
+// by a ~15px emblem in one corner. Describing them in prose would encode my
+// reading of a small picture into the prompt; sending the pictures does not.
+// Loaded once, and a missing file drops the whole feature rather than the bot.
+const REFS = [["wep", "scroll-wep.png"], ["arm", "scroll-armor.png"],
+  ["acc", "scroll-acc.png"], ["wtd", "scroll-wtd.png"]]
+  .map(([alias, file]) => {
+    try {
+      const data = fs.readFileSync(path.join(__dirname, "assets", file)).toString("base64");
+      return { alias, data };
+    } catch (err) {
+      console.error(`⚠️ scroll reference ${file} missing — scroll type will stay blank`);
+      return null;
+    }
+  })
+  .filter(Boolean);
 
-Report ONLY cards that name a nest from this list, one per line, as:
-<nest> <variant> <rarity>
+const HAS_REFS = REFS.length === 4;
+
+const SCROLL_RULE = HAS_REFS
+  ? `- The scroll type comes from the reward icons. Four labelled reference
+  icons are attached BEFORE the screenshot. Match each quest's reward icon
+  against them — they differ only by the small emblem in the top-left corner,
+  so compare that corner. Append the matching alias.
+- If a reward icon matches none of the four clearly, leave the scroll off.
+  A missing word costs one keystroke; a wrong one is stored as fact.`
+  : `- Leave the scroll type off entirely. Do not guess it.`;
+
+const PROMPT = `This is a Dragon Nest Group Bounty screenshot. It is one of two screens:
+- the pinboard of pinned cards, or
+- the Weekly Events list, one quest per row.
+Both list the same quests. Read whichever you are given.
+
+Report ONLY quests that name a nest from this list, one per line, as:
+<nest> <variant> <rarity> [scroll]
 
 ${MENU}
 
 rarity: ${RARITIES}
+scroll: wep = Weapon, arm = Armor, acc = Accessory, wtd = W/T/D
 
 Rules:
-- Every card PRINTS its rarity in brackets above the quest text: [Magic]
-  [Rare] [Epic] [Unique] [Legendary]. Read that word. Never infer rarity from
-  the card colour — the colours are washed out and mislead.
-- Report ONLY [Unique] and [Legendary] cards. SKIP [Epic], [Rare] and [Magic]
-  even when the card names a nest.
-- A yellow glowing border means that card is selected. It is not a rarity.
-- Ignore the detail panel on the right; it repeats one card you already have.
-- SKIP every card that is not a nest: "Abyss Stage", "FTG Stage", "any stage with FTG cost".
-- A card can appear twice; report it twice.
-- Card text wraps mid-word ("Green Drag / on Nest") — join it.
+- Every quest PRINTS its rarity in brackets: [Magic] [Rare] [Epic] [Unique]
+  [Legendary]. Read that word. Never infer rarity from a card's colour — the
+  colours are washed out and mislead.
+- Report ONLY [Unique] and [Legendary] quests. SKIP [Epic], [Rare] and
+  [Magic] even when they name a nest.
+- SKIP everything that is not a nest: "Abyss Stage", "FTG Stage", "any stage
+  with FTG cost".
+- The same quest can appear twice; report it twice.
+${SCROLL_RULE}
+- On the pinboard, card text wraps mid-word ("Green Drag / on Nest") — join
+  it. A yellow glowing border means selected, not a rarity. Ignore the detail
+  panel on the right; it repeats one card you already have.
 - Output nothing else. No prose, no code fence. Empty output is a valid answer.`;
 
 // Returns the suggested text, or throws. The caller decides what a failure
@@ -57,12 +93,17 @@ async function readBoard(buffer, mimeType = "image/png") {
       method: "POST",
       headers: { "content-type": "application/json", "x-goog-api-key": KEY() },
       body: JSON.stringify({
-        contents: [{
-          parts: [
-            { text: PROMPT },
-            { inline_data: { mime_type: mimeType, data: buffer.toString("base64") } },
-          ],
-        }],
+        contents: [{ parts: [
+          { text: PROMPT },
+          // Label then picture, so each reference is unambiguously named, and
+          // the screenshot comes last so "this one" cannot be misread.
+          ...REFS.flatMap((r) => [
+            { text: `Reference reward icon — scroll type "${r.alias}":` },
+            { inline_data: { mime_type: "image/png", data: r.data } },
+          ]),
+          { text: "Now read this screenshot:" },
+          { inline_data: { mime_type: mimeType, data: buffer.toString("base64") } },
+        ] }],
         generationConfig: { temperature: 0 },
       }),
     },
@@ -117,11 +158,14 @@ async function handleImage(message) {
   // owns preselects nothing and the picker still opens.
   const typed = message.content.trim().replace(/\s+/g, " ").slice(0, 60);
 
-  // The board never shows the scroll type, so the read is one word short on
-  // purpose. Saying so here beats letting the modal reject every line.
+  // The scroll type only exists as a reward icon, so some lines arrive without
+  // one. Naming the missing word beats letting the modal reject the line.
+  const needScroll = lines.split("\n").some((l) => !/\b(wep|wtd|acc|arm)\b/.test(l));
+
   return message.reply({
-    content: `Kebaca dari gambar:\n\`\`\`\n${lines}\`\`\``
-      + "Cek dulu, lalu tambahkan jenis scroll tiap baris — `wep` `wtd` `acc` `arm` (`box` kalau ada).",
+    content: `Kebaca dari gambar:\n\`\`\`\n${lines}\`\`\`` + (needScroll
+      ? "Cek dulu, lalu lengkapi jenis scroll yang belum ada — `wep` `wtd` `acc` `arm` (`box` kalau ada)."
+      : "Cek dulu, betulkan yang salah."),
     components: [new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(`${PREFIX}${message.author.id}:${typed}`)
@@ -153,10 +197,28 @@ async function handleImageButton(interaction) {
       flags: MessageFlags.Ephemeral,
     });
 
+  // Cleanup waits for the modal to be SUBMITTED, not opened — see the "i" mode
+  // in bountyQuest. A modal someone closes must leave both messages standing,
+  // or backing out costs them the read.
   const { buildQuestModal } = require("./handlers/commands/bountyQuest");
-  return interaction.showModal(buildQuestModal(chars, false, prefill, typed));
+  return interaction.showModal(
+    buildQuestModal(chars, false, { prefill, charName: typed, fromImage: true }),
+  );
+}
+
+// The read is spent once the quests are in. Both messages go: the picture, and
+// the bot's own reply holding the text — leaving the reply would leave a button
+// that reopens a modal prefilled with quests already saved.
+async function clearRead(message) {
+  const imageId = message.reference?.messageId;
+  if (imageId)
+    await message.channel.messages.delete(imageId).catch((err) =>
+      console.error(`❌ delete board image ${imageId}:`, err.message),
+    );
+  await message.delete().catch((err) => console.error("❌ delete read reply:", err.message));
 }
 
 module.exports = {
-  readBoard, pickText, handleImage, handleImageButton, splitId, isBoard, PREFIX, PROMPT,
+  readBoard, pickText, handleImage, handleImageButton, clearRead, splitId, isBoard,
+  REFS, HAS_REFS, PREFIX, PROMPT,
 };

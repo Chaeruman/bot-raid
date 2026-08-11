@@ -52,7 +52,7 @@ const POOL_OPTS = VARIANT_LIST.map((v) => ({
 // cover the common case in the same number of interactions typing took — minus
 // the syntax and minus any chance of a parse error. The text field stays for
 // people who are fluent, for pasting, and for the character holding three.
-function buildQuestModal(chars, replace = false, prefill = "", charName = "") {
+function buildQuestModal(chars, replace = false, { prefill = "", charName = "", fromImage = false } = {}) {
   // Only an exact roster hit preselects. A near-miss would put the quest on
   // the wrong character silently, which is worse than one extra click.
   const chosen = chars.find((c) => c.name.toLowerCase() === String(charName).trim().toLowerCase());
@@ -67,7 +67,10 @@ function buildQuestModal(chars, replace = false, prefill = "", charName = "") {
   if (prefill) lines.setValue(prefill.slice(0, 600));
 
   return new ModalBuilder()
-    .setCustomId(`${MODAL_PREFIX}${replace ? "r" : "a"}`)
+    // "i" appends like "a", and additionally means the message this was opened
+    // from is a screenshot read — which must be deleted rather than redrawn as
+    // a panel, because it is not one.
+    .setCustomId(`${MODAL_PREFIX}${fromImage ? "i" : replace ? "r" : "a"}`)
     .setTitle(replace ? "Edit quest" : "Add quest")
     .setLabelComponents(
       // A roster over 25 loses its tail here. MAX_CHARS is 40, but the biggest
