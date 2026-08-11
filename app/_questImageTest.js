@@ -164,6 +164,23 @@ assert.ok(
 );
 console.log("✅ both messages are cleared on submit, and only once something saved");
 
+// ── Overlapping screenshots ─────────────────────────────────────────────────
+// The Weekly Events list scrolls, so a six-quest week takes two shots and
+// consecutive shots share rows. Read apart and concatenated the overlap
+// double-counts; deduped, a genuinely repeated quest vanishes — and repeats are
+// real, one character held two Gigantes Challenge. Only one call seeing both
+// can tell those apart, so the merge instruction must exist and must say both.
+const many = src.slice(src.indexOf("images.length > 1"), src.indexOf("...images.map"));
+assert.match(many, /SAME quest and is reported once/, "the overlap is merged");
+assert.match(many, /twice only when one screenshot shows it twice/, "a real repeat survives");
+assert.match(many, /in order/, "and the shots are ordered");
+// One picture must not be told to merge anything.
+assert.ok(src.includes('"Now read this screenshot:"'), "a single shot keeps its plain wording");
+// Every attachment goes, not just the first — that was the bug this fixes.
+assert.match(src, /message\.attachments\.values\(\)\]\.filter\(isBoard\)/, "all attachments are taken");
+assert.match(src, /\.slice\(0, 4\)/, "and capped");
+console.log("✅ overlapping screenshots are merged in one call, not concatenated");
+
 // A non-image attachment must never reach a paid API call.
 assert.ok(isBoard({ contentType: "image/png", size: 100 }));
 assert.ok(!isBoard({ contentType: "text/plain", size: 100 }));

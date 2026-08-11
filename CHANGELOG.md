@@ -32,6 +32,11 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
   - Dua layar diterima: papan pin, dan **Weekly Events → Group Bounty**. Yang
     kedua jauh lebih akurat — satu baris per quest, rarity di depan nama
     lengkapnya, tanpa kata terpotong dan tanpa kolom.
+  - **Beberapa gambar dalam satu pesan** dibaca sekaligus (maks 4). Layar
+    Weekly Events bisa di-scroll, jadi minggu berisi 6 quest butuh dua
+    screenshot yang isinya beririsan. Semua masuk dalam satu panggilan supaya
+    irisannya bisa disatukan — dibaca terpisah lalu digabung akan menghitung
+    ganda, dan dibuang duplikatnya akan menghilangkan quest yang memang kembar.
   - **Jenis scroll ikut dibaca** dari ikon reward, dengan empat ikon referensi
     berlabel (`app/assets/scroll-*.png`) ikut dikirim tiap panggilan; model
     mencocokkan artwork ke artwork, bukan ke deskripsi. Kalau tidak ada yang

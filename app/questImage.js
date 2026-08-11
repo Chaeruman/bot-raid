@@ -82,10 +82,14 @@ ${SCROLL_RULE}
   panel on the right; it repeats one card you already have.
 - Output nothing else. No prose, no code fence. Empty output is a valid answer.`;
 
-// Returns the suggested text, or throws. The caller decides what a failure
-// looks like to the person who posted the picture.
-async function readBoard(buffer, mimeType = "image/png") {
+// Takes every screenshot at once, because the Weekly Events list SCROLLS: a
+// six-quest week needs two shots, and consecutive shots overlap. Read apart and
+// concatenated, the overlap double-counts; deduped, a genuinely repeated quest
+// disappears. Only something seeing both at once can tell those apart.
+async function readBoard(shots, mimeType = "image/png") {
   if (!KEY()) throw new Error("GEMINI_API_KEY not set");
+  const images = (Array.isArray(shots) ? shots : [{ buffer: shots, mimeType }])
+    .map((s) => (Buffer.isBuffer(s) ? { buffer: s, mimeType } : s));
 
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
@@ -101,8 +105,12 @@ async function readBoard(buffer, mimeType = "image/png") {
             { text: `Reference reward icon — scroll type "${r.alias}":` },
             { inline_data: { mime_type: "image/png", data: r.data } },
           ]),
-          { text: "Now read this screenshot:" },
-          { inline_data: { mime_type: mimeType, data: buffer.toString("base64") } },
+          { text: images.length > 1
+            ? `Now read these ${images.length} screenshots. They are overlapping views of ONE scrolling list, in order. Merge them into a single list: a quest visible in two screenshots is the SAME quest and is reported once. Report a quest twice only when one screenshot shows it twice.`
+            : "Now read this screenshot:" },
+          ...images.map((im) => ({
+            inline_data: { mime_type: im.mimeType || mimeType, data: im.buffer.toString("base64") },
+          })),
         ] }],
         generationConfig: { temperature: 0 },
       }),
@@ -137,12 +145,18 @@ async function handleImage(message) {
     .find((uid) => bountyThreads[uid]?.threadId === message.channelId);
   if (!owner || owner !== message.author.id) return;
 
-  const img = message.attachments.find(isBoard);
-  if (!img || !KEY()) return;
+  // Every picture in the message, in the order they were attached — the list
+  // scrolls, so one shot need not hold the whole week. Capped because a board
+  // is six quests and two shots cover it; more is somebody's holiday album.
+  const imgs = [...message.attachments.values()].filter(isBoard).slice(0, 4);
+  if (!imgs.length || !KEY()) return;
 
   const lines = await (async () => {
-    const buf = Buffer.from(await (await fetch(img.url)).arrayBuffer());
-    return readBoard(buf, img.contentType.split(";")[0]);
+    const shots = await Promise.all(imgs.map(async (a) => ({
+      buffer: Buffer.from(await (await fetch(a.url)).arrayBuffer()),
+      mimeType: (a.contentType || "image/png").split(";")[0],
+    })));
+    return readBoard(shots);
   })().catch((err) => {
     console.error("❌ readBoard:", err.message);
     return null;
