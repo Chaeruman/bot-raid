@@ -41,6 +41,13 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
     berlabel (`app/assets/scroll-*.png`) ikut dikirim tiap panggilan; model
     mencocokkan artwork ke artwork, bukan ke deskripsi. Kalau tidak ada yang
     cocok jelas, dikosongkan — bukan ditebak.
+  - Gambar diminta dibaca pada **resolusi tinggi**. Emblem pembeda jenis
+    scroll cuma ~15px di pojok ikon ~40px; pada resolusi default screenshot
+    layar penuh dipetak-kecilkan sampai emblem itu habis, dan jawabannya jadi
+    `acc` untuk semuanya. Screenshot yang di-zoom terbaca benar — itu yang
+    menunjukkan masalahnya piksel, bukan prompt. Model yang menolak field ini
+    dicoba ulang tanpa itu, supaya yang hilang cuma scroll-nya, bukan
+    seluruh pembacaan.
   - Rarity dibaca dari label `[...]` yang tertulis di kartu, bukan ditebak
     dari warnanya. Warna kartu di screenshot asli pucat dan menyesatkan —
     Archbishop Hell yang Epic sempat masuk sebagai Unique gara-gara itu.

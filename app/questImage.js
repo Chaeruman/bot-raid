@@ -95,13 +95,7 @@ async function readBoard(shots, mimeType = "image/png") {
   const images = (Array.isArray(shots) ? shots : [{ buffer: shots, mimeType }])
     .map((s) => (Buffer.isBuffer(s) ? { buffer: s, mimeType } : s));
 
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
-    {
-      method: "POST",
-      headers: { "content-type": "application/json", "x-goog-api-key": KEY() },
-      body: JSON.stringify({
-        contents: [{ parts: [
+  const parts = [
           { text: PROMPT },
           // Label then picture, so each reference is unambiguously named, and
           // the screenshot comes last so "this one" cannot be misread.
@@ -112,14 +106,33 @@ async function readBoard(shots, mimeType = "image/png") {
           { text: images.length > 1
             ? `Now read these ${images.length} screenshots. They are overlapping views of ONE scrolling list, in order. Merge them into a single list: a quest visible in two screenshots is the SAME quest and is reported once. Report a quest twice only when one screenshot shows it twice.`
             : "Now read this screenshot:" },
-          ...images.map((im) => ({
-            inline_data: { mime_type: im.mimeType || mimeType, data: im.buffer.toString("base64") },
-          })),
-        ] }],
-        generationConfig: { temperature: 0 },
-      }),
+    ...images.map((im) => ({
+      inline_data: { mime_type: im.mimeType || mimeType, data: im.buffer.toString("base64") },
+    })),
+  ];
+
+  const ask = (generationConfig) => fetch(
+    `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-goog-api-key": KEY() },
+      body: JSON.stringify({ contents: [{ parts }], generationConfig }),
     },
   );
+
+  // The scroll type hangs on a ~15px emblem in the corner of a ~40px icon. At
+  // the default resolution a full-screen shot is tiled down until that emblem
+  // is a few pixels, and the model answered "acc" for everything; the same
+  // quest read twice gave two different types. A zoomed-in screenshot got it
+  // right, which is what says the pixels are the problem, not the prompt.
+  let res = await ask({ temperature: 0, mediaResolution: "MEDIA_RESOLUTION_HIGH" });
+
+  // Not every model takes that field, and losing the whole read to it would be
+  // a worse trade than losing the scroll type. One retry, plain config.
+  if (res.status === 400) {
+    console.error("⚠️ Gemini rejected mediaResolution — retrying without it");
+    res = await ask({ temperature: 0 });
+  }
   if (!res.ok) throw new Error(`Gemini ${res.status}: ${(await res.text()).slice(0, 200)}`);
 
   return pickText(await res.json());

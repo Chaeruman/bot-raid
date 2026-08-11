@@ -189,6 +189,20 @@ assert.match(src, /message\.attachments\.values\(\)\]\.filter\(isBoard\)/, "all 
 assert.match(src, /\.slice\(0, 4\)/, "and capped");
 console.log("✅ overlapping screenshots are merged in one call, not concatenated");
 
+// ── Image resolution ────────────────────────────────────────────────────────
+// A zoomed screenshot read the scroll type correctly where a full-screen one
+// answered "acc" for everything, so the emblem is being tiled away before the
+// model sees it. Asking for high media resolution is the lever — but not every
+// model takes the field, and losing the whole read to it is the worse trade.
+assert.match(src, /MEDIA_RESOLUTION_HIGH/, "high resolution is requested");
+assert.match(src, /res\.status === 400[\s\S]{0,200}?ask\(\{ temperature: 0 \}\)/,
+  "a rejected field falls back instead of failing the read");
+assert.ok(
+  src.indexOf("MEDIA_RESOLUTION_HIGH") < src.indexOf("res.status === 400"),
+  "the fallback comes second, so the good path is tried first",
+);
+console.log("✅ high media resolution is asked for, and degrades if refused");
+
 // A non-image attachment must never reach a paid API call.
 assert.ok(isBoard({ contentType: "image/png", size: 100 }));
 assert.ok(!isBoard({ contentType: "text/plain", size: 100 }));
