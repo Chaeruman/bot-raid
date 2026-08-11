@@ -112,8 +112,11 @@ async function handleImage(message) {
   if (!lines)
     return message.reply("Tidak ada quest nest di gambar itu.").catch(() => {});
 
-  // The character name, if they typed one, is theirs to confirm in the modal —
-  // guessing it here would put a quest on the wrong character silently.
+  // Whatever they typed next to the picture rides along in the customId, so an
+  // exact roster hit arrives preselected. Never trusted further: a name nobody
+  // owns preselects nothing and the picker still opens.
+  const typed = message.content.trim().replace(/\s+/g, " ").slice(0, 60);
+
   // The board never shows the scroll type, so the read is one word short on
   // purpose. Saying so here beats letting the modal reject every line.
   return message.reply({
@@ -121,15 +124,24 @@ async function handleImage(message) {
       + "Cek dulu, lalu tambahkan jenis scroll tiap baris — `wep` `wtd` `acc` `arm` (`box` kalau ada).",
     components: [new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(`${PREFIX}${message.author.id}`)
+        .setCustomId(`${PREFIX}${message.author.id}:${typed}`)
         .setLabel("🎯 Add quest")
         .setStyle(ButtonStyle.Primary),
     )],
   }).catch(() => {});
 }
 
+// "<userId>:<whatever they typed>" — the name may hold anything, including
+// colons, so only the first one separates.
+const splitId = (customId) => {
+  const rest = customId.slice(PREFIX.length);
+  const cut = rest.indexOf(":");
+  return cut < 0 ? [rest, ""] : [rest.slice(0, cut), rest.slice(cut + 1)];
+};
+
 async function handleImageButton(interaction) {
-  if (interaction.customId.slice(PREFIX.length) !== interaction.user.id)
+  const [ownerId, typed] = splitId(interaction.customId);
+  if (ownerId !== interaction.user.id)
     return interaction.reply({ content: "⛔ Itu bukan gambarmu.", flags: MessageFlags.Ephemeral });
 
   const prefill = (interaction.message.content.match(FENCE) || [, ""])[1].trim();
@@ -142,7 +154,9 @@ async function handleImageButton(interaction) {
     });
 
   const { buildQuestModal } = require("./handlers/commands/bountyQuest");
-  return interaction.showModal(buildQuestModal(chars, false, prefill));
+  return interaction.showModal(buildQuestModal(chars, false, prefill, typed));
 }
 
-module.exports = { readBoard, pickText, handleImage, handleImageButton, isBoard, PREFIX, PROMPT };
+module.exports = {
+  readBoard, pickText, handleImage, handleImageButton, splitId, isBoard, PREFIX, PROMPT,
+};

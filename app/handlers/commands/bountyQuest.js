@@ -52,7 +52,10 @@ const POOL_OPTS = VARIANT_LIST.map((v) => ({
 // cover the common case in the same number of interactions typing took — minus
 // the syntax and minus any chance of a parse error. The text field stays for
 // people who are fluent, for pasting, and for the character holding three.
-function buildQuestModal(chars, replace = false, prefill = "") {
+function buildQuestModal(chars, replace = false, prefill = "", charName = "") {
+  // Only an exact roster hit preselects. A near-miss would put the quest on
+  // the wrong character silently, which is worse than one extra click.
+  const chosen = chars.find((c) => c.name.toLowerCase() === String(charName).trim().toLowerCase());
   const lines = new TextInputBuilder()
     .setCustomId("lines")
     .setPlaceholder(["ddn hc u wep", "gdn cl leg acc box", "memo 1 rl wtd"].join("\n"))
@@ -76,6 +79,7 @@ function buildQuestModal(chars, replace = false, prefill = "") {
           label: c.name.slice(0, 100),
           value: c.name.slice(0, 100),
           description: `${c.role || "?"} · ${DPS_TIERS[c.dpsTier] || "?"}`.slice(0, 100),
+          ...(chosen && c.name === chosen.name ? { default: true } : {}),
         })),
       ),
       pick("pool", "Dungeon", POOL_OPTS, false),

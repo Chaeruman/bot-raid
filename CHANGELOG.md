@@ -26,6 +26,10 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
     Archbishop Hell yang Epic sempat masuk sebagai Unique gara-gara itu.
   - Kartu `[Epic]`, `[Rare]`, `[Magic]` dan kartu non-nest (Abyss / FTG
     Stage) dibuang. Cuma Unique / Legendary / Rare Legendary yang dilacak.
+  - Nama yang diketik di pesan yang sama ikut terbawa: kalau **persis** cocok
+    dengan karakter di roster, dropdown-nya sudah terpilih waktu modal buka.
+    Mirip-mirip saja tidak cukup — quest nempel di karakter salah lebih
+    merepotkan daripada satu klik.
   - Tidak ada yang masuk DB tanpa lewat modal. Salah baca = satu koreksi,
     bukan data salah.
   - Butuh env `GEMINI_API_KEY` (opsional `GEMINI_MODEL`) dan **Message Content

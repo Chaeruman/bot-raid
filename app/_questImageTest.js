@@ -1,6 +1,7 @@
 // Run: node app/_questImageTest.js — no network, no key needed.
 const assert = require("assert");
-const { PROMPT, isBoard, readBoard, pickText } = require("./questImage");
+const { PROMPT, isBoard, readBoard, pickText, splitId, PREFIX } = require("./questImage");
+const { buildQuestModal } = require("./handlers/commands/bountyQuest");
 const { parseQuestLines, VARIANT_LIST } = require("./bounty");
 
 // The whole design rests on one claim: the format the model is told to emit is
@@ -77,6 +78,27 @@ assert.strictEqual(
 assert.strictEqual(pickText({}), "");
 assert.strictEqual(pickText({ candidates: [{ content: { parts: [] } }] }), "");
 console.log("✅ the model's thinking never reaches the quest box");
+
+// ── The name typed beside the picture ───────────────────────────────────────
+// It rides in the customId, and the owner check has to keep working now that
+// the id is no longer the whole string — otherwise anyone could press it.
+assert.deepStrictEqual(splitId(`${PREFIX}123:DarkJokowi`), ["123", "DarkJokowi"]);
+assert.deepStrictEqual(splitId(`${PREFIX}123`), ["123", ""], "an old button still identifies its owner");
+assert.deepStrictEqual(splitId(`${PREFIX}123:odd:name`), ["123", "odd:name"], "only the first colon splits");
+
+// An exact roster hit preselects. Anything else must not — a near-miss would
+// hang the quest on the wrong character with nobody looking.
+const roster = [{ name: "DarkJokowi", role: "FU" }, { name: "KucingTayo", role: "Healer" }];
+const defaults = (name) =>
+  buildQuestModal(roster, false, "", name).toJSON()
+    .components[0].component.options.filter((o) => o.default).map((o) => o.value);
+assert.deepStrictEqual(defaults("DarkJokowi"), ["DarkJokowi"]);
+assert.deepStrictEqual(defaults("darkjokowi"), ["DarkJokowi"], "case does not matter");
+assert.deepStrictEqual(defaults(" DarkJokowi "), ["DarkJokowi"], "nor does whitespace");
+assert.deepStrictEqual(defaults("DarkJoko"), [], "a near-miss preselects nothing");
+assert.deepStrictEqual(defaults(""), [], "and so does an empty message");
+assert.deepStrictEqual(defaults("on char DarkJokowi"), [], "a sentence is not a character name");
+console.log("✅ only an exact roster name preselects the character");
 
 // A non-image attachment must never reach a paid API call.
 assert.ok(isBoard({ contentType: "image/png", size: 100 }));
