@@ -30,13 +30,19 @@ const MANUAL = "manual";
 
 const MAX_OPTS = 25;
 
-// value = poolKey|rarity|scroll|box|charName — the name goes LAST because it is
-// the only part that may contain anything.
-const encode = (charName, q) =>
-  `${q.poolKey}|${q.rarity}|${q.scroll}|${q.box ? 1 : 0}|${charName}`.slice(0, 100);
+// value = nth|poolKey|rarity|scroll|box|charName — the name goes LAST because
+// it is the only part that may contain anything.
+//
+// `nth` exists only to keep the values distinct. A board can hold the same
+// quest twice, and two options with one value cannot both be chosen — so the
+// second copy would have been unselectable. It is never used to find the quest:
+// the handler still takes the first row that matches and is in the state being
+// changed, which walks through the copies one selection at a time.
+const encode = (charName, q, nth = 0) =>
+  `${nth}|${q.poolKey}|${q.rarity}|${q.scroll}|${q.box ? 1 : 0}|${charName}`.slice(0, 100);
 
 const decode = (value) => {
-  const [poolKey, rarity, scroll, box, ...rest] = value.split("|");
+  const [, poolKey, rarity, scroll, box, ...rest] = value.split("|");
   return { poolKey, rarity, scroll, box: box === "1", charName: rest.join("|") };
 };
 
@@ -65,9 +71,9 @@ async function buildMarkRows(userId, mode = "done") {
     .setMinValues(1)
     .setMaxValues(Math.min(list.length, MAX_OPTS))
     .addOptions(
-      list.slice(0, MAX_OPTS).map(({ charName, q }) => ({
+      list.slice(0, MAX_OPTS).map(({ charName, q }, i) => ({
         label: `${charName} · ${questLabel(q)}`.slice(0, 100),
-        value: encode(charName, q),
+        value: encode(charName, q, i),
       })),
     );
 
@@ -83,9 +89,9 @@ function applyMark(doc, mode, wanted) {
 
   for (const want of wanted) {
     const board = doc.chars?.[want.charName]?.board || [];
-    // The first one that matches and is in the state being changed. Two
-    // identical quests on one character cannot happen — the board dedupes on
-    // exactly these fields when they go in.
+    // The first one that matches and is in the state being changed. A board CAN
+    // hold the same quest twice, so this deliberately takes one of them: two
+    // identical rows are interchangeable, and the menu offered one line each.
     const at = board.findIndex((x) => matches(x, want) && (undo ? x.runId : !x.runId));
     if (at < 0) continue;
     const q = board[at];
@@ -143,4 +149,6 @@ async function handleMark(interaction) {
   });
 }
 
-module.exports = { handleMark, applyMark, buildMarkRows, questsIn, decode, LIST, MARK, MANUAL };
+module.exports = {
+  handleMark, applyMark, buildMarkRows, questsIn, encode, decode, LIST, MARK, MANUAL,
+};

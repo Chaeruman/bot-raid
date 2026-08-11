@@ -9,8 +9,60 @@ const sig = (q) => `${q.poolKey}|${q.rarity}|${q.scroll}|${q.box ? 1 : 0}`;
 // Field ids are terse; the message someone reads should not be.
 const LABEL = { poolKey: "Dungeon", rarity: "Rarity", scroll: "Scroll" };
 
+// What changes on a board, given what was asked for. Pure, and separate from
+// addQuests, because the counting rule below is the part worth testing and the
+// rest is a database round trip.
+function mergeIntoBoard(existing, quests, { replace = false } = {}) {
+  // Replace drops only the UNCLAIMED quests — anything already run is real
+  // history and a typo fix must not delete it. It is also skipped entirely when
+  // nothing parsed, so a paste of pure typos reports the typos instead of
+  // silently emptying the board.
+  const replacing = replace && quests.length > 0;
+  const board = replacing ? existing.filter((q) => q.runId) : existing;
+
+  const saved = [];
+  const repeats = [];
+  const overflow = [];
+
+  // Counts, not a Set. A character really can hold the same quest twice — the
+  // game showed two Typhoon Kim Hell on one board — and a Set could only ever
+  // keep one of them, so the second was silently reported as a repeat. What the
+  // Set was actually protecting against is submitting the same list twice, and
+  // counting still does that: the paste says how many of each it wants, the
+  // board says how many it holds, and only the difference is added.
+  const have = new Map();
+  for (const q of board) have.set(sig(q), (have.get(sig(q)) || 0) + 1);
+  const want = new Map();
+
+  for (const q of quests) {
+    const key = sig(q);
+    const nth = (want.get(key) || 0) + 1;
+    want.set(key, nth);
+
+    if (nth <= (have.get(key) || 0)) {
+      repeats.push(q);
+      continue;
+    }
+    // The board holds exactly 6 quests, so it can never hold a 7th.
+    if (board.length >= WEEKLY_CLAIMS) {
+      overflow.push(q);
+      continue;
+    }
+    board.push({
+      poolKey: q.poolKey,
+      rarity: q.rarity,
+      scroll: q.scroll,
+      box: !!q.box,
+      runId: null,
+    });
+    saved.push(q);
+  }
+
+  return { board, saved, repeats, overflow, replacing };
+}
+
 // The one place quests reach a character's board. Extracted because the
-// ambiguity picker writes through here too, and two copies of "dedupe, cap at
+// ambiguity picker writes through here too, and two copies of "count, cap at
 // six, then save" is two places for the cap to drift.
 async function addQuests(userId, charName, quests, { replace = false } = {}) {
   const key = weekKey();
@@ -23,38 +75,9 @@ async function addQuests(userId, charName, quests, { replace = false } = {}) {
   if (!doc.chars) doc.chars = {};
   const charWeek = doc.chars[charName] || (doc.chars[charName] = { board: [], shares: [] });
 
-  // Replace drops only the UNCLAIMED quests — anything already run is real
-  // history and a typo fix must not delete it. It is also skipped entirely when
-  // nothing parsed, so a paste of pure typos reports the typos instead of
-  // silently emptying the board.
-  const replacing = replace && quests.length > 0;
-  if (replacing) charWeek.board = charWeek.board.filter((q) => q.runId);
-
-  const seen = new Set(charWeek.board.map(sig));
-  const saved = [];
-  const repeats = [];
-  const overflow = [];
-
-  for (const q of quests) {
-    if (seen.has(sig(q))) {
-      repeats.push(q);
-      continue;
-    }
-    // The board holds exactly 6 quests, so it can never hold a 7th.
-    if (charWeek.board.length >= WEEKLY_CLAIMS) {
-      overflow.push(q);
-      continue;
-    }
-    seen.add(sig(q));
-    charWeek.board.push({
-      poolKey: q.poolKey,
-      rarity: q.rarity,
-      scroll: q.scroll,
-      box: !!q.box,
-      runId: null,
-    });
-    saved.push(q);
-  }
+  const { board, saved, repeats, overflow, replacing } =
+    mergeIntoBoard(charWeek.board, quests, { replace });
+  charWeek.board = board;
 
   const stored = saved.length ? await saveBountyWeek(doc) : true;
   return { saved, repeats, overflow, replacing, charWeek, stored };
@@ -217,4 +240,6 @@ async function handleBountyQuestModal(interaction) {
   return interaction.reply(payload);
 }
 
-module.exports = { handleBountyQuestModal, addQuests, isFixable, buildPickers, FIX };
+module.exports = {
+  handleBountyQuestModal, addQuests, mergeIntoBoard, isFixable, buildPickers, FIX,
+};

@@ -14,6 +14,18 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+### Fixed
+- **Satu karakter bisa memegang quest yang sama lebih dari sekali.** `addQuests`
+  memakai `Set`, jadi salinan kedua selalu dilaporkan "sudah ada di board" dan
+  tidak pernah tersimpan — papan Santerez punya dua Typhoon Kim Hell dan cuma
+  satu yang masuk. Sekarang dihitung, bukan di-`Set`: paste bilang berapa
+  banyak yang diminta, board bilang berapa yang dipegang, dan selisihnya yang
+  ditambahkan. Kirim ulang daftar yang sama tetap tidak menambah apa-apa —
+  itu yang sebenarnya dijaga `Set` selama ini.
+- Menu **Mark done** / **Remove quest** memberi nilai identik untuk dua quest
+  kembar, jadi salinan kedua tidak bisa dipilih. Nilainya sekarang diberi
+  nomor urut — cuma untuk membedakan, bukan untuk mencari.
+
 ### Added
 - **🗑️ Remove quest** di panel bounty. Sebelumnya quest cuma bisa *diganti*
   lewat ♻️ Edit quest, dan paste kosong sengaja diabaikan — jadi quest yang

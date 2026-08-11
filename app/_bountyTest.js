@@ -1544,7 +1544,7 @@ eq("59. nothing open, nothing to remove", dropRow(0), "off");
 eq("59. otherwise live", dropRow(1), "on");
 
 // The whole point: the quest actually leaves the board, and only that one.
-const pickHc = [decMark("gdn:hc|unique|weapon|0|Chelssea")];
+const pickHc = [decMark(`0|gdn:hc|unique|weapon|0|Chelssea`)];
 const doc59 = week49();
 eq("59. one quest is removed", applyMark(doc59, "drop", pickHc).length, 1);
 eq("59. and it is gone from the board",
@@ -1564,6 +1564,64 @@ applyMark(doc59c, "done", pickHc);
 eq("59. marking done still only sets the marker",
   doc59c.chars.Chelssea.board.map((q) => `${q.poolKey}${q.runId ? "*" : ""}`).join(","),
   "gdn:hc*,gdn:classic*");
+
+
+// 60. A character really can hold the same quest twice — a live board showed
+//     two Typhoon Kim Hell. addQuests deduped on a Set, so the second was
+//     always reported as "already on the board" and never stored, and
+//     bountyMark even documented that as a guarantee. Counts replace the Set:
+//     what the Set was actually protecting against is submitting the same list
+//     twice, and counting still does that.
+const { mergeIntoBoard } = require("./handlers/modals/bountyQuest");
+const { encode: encMark } = require("./handlers/selectMenus/bountyMark");
+
+const q60 = (poolKey) => ({ poolKey, rarity: "unique", scroll: "accessory", box: false });
+const TKN = q60("tkn:hell"), TKC = { ...q60("tkn:challenge"), rarity: "legendary", scroll: "armor" };
+const tknCount = (b) => b.filter((q) => q.poolKey === "tkn:hell").length;
+
+// The exact read from the screenshots: two Typhoon Kim Hell around one
+// Challenge. All three have to land.
+const m1 = mergeIntoBoard([], [TKN, TKC, TKN]);
+eq("60. both copies of a repeated quest are stored", m1.saved.length, 3);
+eq("60. and the board holds them", tknCount(m1.board), 2);
+
+// Submitting the same screenshot again must add nothing — that is the job the
+// Set was really doing, and counting has to keep doing it.
+const m2 = mergeIntoBoard(m1.board, [TKN, TKC, TKN]);
+eq("60. re-submitting the same list adds nothing", m2.saved.length, 0);
+eq("60. and reports all of it as already there", m2.repeats.length, 3);
+eq("60. the board did not grow", tknCount(m2.board), 2);
+
+// A third copy still gets through — the rule is a count, not a cap of two.
+eq("60. a further copy is added, the ones already held are not",
+  mergeIntoBoard(m2.board, [TKN, TKN, TKN]).saved.length, 1);
+
+// The six-quest cap still bites, and it counts copies like everything else.
+const m4 = mergeIntoBoard([], [TKN, TKN, TKN, TKN, TKN, TKN, TKN]);
+eq("60. the board still stops at six", m4.board.length, WEEKLY_CLAIMS);
+eq("60. and says what did not fit", m4.overflow.length, 1);
+
+// Replace still keeps finished quests and drops only the open ones.
+const m5 = mergeIntoBoard(
+  [{ ...TKN, runId: "run1" }, { ...TKN, runId: null }],
+  [TKC],
+  { replace: true },
+);
+eq("60. replace keeps history", tknCount(m5.board), 1);
+check("60. and the one it kept is the finished one", m5.board[0].runId === "run1");
+
+// Two identical quests produce two menu options, and two options sharing one
+// value cannot both be chosen — the second copy would be unselectable.
+const opts60 = [encMark("Santerez", TKN, 0), encMark("Santerez", TKN, 1)];
+check("60. identical quests get distinct option values", opts60[0] !== opts60[1]);
+// But the index is only for uniqueness: both must still decode to the same
+// quest, because the handler finds its target by matching, not by position.
+eq("60. and both still name the same quest",
+  JSON.stringify(decMark(opts60[0])), JSON.stringify(decMark(opts60[1])));
+eq("60. the character name survives the extra field", decMark(opts60[0]).charName, "Santerez");
+// A name containing the separator still comes back whole.
+eq("60. even a name with a pipe in it",
+  decMark(encMark("od|d", TKN, 2)).charName, "od|d");
 
 
 // 50. The MT class picker is a modal now. It used to be an ephemeral message
