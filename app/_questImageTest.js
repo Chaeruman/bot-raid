@@ -44,6 +44,14 @@ for (const skip of ["[Epic]", "[Rare]", "[Magic]"])
   assert.ok(PROMPT.includes(skip), `the prompt drops ${skip}`);
 assert.ok(!/\b(epic|magic)\s*=/i.test(PROMPT), "and never offers one as a rarity to emit");
 
+// A finished quest imported as open is the exact harm Mark done was built to
+// undo: the board's job is "who still needs GDN Classic?", and an answer that
+// names someone already done costs them an evening. Both screens mark it
+// differently, so both markers have to be named.
+assert.ok(/SKIP quests already finished/.test(PROMPT), "finished quests are skipped");
+assert.ok(/1\/1/.test(PROMPT) && /0\/1/.test(PROMPT), "the list's marker is described");
+assert.ok(/red tick/.test(PROMPT), "and the pinboard's");
+
 // Two screens show the same quests. The Weekly Events list is one clean row per
 // quest — no wrapped words, no columns, rarity inline — so it must be accepted,
 // not just the pinboard the reader was first written against.

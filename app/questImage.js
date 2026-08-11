@@ -75,6 +75,10 @@ Rules:
   [Magic] even when they name a nest.
 - SKIP everything that is not a nest: "Abyss Stage", "FTG Stage", "any stage
   with FTG cost".
+- SKIP quests already finished. In the list a finished quest shows equal
+  numbers under it ("1/1") and a filled progress bar; unfinished shows "0/1"
+  and an empty one. On the pinboard a finished card is stamped with a large
+  red tick over its icon.
 - The same quest can appear twice; report it twice.
 ${SCROLL_RULE}
 - On the pinboard, card text wraps mid-word ("Green Drag / on Nest") — join

@@ -46,6 +46,10 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
     Archbishop Hell yang Epic sempat masuk sebagai Unique gara-gara itu.
   - Kartu `[Epic]`, `[Rare]`, `[Magic]` dan kartu non-nest (Abyss / FTG
     Stage) dibuang. Cuma Unique / Legendary / Rare Legendary yang dilacak.
+  - **Quest yang sudah clear dilewat** — `1/1` dengan bar penuh di daftar,
+    atau centang merah besar di kartu papan. Quest selesai yang masuk sebagai
+    belum selesai persis kerugian yang mau dihindari ✅ Mark done: board-nya
+    akan mengirim orang mencari yang sudah kelar.
   - Nama yang diketik di pesan yang sama ikut terbawa: kalau **persis** cocok
     dengan karakter di roster, dropdown-nya sudah terpilih waktu modal buka.
     Mirip-mirip saja tidak cukup — quest nempel di karakter salah lebih
