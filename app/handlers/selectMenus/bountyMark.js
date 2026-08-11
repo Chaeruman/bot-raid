@@ -12,7 +12,16 @@ const { MessageFlags, ActionRowBuilder, StringSelectMenuBuilder } = require("dis
 const { getBountyWeek, saveBountyWeek } = require("../../state");
 const { weekKey, questLabel } = require("../../bounty");
 
-const MARK = "bounty-mark:"; // + <done|undo>
+const MARK = "bounty-mark:"; // + <done|undo|drop>
+
+// Dropping only ever offers quests that are still open. A finished quest is
+// history, and the way to remove one is to press Undo first — which makes the
+// destructive step visible instead of hiding it behind a second meaning.
+const LIST = {
+  done: { undo: false, placeholder: "Pilih yang sudah kelar", prompt: "Pilih yang sudah kelar:", empty: "Tidak ada quest yang belum kelar." },
+  undo: { undo: true, placeholder: "Batalkan tanda selesai", prompt: "Pilih yang mau dikembalikan:", empty: "Belum ada yang ditandai selesai." },
+  drop: { undo: false, placeholder: "Pilih yang mau dihapus", prompt: "Pilih yang mau dihapus — ini tidak bisa dibatalkan:", empty: "Tidak ada quest yang bisa dihapus. Yang sudah kelar: tekan ↩️ Undo dulu." },
+};
 
 // Not a message id. Keeping the two apart is the only way to tell later whether
 // a quest was closed by a tracked run or reported by the person who ran it, and
@@ -44,14 +53,15 @@ function questsIn(doc, undo) {
   return out;
 }
 
-async function buildMarkRows(userId, undo) {
+async function buildMarkRows(userId, mode = "done") {
+  const cfg = LIST[mode] || LIST.done;
   const doc = await getBountyWeek(userId, weekKey());
-  const list = questsIn(doc, undo);
+  const list = questsIn(doc, cfg.undo);
   if (!list.length) return { rows: [], count: 0 };
 
   const menu = new StringSelectMenuBuilder()
-    .setCustomId(`${MARK}${undo ? "undo" : "done"}`)
-    .setPlaceholder(undo ? "Batalkan tanda selesai" : "Pilih yang sudah kelar")
+    .setCustomId(`${MARK}${LIST[mode] ? mode : "done"}`)
+    .setPlaceholder(cfg.placeholder)
     .setMinValues(1)
     .setMaxValues(Math.min(list.length, MAX_OPTS))
     .addOptions(
@@ -64,14 +74,11 @@ async function buildMarkRows(userId, undo) {
   return { rows: [new ActionRowBuilder().addComponents(menu)], count: list.length };
 }
 
-async function handleMark(interaction) {
-  const undo = interaction.customId.slice(MARK.length) === "undo";
-  const userId = interaction.user.id;
-
-  const doc = await getBountyWeek(userId, weekKey());
-  if (!doc) return interaction.update({ content: "❌ Tidak ada data minggu ini.", components: [] });
-
-  const wanted = interaction.values.map(decode);
+// Extracted so the destructive path can be tested without a database: the
+// caller owns loading and saving, this owns what changes.
+function applyMark(doc, mode, wanted) {
+  const undo = mode === "undo";
+  const drop = mode === "drop";
   const changed = [];
 
   for (const want of wanted) {
@@ -79,11 +86,33 @@ async function handleMark(interaction) {
     // The first one that matches and is in the state being changed. Two
     // identical quests on one character cannot happen — the board dedupes on
     // exactly these fields when they go in.
-    const q = board.find((x) => matches(x, want) && (undo ? x.runId : !x.runId));
-    if (!q) continue;
-    q.runId = undo ? null : MANUAL;
+    const at = board.findIndex((x) => matches(x, want) && (undo ? x.runId : !x.runId));
+    if (at < 0) continue;
+    const q = board[at];
+    // Re-checked here, not only when the menu was built: a run can close
+    // between opening the list and choosing from it, and a quest that finished
+    // in that gap must not be deleted by a click aimed at an open one.
+    if (drop) {
+      if (q.runId) continue;
+      board.splice(at, 1);
+    } else {
+      q.runId = undo ? null : MANUAL;
+    }
     changed.push({ charName: want.charName, q });
   }
+  return changed;
+}
+
+async function handleMark(interaction) {
+  const mode = interaction.customId.slice(MARK.length);
+  const undo = mode === "undo";
+  const drop = mode === "drop";
+  const userId = interaction.user.id;
+
+  const doc = await getBountyWeek(userId, weekKey());
+  if (!doc) return interaction.update({ content: "❌ Tidak ada data minggu ini.", components: [] });
+
+  const changed = applyMark(doc, mode, interaction.values.map(decode));
 
   if (!changed.length)
     return interaction.update({ content: "Tidak ada yang berubah.", components: [] });
@@ -97,9 +126,15 @@ async function handleMark(interaction) {
   require("../../bountyBoard").syncBoard(interaction.client).catch(() => {});
   require("../../bountyThread").refreshThread(interaction.client, userId).catch(() => {});
 
+  const headline = drop
+    ? `🗑️ ${changed.length} quest dihapus:`
+    : undo
+      ? `↩️ ${changed.length} quest dikembalikan ke belum selesai:`
+      : `✅ ${changed.length} quest ditandai selesai:`;
+
   return interaction.update({
     content: [
-      undo ? `↩️ ${changed.length} quest dikembalikan ke belum selesai:` : `✅ ${changed.length} quest ditandai selesai:`,
+      headline,
       ...changed.map(({ charName, q }) => `• **${charName}** — ${questLabel(q)}`),
     ]
       .join("\n")
@@ -108,4 +143,4 @@ async function handleMark(interaction) {
   });
 }
 
-module.exports = { handleMark, buildMarkRows, questsIn, MARK, MANUAL };
+module.exports = { handleMark, applyMark, buildMarkRows, questsIn, decode, LIST, MARK, MANUAL };

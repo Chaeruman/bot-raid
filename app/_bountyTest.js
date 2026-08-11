@@ -740,7 +740,13 @@ pending.push((async () => {
   // not the invariant — the actions are.
   eq("33. the actions on offer",
     rows.map((b) => b.custom_id.split(":").slice(1, -1).join(":")).join(","),
-    "add,edit,remove,quest,replace,done,undo,refresh,link");
+    "add,edit,remove,refresh,quest,replace,done,undo,drop,link");
+  // Removing a quest is the only action that destroys anything, so it is the
+  // only red button — a grey one beside Undo would get pressed by accident.
+  eq("33. only the destructive quest action is red",
+    rows.filter((b) => b.style === require("discord.js").ButtonStyle.Danger)
+      .map((b) => b.custom_id.split(":")[1]).join(","),
+    "drop");
   check("33. every button carries its owner", rows.every((b) => b.custom_id.endsWith(":u1")));
   // Add and refresh are the only two that can do anything without a character.
   eq("33. the rest are disabled while the roster is empty",
@@ -1514,6 +1520,50 @@ eq("49. a finished week can undo but not finish", markRow(0, 2), "done-off,undo"
 eq("49. an empty one offers neither", markRow(0, 0), "done-off,undo-off");
 
 check("49. the select reaches its handler", `${MARK}done`.startsWith("bounty-mark:"));
+
+
+// 59. Removing a quest. Edit quest could only ever REPLACE, and an empty paste
+//     is deliberately ignored — so a quest added to the wrong character could
+//     not be taken off it at all. This is the only action in the panel that
+//     destroys anything, which is why it offers open quests only: a finished
+//     one is history, and the way to drop it is to press Undo first.
+const { LIST, applyMark, decode: decMark } = require("./handlers/selectMenus/bountyMark");
+
+eq("59. dropping offers the same list as marking done", LIST.drop.undo, false);
+check("59. and says so before it happens", /tidak bisa dibatalkan/.test(LIST.drop.prompt));
+// The empty case has to point somewhere, or a board of finished quests looks
+// like a broken button.
+check("59. an all-finished board is told what to do", /Undo/.test(LIST.drop.empty));
+
+const dropRow = (open) =>
+  panelRows("u59", true, open, 0)[1].toJSON()
+    .components.filter((b) => /drop/.test(b.custom_id))
+    .map((b) => `${b.disabled ? "off" : "on"}`)
+    .join(",");
+eq("59. nothing open, nothing to remove", dropRow(0), "off");
+eq("59. otherwise live", dropRow(1), "on");
+
+// The whole point: the quest actually leaves the board, and only that one.
+const pickHc = [decMark("gdn:hc|unique|weapon|0|Chelssea")];
+const doc59 = week49();
+eq("59. one quest is removed", applyMark(doc59, "drop", pickHc).length, 1);
+eq("59. and it is gone from the board",
+  doc59.chars.Chelssea.board.map((q) => q.poolKey).join(","), "gdn:classic");
+eq("59. the other character is untouched",
+  doc59.chars.Bolabola.board.map((q) => q.poolKey).join(","), "ddn:iv");
+
+// A quest that finished between opening the list and choosing from it must
+// survive: the click was aimed at an open quest, not at history.
+const doc59b = { chars: { Chelssea: { board: [mq("gdn:hc", "run9")], shares: [] } } };
+eq("59. a quest that closed in the gap is not deleted", applyMark(doc59b, "drop", pickHc).length, 0);
+eq("59. it stays on the board", doc59b.chars.Chelssea.board.length, 1);
+
+// Removing must not quietly finish anything, and finishing must not remove.
+const doc59c = week49();
+applyMark(doc59c, "done", pickHc);
+eq("59. marking done still only sets the marker",
+  doc59c.chars.Chelssea.board.map((q) => `${q.poolKey}${q.runId ? "*" : ""}`).join(","),
+  "gdn:hc*,gdn:classic*");
 
 
 // 50. The MT class picker is a modal now. It used to be an ephemeral message

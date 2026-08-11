@@ -179,6 +179,9 @@ const panelRows = (ownerId, hasChars, open = 0, done = 0) => [
     BUTTON(ownerId, "add", "➕ Add Character", ButtonStyle.Success),
     BUTTON(ownerId, "edit", "✏️ Edit", ButtonStyle.Secondary, !hasChars),
     BUTTON(ownerId, "remove", "🗑️ Remove", ButtonStyle.Secondary, !hasChars),
+    // Moved off the quest row to make room there. Five is the limit, and the
+    // row that only touches quests is the one worth keeping whole.
+    BUTTON(ownerId, "refresh", "🔄 Refresh Panel", ButtonStyle.Secondary),
   ),
   new ActionRowBuilder().addComponents(
     BUTTON(ownerId, "quest", "🎯 Add quest", ButtonStyle.Primary, !hasChars),
@@ -187,7 +190,9 @@ const panelRows = (ownerId, hasChars, open = 0, done = 0) => [
     // to take back — a live button for either would only ever say "none".
     BUTTON(ownerId, "done", "✅ Mark done", ButtonStyle.Secondary, !open),
     BUTTON(ownerId, "undo", "↩️ Undo", ButtonStyle.Secondary, !done),
-    BUTTON(ownerId, "refresh", "🔄 Refresh Panel", ButtonStyle.Secondary),
+    // Deleting is the only one that destroys anything, so it is the only red
+    // button here — and it offers open quests only, same list as Mark done.
+    BUTTON(ownerId, "drop", "🗑️ Remove quest", ButtonStyle.Danger, !open),
   ),
   linkRow(ownerId),
 ];
@@ -305,14 +310,12 @@ async function handlePanelButton(interaction) {
   // Linking. Approving is the ONLY one that needs the other person, and it is
   // the invited account pressing it — which is the whole consent story.
   const [verb, arg] = action.split(":");
-  if (verb === "done" || verb === "undo") {
-    const { rows, count } = await require("./handlers/selectMenus/bountyMark").buildMarkRows(
-      ownerId,
-      verb === "undo",
-    );
-    if (!count) return ephemeral(interaction, verb === "undo" ? "Belum ada yang ditandai selesai." : "Tidak ada quest yang belum kelar.");
+  if (verb === "done" || verb === "undo" || verb === "drop") {
+    const mark = require("./handlers/selectMenus/bountyMark");
+    const { rows, count } = await mark.buildMarkRows(ownerId, verb);
+    if (!count) return ephemeral(interaction, mark.LIST[verb].empty);
     return interaction.reply({
-      content: verb === "undo" ? "Pilih yang mau dikembalikan:" : "Pilih yang sudah kelar:",
+      content: mark.LIST[verb].prompt,
       components: rows,
       flags: MessageFlags.Ephemeral,
     });

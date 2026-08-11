@@ -15,6 +15,17 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 ## [Unreleased]
 
 ### Added
+- **🗑️ Remove quest** di panel bounty. Sebelumnya quest cuma bisa *diganti*
+  lewat ♻️ Edit quest, dan paste kosong sengaja diabaikan — jadi quest yang
+  nempel di karakter salah tidak bisa dicabut sama sekali.
+  - Menawarkan **quest yang belum kelar saja**, daftar yang sama dengan
+    ✅ Mark done. Yang sudah kelar itu riwayat; cara membuangnya tekan
+    ↩️ Undo dulu, supaya langkah merusaknya kelihatan.
+  - Quest yang kebetulan selesai antara daftar dibuka dan pilihan ditekan
+    tidak ikut terhapus — dicek ulang saat submit, bukan cuma saat menu
+    dibangun.
+  - Satu-satunya tombol merah di panel, dan **🔄 Refresh Panel** pindah ke
+    baris atas supaya baris quest tetap utuh (lima tombol per baris).
 - **Baca quest dari screenshot papan bounty.** Lempar gambar papan ke thread
   bounty-mu sendiri, bot membalas dengan hasil bacanya dan tombol **🎯 Add
   quest** yang membuka modal biasa dalam keadaan sudah terisi.
