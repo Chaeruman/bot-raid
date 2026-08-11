@@ -23,7 +23,17 @@ const client = new Client({
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.GuildMembers,
+    // Only so a screenshot dropped in someone's own bounty thread can be read;
+    // handleImage returns immediately for every other channel.
+    GatewayIntentBits.MessageContent,
   ],
+});
+
+client.on("messageCreate", (msg) => {
+  if (msg.author.bot) return;
+  require("./questImage").handleImage(msg).catch((err) =>
+    console.error("❌ handleImage:", err.message),
+  );
 });
 
 client.on("clientReady", () => {

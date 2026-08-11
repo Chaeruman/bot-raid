@@ -28,6 +28,7 @@ const EVENT_FREE = {
   "bounty-panel:": (i) => require("../../bountyPanel").handlePanelButton(i),
   "bounty-thread:": (i) => require("../../bountyThread").handleCreateThread(i),
   "bounty-hunter:": (i) => require("./bountyHunter").handleHunterDecision(i),
+  "bounty-img:": (i) => require("../../questImage").handleImageButton(i),
   "role-pick:": (i) => require("../../roleMenu").handleRolePick(i),
   "salary-btn:": (i) => require("../../salaryMenu").handleSalaryButton(i),
   "gab-budget:": (i) => handleGabBudgetButton(i),

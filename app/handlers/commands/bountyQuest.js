@@ -52,7 +52,17 @@ const POOL_OPTS = VARIANT_LIST.map((v) => ({
 // cover the common case in the same number of interactions typing took — minus
 // the syntax and minus any chance of a parse error. The text field stays for
 // people who are fluent, for pasting, and for the character holding three.
-function buildQuestModal(chars, replace = false) {
+function buildQuestModal(chars, replace = false, prefill = "") {
+  const lines = new TextInputBuilder()
+    .setCustomId("lines")
+    .setPlaceholder(["ddn hc u wep", "gdn cl leg acc box", "memo 1 rl wtd"].join("\n"))
+    .setStyle(TextInputStyle.Paragraph)
+    .setRequired(false)
+    .setMaxLength(600);
+  // Only when a screenshot was read. Set unconditionally this would hand
+  // Discord value:"" on every ordinary open, for nothing.
+  if (prefill) lines.setValue(prefill.slice(0, 600));
+
   return new ModalBuilder()
     .setCustomId(`${MODAL_PREFIX}${replace ? "r" : "a"}`)
     .setTitle(replace ? "Edit quest" : "Add quest")
@@ -76,14 +86,7 @@ function buildQuestModal(chars, replace = false) {
         // The only instructions anyone sees at the moment they type, so between
         // them the label and placeholder carry the whole format.
         .setDescription("1 per line · u / leg / rl · wep wtd acc arm · box")
-        .setTextInputComponent(
-          new TextInputBuilder()
-            .setCustomId("lines")
-            .setPlaceholder(["ddn hc u wep", "gdn cl leg acc box", "memo 1 rl wtd"].join("\n"))
-            .setStyle(TextInputStyle.Paragraph)
-            .setRequired(false)
-            .setMaxLength(600),
-        ),
+        .setTextInputComponent(lines),
     );
 }
 

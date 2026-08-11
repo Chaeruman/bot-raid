@@ -14,6 +14,23 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+### Added
+- **Baca quest dari screenshot papan bounty.** Lempar gambar papan ke thread
+  bounty-mu sendiri, bot membalas dengan hasil bacanya dan tombol **🎯 Add
+  quest** yang membuka modal biasa dalam keadaan sudah terisi.
+  - Nest dan rarity dibaca dari gambar; **jenis scroll tidak** — papan tidak
+    menampilkannya (hanya panel detail, satu quest saja), jadi satu kata per
+    baris tetap diketik manual.
+  - Kartu Epic dan kartu non-nest (Abyss / FTG Stage) dibuang.
+  - Tidak ada yang masuk DB tanpa lewat modal. Salah baca = satu koreksi,
+    bukan data salah.
+  - Butuh env `GEMINI_API_KEY` (opsional `GEMINI_MODEL`) dan **Message Content
+    Intent**. Tanpa itu fitur ini diam dan sisa bot jalan normal.
+  - Tanpa dependency baru — `fetch` bawaan Node, `yarn.lock` tidak tersentuh.
+  - Diukur dulu: Tesseract lokal cuma dapat 6 dari 11 quest pada 8 screenshot
+    asli, karena yang orang kirim lebarnya ±590px. Upscale tidak menambah
+    piksel yang tidak ada.
+
 ## [1.30.1] — 2026-08-11
 
 ### Fixed
