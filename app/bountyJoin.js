@@ -88,16 +88,23 @@ function takenRole(event, userId, slotKey = null) {
 // a modal is in front of you or it is nothing.
 //
 // It must therefore be the FIRST response to the button, which is why the role
-// branch calls this before its deferUpdate rather than roleSelect calling it
-// after. Seating happens straight after the modal opens, so dismissing it still
-// leaves you in the party — just with no bounty recorded.
+// and job branches call this before their deferUpdate. The caller seats the
+// player straight after, so dismissing the modal still leaves you in the party
+// — just with no bounty recorded. Returns true when it took the response over.
 //
-// Returns true when it took the response over.
-async function offerBounty(interaction, event, slotKey) {
+// `role` is what a character has to match. A raid seat IS its role, so the slot
+// label answers it — but a nest seat is "P1", and the role is the job button
+// just pressed. Passing it in beats guessing from the slot, which would have
+// compared every character against "P1" and matched nothing, forever.
+async function offerBounty(interaction, event, { slotKey = "", role } = {}) {
   const poolKeys = event.poolKeys || [];
   if (!poolKeys.length) return false;
 
-  const all = await myQuestsHere(interaction.user.id, poolKeys, takenRole(event, interaction.user.id, slotKey));
+  const all = await myQuestsHere(
+    interaction.user.id,
+    poolKeys,
+    role ?? takenRole(event, interaction.user.id, slotKey),
+  );
 
   // Only characters that fit the seat being taken. The seat decides which
   // character gets played, so offering an FU to someone sitting in SM/DA offers
@@ -130,11 +137,8 @@ async function offerBounty(interaction, event, slotKey) {
       ),
   );
 
-  // The seat is theirs the moment they clicked, modal answered or not.
-  const { seatUser } = require("./handlers/buttons/roleSelect");
-  seatUser(event, interaction.user.id, slotKey);
-  saveState();
-  await require("./builders/content").updateMessage(interaction.message, event);
+  // Seating is the caller's job — a raid seat and a nest seat are taken
+  // differently, and this only owns the question.
   return true;
 }
 

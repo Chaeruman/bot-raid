@@ -1,7 +1,7 @@
 const { MessageFlags } = require("discord.js");
 const { ack } = require("../../utils/ack");
 const { checkCooldown } = require("../../utils/cooldown");
-const { activeEvents } = require("../../state");
+const { activeEvents, saveState } = require("../../state");
 const { HOST_ONLY_BUTTONS, BOUNTY_TOGGLE } = require("../../constants");
 
 const { handleSubRoleMenu } = require("./subRoleMenu");
@@ -76,15 +76,21 @@ async function handleButton(interaction) {
       }
 
       // A bounty offer is a modal too, so it has to answer the interaction
-      // before the deferUpdate below. It seats the player itself.
+      // before the deferUpdate below — and the seat is taken right after, so
+      // dismissing the modal still leaves them in the party.
       if (event.poolKeys?.length) {
         const took = await require("../../bountyJoin")
-          .offerBounty(interaction, event, slotKey)
+          .offerBounty(interaction, event, { slotKey })
           .catch((err) => {
             console.error(`❌ offerBounty (${userId} → ${slotKey}):`, err);
             return false;
           });
-        if (took) return;
+        if (took) {
+          const { seatUser } = require("./roleSelect");
+          seatUser(event, userId, slotKey);
+          saveState();
+          return require("../../builders/content").updateMessage(interaction.message, event);
+        }
       }
     }
   }
@@ -96,6 +102,19 @@ async function handleButton(interaction) {
     }
     if (!event.users[userId] && Object.keys(event.users).length >= event.maxSlot) {
       return interaction.reply({ content: "❌ Party is full!", flags: MessageFlags.Ephemeral });
+    }
+
+    // A nest seat is "P1"; the ROLE is the job just pressed. Same modal, same
+    // rule — and it has to be the first response, like every other modal here.
+    if (event.poolKeys?.length) {
+      const role = event.jobs?.[Number(interaction.customId.replace("memojob_", ""))];
+      const took = await require("../../bountyJoin")
+        .offerBounty(interaction, event, { role })
+        .catch((err) => {
+          console.error(`❌ offerBounty (${userId} → ${role}):`, err);
+          return false;
+        });
+      if (took) return handleMemoJobSelect(interaction, event);
     }
   }
 

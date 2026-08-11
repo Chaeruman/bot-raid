@@ -14,6 +14,32 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.30.1] — 2026-08-11
+
+### Fixed
+- **Nest: job ber-bounty tidak memunculkan modal konfirmasi.** Dua sebab,
+  keduanya diperbaiki:
+  - Tawaran bounty hanya terpasang di tombol **role** (raid). Panel nest
+    memakai tombol **job** (`memojob_`), yang tidak pernah melewatinya — jadi
+    di TKN Hell dan nest lain modalnya memang tidak pernah bisa muncul.
+  - Andai lewat pun tetap tidak akan cocok: kursi nest bernama `P1`, dan
+    `takenRole()` mengembalikan nama kursi itu. Penyaringnya membandingkan
+    `"P1"` dengan role karakter (`Healer`, `FU`, …) sehingga selalu kosong.
+    `offerBounty()` sekarang menerima role secara eksplisit — job yang baru
+    ditekan — bukan menebaknya dari slot.
+- **Ganti job menghapus bounty yang sudah dicatat.** `memoJobSelect` membangun
+  ulang objek kursi dari nol, jadi `bountyChar` dan `bountyQuests` ikut hilang
+  begitu seseorang pindah job setelah memilih karakter bounty-nya. Kursinya
+  sekarang di-spread, bukan diganti — kelas bug yang sama dengan `subRole` MT.
+- `saveState` dipakai tanpa di-import di router tombol.
+
+### Tests
+- Test 58 untuk jalur job nest (terbukti menangkap regresi seat-rebuild).
+- Memulihkan test **54, 55, 56** — penyaringan tawaran ke kursi, label varian
+  per quest di marathon, dan pemecahan board. Ketiganya terhapus tanpa sengaja
+  di `c9d1bf0` saat menulis ulang test 53; suite tetap hijau, jadi tidak ada
+  yang menyala. 414 check sekarang.
+
 ## [1.30.0] — 2026-08-10
 
 ### Added
