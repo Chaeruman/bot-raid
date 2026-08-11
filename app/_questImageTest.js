@@ -1,6 +1,8 @@
 // Run: node app/_questImageTest.js — no network, no key needed.
 const assert = require("assert");
-const { PROMPT, isBoard, readBoard, pickText, splitId, PREFIX, REFS, HAS_REFS } = require("./questImage");
+const {
+  PROMPT, MERGE_NOTE, isBoard, readBoard, pickText, splitId, PREFIX, REFS, HAS_REFS, magnify, BAND,
+} = require("./questImage");
 const { buildQuestModal } = require("./handlers/commands/bountyQuest");
 const { parseQuestLines, VARIANT_LIST } = require("./bounty");
 
@@ -178,12 +180,9 @@ console.log("✅ both messages are cleared on submit, and only once something sa
 // double-counts; deduped, a genuinely repeated quest vanishes — and repeats are
 // real, one character held two Gigantes Challenge. Only one call seeing both
 // can tell those apart, so the merge instruction must exist and must say both.
-const many = src.slice(src.indexOf("images.length > 1"), src.indexOf("...images.map"));
-assert.match(many, /SAME quest and is reported once/, "the overlap is merged");
-assert.match(many, /twice only when one screenshot shows it twice/, "a real repeat survives");
-assert.match(many, /in order/, "and the shots are ordered");
-// One picture must not be told to merge anything.
-assert.ok(src.includes('"Now read this screenshot:"'), "a single shot keeps its plain wording");
+assert.match(MERGE_NOTE, /SAME quest and is reported once/, "the overlap is merged");
+assert.match(MERGE_NOTE, /twice only when a single image shows it twice/, "a real repeat survives");
+assert.match(MERGE_NOTE, /overlapping views of ONE scrolling list/, "and the images are one list");
 // Every attachment goes, not just the first — that was the bug this fixes.
 assert.match(src, /message\.attachments\.values\(\)\]\.filter\(isBoard\)/, "all attachments are taken");
 assert.match(src, /\.slice\(0, 4\)/, "and capped");
@@ -203,6 +202,37 @@ assert.ok(
 );
 console.log("✅ high media resolution is asked for, and degrades if refused");
 
+// ── Magnifying the bands ────────────────────────────────────────────────────
+// The whole reason this exists: a full-screen shot read the scroll type wrong
+// every time and differently each time, and zooming in by hand read it right.
+// Bands have to actually come out enlarged and actually overlap, or a quest row
+// can fall between two of them and vanish.
+const sharpLib = require("sharp");
+const bandsCheck = (async () => {
+  const shot = await sharpLib({
+    create: { width: 1920, height: 1080, channels: 3, background: { r: 20, g: 20, b: 20 } },
+  }).png().toBuffer();
+
+  const bands = await magnify(shot);
+  assert.ok(bands.length >= 3, `a 1080p shot yields bands, got ${bands.length}`);
+  const metas = await Promise.all(bands.map((b) => sharpLib(b).metadata()));
+  for (const m of metas) {
+    assert.strictEqual(m.width, 3840, "each band is enlarged 2x");
+    assert.ok(m.height > BAND, "and taller than the slice it came from");
+  }
+  // Overlap, not abutment: rows are ~130px and a seam through one would hide it
+  // from both bands. Covered height must exceed the original.
+  const covered = metas.reduce((n, m) => n + m.height / 2, 0);
+  assert.ok(covered > 1080, `bands overlap, covered ${covered} of 1080`);
+
+  // An image shorter than one band is left alone — nothing to slice.
+  const small = await sharpLib({
+    create: { width: 400, height: 200, channels: 3, background: { r: 0, g: 0, b: 0 } },
+  }).png().toBuffer();
+  assert.deepStrictEqual(await magnify(small), [], "a small shot is not sliced");
+  console.log("✅ bands come out enlarged and overlapping, small shots untouched");
+})();
+
 // A non-image attachment must never reach a paid API call.
 assert.ok(isBoard({ contentType: "image/png", size: 100 }));
 assert.ok(!isBoard({ contentType: "text/plain", size: 100 }));
@@ -213,12 +243,18 @@ console.log("✅ only real, sane images are sent");
 // Missing key fails loudly here rather than posting a confusing reply later.
 const had = process.env.GEMINI_API_KEY;
 delete process.env.GEMINI_API_KEY;
-readBoard(Buffer.from("x")).then(
+const keyCheck = readBoard(Buffer.from("x")).then(
   () => { throw new Error("should have thrown without a key"); },
   (e) => {
     assert.match(e.message, /GEMINI_API_KEY/);
     if (had) process.env.GEMINI_API_KEY = had;
     console.log("✅ a missing key throws before any request");
-    console.log("\n🎉 All checks passed.");
   },
+);
+
+// Both async checks have to be waited on, or a rejection turns into a warning
+// and the run still exits 0 — a suite that cannot fail is not a suite.
+Promise.all([bandsCheck, keyCheck]).then(
+  () => console.log("\n🎉 All checks passed."),
+  (err) => { console.error(err); process.exit(1); },
 );

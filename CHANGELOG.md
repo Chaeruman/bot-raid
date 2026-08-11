@@ -41,6 +41,12 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
     berlabel (`app/assets/scroll-*.png`) ikut dikirim tiap panggilan; model
     mencocokkan artwork ke artwork, bukan ke deskripsi. Kalau tidak ada yang
     cocok jelas, dikosongkan — bukan ditebak.
+  - **Gambarnya dipotong jadi pita bertumpang tindih dan diperbesar 2×**
+    sebelum dikirim — meniru zoom manual, yang terbukti membuat scroll-nya
+    terbaca benar. Tiap pita dapat jatah petak sendiri, jadi emblem pojoknya
+    selamat. Pita tidak perlu aturan baru: dia cuma tampilan beririsan
+    tambahan, dan promptnya sudah tahu cara menyatukannya. Ini menambah
+    dependency `sharp`.
   - Gambar diminta dibaca pada **resolusi tinggi**. Emblem pembeda jenis
     scroll cuma ~15px di pojok ikon ~40px; pada resolusi default screenshot
     layar penuh dipetak-kecilkan sampai emblem itu habis, dan jawabannya jadi

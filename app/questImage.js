@@ -6,6 +6,7 @@
 // the ones people actually post are ~590px wide; upscaling adds no pixels.
 const fs = require("fs");
 const path = require("path");
+const sharp = require("sharp");
 const { MessageFlags, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require("discord.js");
 const { VARIANT_LIST } = require("./bounty");
 const { RARITY } = require("./data/bounty");
@@ -86,6 +87,48 @@ ${SCROLL_RULE}
   panel on the right; it repeats one card you already have.
 - Output nothing else. No prose, no code fence. Empty output is a valid answer.`;
 
+// Said once, for one screenshot or six: bands are just more overlapping views,
+// so the same merge rule covers both. It has to state the rule in BOTH
+// directions — an overlap must collapse, a genuine repeat must not.
+const MERGE_NOTE = [
+  "Now read the images below. Each screenshot is followed by magnified crops of",
+  "itself. They are all overlapping views of ONE scrolling list, in order.",
+  "Merge them into a single list: a quest visible in more than one image is the",
+  "SAME quest and is reported once. Report a quest twice only when a single",
+  "image shows it twice. Read the reward icons from the magnified crops, where",
+  "the corner emblem is legible.",
+].join(" ");
+
+const BAND = 340;      // rows are ~130px tall in a 1080p shot, so a band holds 2
+const OVERLAP = 0.75;  // step, as a fraction of BAND — no row falls between bands
+const MAX_IMAGES = 12; // whole shots plus bands, before the payload gets silly
+
+// Doing to the picture what the person did by hand. A screenshot of the whole
+// screen reads the scroll type wrong every time and differently each time;
+// zooming in first reads it right. The emblem that separates the four scroll
+// icons is ~15px inside a ~40px icon, and Gemini tiles a large image down until
+// that is gone. Slicing into overlapping bands and enlarging each gives every
+// band its own tile budget, which is the same thing as zooming.
+//
+// The bands need no new instruction: they are more overlapping views of one
+// list, which the prompt already knows how to merge.
+async function magnify(buffer) {
+  const { width, height } = await sharp(buffer).metadata();
+  if (!width || !height || height <= BAND) return [];
+
+  const step = Math.round(BAND * OVERLAP);
+  const out = [];
+  for (let top = 0; top < height && out.length < 6; top += step) {
+    const h = Math.min(BAND, height - top);
+    if (h < BAND / 2) break; // a sliver at the bottom repeats the band above it
+    out.push(await sharp(buffer)
+      .extract({ left: 0, top, width, height: h })
+      .resize({ width: width * 2, kernel: "lanczos3" })
+      .png().toBuffer());
+  }
+  return out;
+}
+
 // Takes every screenshot at once, because the Weekly Events list SCROLLS: a
 // six-quest week needs two shots, and consecutive shots overlap. Read apart and
 // concatenated, the overlap double-counts; deduped, a genuinely repeated quest
@@ -96,19 +139,26 @@ async function readBoard(shots, mimeType = "image/png") {
     .map((s) => (Buffer.isBuffer(s) ? { buffer: s, mimeType } : s));
 
   const parts = [
-          { text: PROMPT },
-          // Label then picture, so each reference is unambiguously named, and
-          // the screenshot comes last so "this one" cannot be misread.
-          ...REFS.flatMap((r) => [
-            { text: `Reference reward icon — scroll type "${r.alias}":` },
-            { inline_data: { mime_type: "image/png", data: r.data } },
-          ]),
-          { text: images.length > 1
-            ? `Now read these ${images.length} screenshots. They are overlapping views of ONE scrolling list, in order. Merge them into a single list: a quest visible in two screenshots is the SAME quest and is reported once. Report a quest twice only when one screenshot shows it twice.`
-            : "Now read this screenshot:" },
-    ...images.map((im) => ({
-      inline_data: { mime_type: im.mimeType || mimeType, data: im.buffer.toString("base64") },
-    })),
+    { text: PROMPT },
+    // Label then picture, so each reference is unambiguously named, and the
+    // screenshots come last so "this one" cannot be misread.
+    ...REFS.flatMap((r) => [
+      { text: `Reference reward icon — scroll type "${r.alias}":` },
+      { inline_data: { mime_type: "image/png", data: r.data } },
+    ]),
+    { text: MERGE_NOTE },
+    ...(await Promise.all(images.map(async (im) => {
+      // Whole shot first for the structure, then its magnified bands for the
+      // detail. A failure here costs the zoom, never the read.
+      const bands = await magnify(im.buffer).catch((err) => {
+        console.error("⚠️ magnify:", err.message);
+        return [];
+      });
+      return [
+        { inline_data: { mime_type: im.mimeType || mimeType, data: im.buffer.toString("base64") } },
+        ...bands.map((b) => ({ inline_data: { mime_type: "image/png", data: b.toString("base64") } })),
+      ];
+    }))).flat().slice(0, MAX_IMAGES),
   ];
 
   const ask = (generationConfig) => fetch(
@@ -250,6 +300,6 @@ async function clearRead(message) {
 }
 
 module.exports = {
-  readBoard, pickText, handleImage, handleImageButton, clearRead, splitId, isBoard,
-  REFS, HAS_REFS, PREFIX, PROMPT,
+  readBoard, pickText, magnify, handleImage, handleImageButton, clearRead, splitId, isBoard,
+  REFS, HAS_REFS, BAND, PREFIX, PROMPT, MERGE_NOTE,
 };
