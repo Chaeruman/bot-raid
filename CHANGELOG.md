@@ -14,6 +14,8 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+## [1.31.0] — 2026-08-11
+
 ### Fixed
 - **Digest kirim di menit yang salah.** Keduanya memakai `setInterval` sejam
   plus cek "apakah sekarang jamnya" — dan interval mulai berdetak saat
