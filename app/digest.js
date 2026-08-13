@@ -3,6 +3,7 @@
 // instantly via env var without a redeploy if it ever misbehaves.
 const { getSalaryTotalsSince, getDigestLastSent, setDigestLastSent } = require("./state");
 const config = require("./config");
+const { armAt } = require("./utils/schedule");
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
@@ -10,11 +11,6 @@ const WEEK_MS = 7 * DAY_MS;
 const TARGET_DAY = 5; // Friday
 const TARGET_HOUR = 23; // 23:00 WIB — ponytail: hardcoded, move to config if other slots are ever needed
 const TOP_N = 10;
-
-function isDigestWindow(now = Date.now()) {
-  const wib = new Date(now + 7 * HOUR_MS); // UTC+7, no timezone lib needed for a fixed offset
-  return wib.getUTCDay() === TARGET_DAY && wib.getUTCHours() === TARGET_HOUR;
-}
 
 const MEDAL = ["🥇", "🥈", "🥉"];
 
@@ -45,13 +41,12 @@ function startWeeklyDigest(client) {
     console.log("📭 Weekly digest off (set DIGEST_ENABLED=true di Render env buat nyalain)");
     return;
   }
-  setInterval(() => {
-    if (!isDigestWindow()) return;
+  armAt(TARGET_HOUR, TARGET_DAY, () => {
     if (Date.now() - getDigestLastSent() < WEEK_MS - DAY_MS) return; // already sent this week
     setDigestLastSent(Date.now());
     sendWeeklyDigest(client).catch((err) => console.error("❌ sendWeeklyDigest failed:", err.message));
-  }, HOUR_MS);
+  });
   console.log("📬 Weekly digest aktif — tiap Jumat 23:00 WIB");
 }
 
-module.exports = { startWeeklyDigest, sendWeeklyDigest, isDigestWindow };
+module.exports = { startWeeklyDigest, sendWeeklyDigest, TARGET_DAY, TARGET_HOUR };

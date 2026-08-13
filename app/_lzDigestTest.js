@@ -1,18 +1,20 @@
-// Run: node app/_lzDigestTest.js — checks the daily 00:00 WIB window detection.
+// Run: node app/_lzDigestTest.js — the daily Lucky Zone post fires at 00:00 WIB.
 //
-// This asserted 08:00 for as long as the digest fired at 00:00. Whoever moved
-// the hour updated the constant, its comment and the boot log and missed here,
-// so the suite failed on every run and stopped being read — which is worse than
-// having no test, because a red suite hides the next real break.
+// The arithmetic lives in utils/schedule and is checked by _scheduleTest. What
+// this guards is the target itself: this file once asserted 08:00 while the
+// post went out at 00:00, so the suite was red for months and stopped being
+// read — worse than no test, because a red suite hides the next real break.
 const assert = require("assert");
-const { isLzWindow } = require("./lzDigest");
+const { TARGET_HOUR } = require("./lzDigest");
+const { msUntilWib } = require("./utils/schedule");
 
-// 00:00 WIB is 17:00 UTC the day before. Written as explicit UTC rather than
-// derived from TARGET_HOUR: a test that computes the offset the same way the
-// code does would agree with it however wrong both were.
-assert.strictEqual(isLzWindow(Date.UTC(2026, 6, 5, 17, 0)), true);
-assert.strictEqual(isLzWindow(Date.UTC(2026, 6, 6, 17, 0)), true); // every day, not just Saturday
-assert.strictEqual(isLzWindow(Date.UTC(2026, 6, 5, 18, 0)), false); // wrong hour
-assert.strictEqual(isLzWindow(Date.UTC(2026, 6, 5, 16, 59)), false); // 23:59 WIB, one minute early
+assert.strictEqual(TARGET_HOUR, 0, "the Lucky Zone post is a midnight post");
 
-console.log("✅ lzDigest window detection OK");
+// Every day, not just one — 2026-07-05 is a Sunday, 07-06 a Monday.
+const MIN = 60 * 1000;
+for (const day of [5, 6, 7]) {
+  // 16:59 UTC is 23:59 WIB; one minute later is the target.
+  assert.strictEqual(msUntilWib(TARGET_HOUR, null, Date.UTC(2026, 6, day, 16, 59)), MIN);
+}
+
+console.log("✅ lzDigest targets 00:00 WIB, every day");

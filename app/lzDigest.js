@@ -5,15 +5,11 @@
 const config = require("./config");
 const { formatLzMessage } = require("./data/luckyZone");
 const { getLzDigestLastSent, setLzDigestLastSent } = require("./state");
+const { armAt } = require("./utils/schedule");
 
 const HOUR_MS = 60 * 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const TARGET_HOUR = 0; // 00:00 WIB
-
-function isLzWindow(now = Date.now()) {
-  const wib = new Date(now + 7 * HOUR_MS);
-  return wib.getUTCHours() === TARGET_HOUR;
-}
 
 async function sendLzDigest(client) {
   if (!config.lzChannelId) return;
@@ -27,13 +23,14 @@ function startLzDigest(client) {
     console.log("📭 LZ digest off (set LZ_DIGEST_ENABLED=true di Render env buat nyalain)");
     return;
   }
-  setInterval(() => {
-    if (!isLzWindow()) return;
-    if (Date.now() - getLzDigestLastSent() < DAY_MS - HOUR_MS) return; // already sent today
+  armAt(TARGET_HOUR, null, () => {
+    // A restart at 23:59 can arm a timer that fires seconds after one already
+    // went out. Cheap insurance; nothing else stops a double post.
+    if (Date.now() - getLzDigestLastSent() < DAY_MS - HOUR_MS) return;
     setLzDigestLastSent(Date.now());
     sendLzDigest(client).catch((err) => console.error("❌ sendLzDigest failed:", err.message));
-  }, HOUR_MS);
+  });
   console.log(`📬 LZ digest aktif — tiap hari ${String(TARGET_HOUR).padStart(2, "0")}:00 WIB`);
 }
 
-module.exports = { startLzDigest, sendLzDigest, isLzWindow };
+module.exports = { startLzDigest, sendLzDigest, TARGET_HOUR };

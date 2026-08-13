@@ -1,11 +1,19 @@
-// Run: node app/_digesttest.js — checks digest window detection + totals grouping.
+// Run: node app/_digesttest.js — checks the digest's slot + totals grouping.
 const assert = require("assert");
-const { isDigestWindow } = require("./digest");
+const { TARGET_DAY, TARGET_HOUR } = require("./digest");
+const { msUntilWib } = require("./utils/schedule");
 
-// Friday 23:00 WIB = Friday 16:00 UTC.
-assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 3, 16, 0)), true); // 2026-07-03 is a Friday
-assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 3, 17, 0)), false); // wrong hour
-assert.strictEqual(isDigestWindow(Date.UTC(2026, 6, 4, 16, 0)), false); // Saturday, wrong day
+// The arithmetic lives in utils/schedule and is checked by _scheduleTest; what
+// matters here is that this digest still asks for the slot it advertises.
+assert.strictEqual(TARGET_DAY, 5, "Friday");
+assert.strictEqual(TARGET_HOUR, 23, "23:00 WIB");
+
+// Friday 23:00 WIB = Friday 16:00 UTC; 2026-07-03 is a Friday.
+assert.strictEqual(msUntilWib(TARGET_HOUR, TARGET_DAY, Date.UTC(2026, 6, 3, 15, 59)), 60 * 1000);
+// From Saturday 23:00 WIB it waits for Friday — exactly six days, not until
+// that evening.
+const DAY_MS = 24 * 60 * 60 * 1000;
+assert.strictEqual(msUntilWib(TARGET_HOUR, TARGET_DAY, Date.UTC(2026, 6, 4, 16, 0)), 6 * DAY_MS);
 
 // Totals grouping (same aggregate shape state.js's getSalaryTotalsSince returns).
 const rows = [

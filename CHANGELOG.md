@@ -15,6 +15,16 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 ## [Unreleased]
 
 ### Fixed
+- **Digest kirim di menit yang salah.** Keduanya memakai `setInterval` sejam
+  plus cek "apakah sekarang jamnya" — dan interval mulai berdetak saat
+  **proses** hidup, jadi menitnya jadi menit terakhir Render me-restart bot.
+  Lucky Zone harian keluar 00:47, bukan 00:00; leaderboard mingguan kena hal
+  yang sama tapi lebih sulit disadari karena seminggu sekali.
+  - Sekarang tidur sampai jam dinding sungguhan (`app/utils/schedule.js`),
+    lalu dipasang ulang dari jam — bukan dari kiriman sebelumnya, jadi kirim
+    yang lambat tidak menggeser berikutnya.
+  - Penjaga "sudah kirim" tetap ada: restart pukul 23:59 bisa memasang timer
+    yang menyala beberapa detik setelah post barusan keluar.
 - **Satu karakter bisa memegang quest yang sama lebih dari sekali.** `addQuests`
   memakai `Set`, jadi salinan kedua selalu dilaporkan "sudah ada di board" dan
   tidak pernah tersimpan — papan Santerez punya dua Typhoon Kim Hell dan cuma
