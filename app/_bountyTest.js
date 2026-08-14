@@ -1624,6 +1624,33 @@ eq("60. even a name with a pipe in it",
   decMark(encMark("od|d", TKN, 2)).charName, "od|d");
 
 
+// 61. The board swaps its message at the Saturday reset. That used to ride on
+//     an hourly setInterval, which starts ticking when the PROCESS does — so
+//     the changeover landed at whatever minute Render last restarted the bot,
+//     up to an hour late, showing last week's quests to anyone who looked.
+//
+//     The alarm's slot and the week boundary are two constants in two files.
+//     Checked against each other, because agreeing with itself is not the same
+//     as being right: if the reset ever moves in bounty.js, this fails.
+const { RESET_DAY: BRD_DAY, RESET_HOUR: BRD_HOUR } = require("./bountyBoard");
+const { msUntilWib } = require("./utils/schedule");
+
+const justBefore = Date.UTC(2026, 7, 15, 0, 59); // 07:59 WIB, Saturday 15 Aug
+eq("61. the alarm is one minute away at 07:59 WIB Saturday",
+  msUntilWib(BRD_HOUR, BRD_DAY, justBefore), 60 * 1000);
+
+const fires = justBefore + msUntilWib(BRD_HOUR, BRD_DAY, justBefore);
+check("61. and the week has not turned over one second earlier",
+  weekKey(new Date(fires - 1000)) !== weekKey(new Date(fires)));
+eq("61. the board fires on the first moment of the new week",
+  weekKey(new Date(fires)), weekKey(new Date(fires + 60 * 1000)));
+
+// A whole week later, not a day — the board is weekly, and a daily alarm would
+// delete and repost the message every morning.
+eq("61. and not again until next Saturday",
+  msUntilWib(BRD_HOUR, BRD_DAY, fires), 7 * 24 * 60 * 60 * 1000);
+
+
 // 50. The MT class picker is a modal now. It used to be an ephemeral message
 //     with a select, which left one behind for every join — one to read, one to
 //     dismiss — where a modal submit acknowledges itself and vanishes, because

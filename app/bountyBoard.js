@@ -9,8 +9,11 @@ const config = require("./config");
 const { bountyBoard, saveState, getBountyWeekAll, getAllChars, primaryOf } = require("./state");
 const { BY_POOL_KEY, weekKey, ckey, resetSaturday, weekOrdinal, rewardText } = require("./bounty");
 const { MAX_SHARE_STACK } = require("./data/bounty");
+const { armAt } = require("./utils/schedule");
 
 const HOUR_MS = 60 * 60 * 1000;
+const RESET_DAY = 6;   // Saturday, as getUTCDay counts
+const RESET_HOUR = 8;  // 08:00 WIB
 
 const MONTHS_ID = [
   "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -340,8 +343,19 @@ function startBoard(client) {
   }
   const tick = () => syncBoard(client).catch((err) => console.error("❌ syncBoard:", err.message));
   tick(); // catch up immediately on boot, in case reset passed while we were down
+
+  // On the reset itself, so the new board is up at 08:00 and not at whatever
+  // minute Render last restarted the bot — an interval starts ticking when the
+  // PROCESS does, which had the changeover landing up to an hour late.
+  armAt(RESET_HOUR, RESET_DAY, tick);
+
+  // The hourly pass stays, doing the other job: reposting a board somebody
+  // deleted by hand. syncBoard is idempotent, so the two never fight.
   setInterval(tick, HOUR_MS);
-  console.log("📋 Bounty board aktif — dicek tiap jam, ganti pesan tiap reset Sabtu 08:00 WIB");
+  console.log("📋 Bounty board aktif — dicek tiap jam, ganti pesan tepat di reset Sabtu 08:00 WIB");
 }
 
-module.exports = { buildBoardEmbeds, groupByVariant, accountLetters, marathonBlock, weekLabelId, syncBoard, startBoard };
+module.exports = {
+  buildBoardEmbeds, groupByVariant, accountLetters, marathonBlock, weekLabelId,
+  syncBoard, startBoard, RESET_DAY, RESET_HOUR,
+};

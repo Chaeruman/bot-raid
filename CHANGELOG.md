@@ -14,6 +14,15 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+### Fixed
+- **Bounty board ganti pesan tepat di reset Sabtu 08:00 WIB**, bukan sampai
+  sejam setelahnya. Pergantiannya menumpang `setInterval` per jam yang mulai
+  berdetak saat proses hidup, jadi jatuhnya di menit bot terakhir restart —
+  sama seperti dua digest itu. Siapa pun yang membuka board di sela itu melihat
+  quest minggu lalu.
+  - Detak per jam tetap ada, karena tugasnya lain: memposting ulang board yang
+    dihapus manual. `syncBoard` idempoten, jadi keduanya tidak bertabrakan.
+
 ### Added
 - Bot membalas **⏳ Membaca gambar…** begitu screenshot masuk, lalu pesan itu
   sendiri yang berubah jadi hasilnya. Pembacaan makan beberapa detik — unduh,
