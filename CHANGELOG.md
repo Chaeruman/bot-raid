@@ -14,6 +14,12 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+### Added
+- Bot membalas **⏳ Membaca gambar…** begitu screenshot masuk, lalu pesan itu
+  sendiri yang berubah jadi hasilnya. Pembacaan makan beberapa detik — unduh,
+  potong, perbesar, lalu Gemini — dan diam itu tidak bisa dibedakan dari bot
+  yang tidak melihat gambarnya, jadi orang mengirim ulang.
+
 ## [1.31.0] — 2026-08-11
 
 ### Fixed

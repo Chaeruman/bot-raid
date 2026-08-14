@@ -231,6 +231,20 @@ async function handleImage(message) {
   const imgs = [...message.attachments.values()].filter(isBoard).slice(0, 4);
   if (!imgs.length || !KEY()) return;
 
+  // Answer before the work starts. A read runs several seconds — download,
+  // slice, enlarge, then Gemini — and in silence that is indistinguishable
+  // from a bot that never saw the picture, so people post it again.
+  //
+  // A placeholder rather than a typing indicator: typing expires after ten
+  // seconds and would need a refresh loop, and this reply is the message the
+  // result edits into. Same message, so it stays a reply to the picture and
+  // clearRead still finds both.
+  const notice = await message
+    .reply(`⏳ Membaca ${imgs.length > 1 ? `${imgs.length} gambar` : "gambar"}…`)
+    .catch(() => null);
+  const say = (payload) =>
+    (notice ? notice.edit(payload) : message.reply(payload)).catch(() => {});
+
   const lines = await (async () => {
     const shots = await Promise.all(imgs.map(async (a) => ({
       buffer: Buffer.from(await (await fetch(a.url)).arrayBuffer()),
@@ -243,9 +257,9 @@ async function handleImage(message) {
   });
 
   if (lines === null)
-    return message.reply("⚠️ Gagal membaca gambarnya. Pakai **🎯 Add quest** seperti biasa.").catch(() => {});
+    return say("⚠️ Gagal membaca gambarnya. Pakai **🎯 Add quest** seperti biasa.");
   if (!lines)
-    return message.reply("Tidak ada quest nest di gambar itu.").catch(() => {});
+    return say("Tidak ada quest nest di gambar itu.");
 
   // Whatever they typed next to the picture rides along in the customId, so an
   // exact roster hit arrives preselected. Never trusted further: a name nobody
@@ -256,7 +270,7 @@ async function handleImage(message) {
   // one. Naming the missing word beats letting the modal reject the line.
   const needScroll = lines.split("\n").some((l) => !/\b(wep|wtd|acc|arm)\b/.test(l));
 
-  return message.reply({
+  return say({
     content: `Kebaca dari gambar:\n\`\`\`\n${lines}\`\`\`` + (needScroll
       ? "Cek dulu, lalu lengkapi jenis scroll yang belum ada — `wep` `wtd` `acc` `arm` (`box` kalau ada)."
       : "Cek dulu, betulkan yang salah."),
@@ -266,7 +280,7 @@ async function handleImage(message) {
         .setLabel("🎯 Add quest")
         .setStyle(ButtonStyle.Primary),
     )],
-  }).catch(() => {});
+  });
 }
 
 // "<userId>:<whatever they typed>" — the name may hold anything, including

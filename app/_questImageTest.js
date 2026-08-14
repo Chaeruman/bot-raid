@@ -160,6 +160,22 @@ const modalSrc = require("fs").readFileSync(`${__dirname}/handlers/modals/bounty
 const clearSrc = src.slice(src.indexOf("async function clearRead"));
 const beforeClear = src.slice(0, src.indexOf("async function clearRead"));
 
+// ── Saying something before the work starts ─────────────────────────────────
+// A read takes several seconds — download, slice, enlarge, then Gemini — and
+// silence looks exactly like a bot that never saw the picture, so people post
+// it again. The placeholder goes out BEFORE the read, and the result edits
+// that same message rather than posting a second one: it stays a reply to the
+// picture, which is how clearRead finds both of them later.
+const handleSrc = src.slice(src.indexOf("async function handleImage("), src.indexOf("const splitId"));
+assert.ok(handleSrc.indexOf("⏳") < handleSrc.indexOf("readBoard(shots)"), "the notice precedes the read");
+assert.ok(!handleSrc.includes("message.reply({"), "the result edits the notice, it does not post again");
+assert.match(handleSrc, /notice \? notice\.edit\(payload\) : message\.reply\(payload\)/,
+  "and falls back to a plain reply if the notice never posted");
+// Every outcome has to land somewhere, or a failed read leaves "⏳" forever.
+assert.strictEqual((handleSrc.match(/return say\(/g) || []).length, 3,
+  "all three outcomes replace the notice: failed, empty, and a real read");
+console.log("✅ the bot says it is reading before it starts, then edits that message");
+
 // Neither reading the picture nor opening the modal may delete anything. A
 // modal someone closes has to leave both messages standing.
 assert.ok(!beforeClear.includes(".delete("), "nothing is deleted before the modal is submitted");
