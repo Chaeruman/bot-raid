@@ -67,17 +67,25 @@ async function handleAddItemsModal(interaction) {
       try { dn = (await interaction.guild.members.fetch(uid)).displayName; } catch { /* keep id */ }
       nameOf[uid] = dn;
     }
+    // Against the party, not against 7. A seven-man run types `/6` for the same
+    // HC drop an eight-man run types `/7` for, and both need the same question:
+    // who is left out. Splitting more ways than there are people is a typo, and
+    // saying so beats storing gold that gets paid to fewer people than it names.
+    const size = require("../../builders/lootPanel").partySize(panel);
     for (const g of golds) {
       let excludedUserId = null;
-      if (g.splitCount === 7) {
+      if (g.splitCount > size) {
+        goldWarnings.push(`\`${g.amount}/${g.splitCount}\` — cuma ada ${size} orang di panel ini`);
+      } else if (g.splitCount < size) {
+        const shown = `${g.amount}/${g.splitCount}`;
         if (!g.excludeName) {
-          goldWarnings.push(`\`${g.amount}/7\` — tag the excluded member, e.g. \`${g.amount}/7 @name\``);
+          goldWarnings.push(`\`${shown}\` — tag the excluded member, e.g. \`${shown} @name\``);
         } else {
           const exact = panel.members.filter((uid) => nameOf[uid].toLowerCase() === g.excludeName);
           const hits = exact.length ? exact : panel.members.filter((uid) => nameOf[uid].toLowerCase().includes(g.excludeName));
           if (hits.length === 1) excludedUserId = hits[0];
-          else if (hits.length === 0) goldWarnings.push(`\`${g.amount}/7\` — no member matches \`@${g.excludeName}\``);
-          else goldWarnings.push(`\`${g.amount}/7\` — \`@${g.excludeName}\` is ambiguous (${hits.length} members)`);
+          else if (hits.length === 0) goldWarnings.push(`\`${shown}\` — no member matches \`@${g.excludeName}\``);
+          else goldWarnings.push(`\`${shown}\` — \`@${g.excludeName}\` is ambiguous (${hits.length} members)`);
         }
       }
       panel.goldEntries.push({

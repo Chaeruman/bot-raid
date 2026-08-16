@@ -71,27 +71,35 @@ const fakeClient = { channels: { fetch: async () => ({ archived: false, locked: 
   const listPart = grouped.content.split("**Panel:**")[0].trimEnd();
   // Names come back as the raw uid from the fake guild — no " - " alias in
   // them, so every row also carries the ⚠️ "that's not their IGN" flag.
+  // The pool splits by however many are on the panel, so these two-member
+  // fixtures pay half each: 800 item − 4g stamp = 796, ÷2 = 398, −0.3% = 396.
+  // g4 has a single member and pays 796 −0.3% = 793. These numbers used to be
+  // a quarter of that, because the divisor was a hardcoded 8 no matter who
+  // actually ran it — which is the bug this file now documents rather than
+  // asserts.
+  const TWO = 396;  // Math.floor(Math.floor(796 / 2) * 0.997)
+  const ONE = 793;  // Math.floor(Math.floor(796 / 1) * 0.997)
   assert.deepStrictEqual(
     listPart.split("\n").filter((l) => /^(\*\*\d+ Panel|\[|[•⭐])/.test(l)),
     [
       "**3 Panel**", // one header per count, printed once
       "[ santenaz | chelssea ]", // u1 — three panels across two characters
-      "•⚠️ (u1) (bukan IGN mereka) — 294g\\_balance",
+      `•⚠️ (u1) (bukan IGN mereka) — ${(3 * TWO).toLocaleString()}g\\_balance`,
       "**2 Panel**",
       "[ santenaz ]", // u2 — two panels, but only ONE character
-      "•⚠️ (u2) (bukan IGN mereka) — 196g\\_balance",
+      `•⚠️ (u2) (bukan IGN mereka) — ${(2 * TWO).toLocaleString()}g\\_balance`,
       "**1 Panel**", // …and one count header covering TWO IGN blocks
       "[ chelssea ]",
-      "•⚠️ (u3) (bukan IGN mereka) — 98g\\_balance",
+      `•⚠️ (u3) (bukan IGN mereka) — ${TWO}g\\_balance`,
       "[ santenaz ]",
-      "•⚠️ (u4) (bukan IGN mereka) — 98g\\_balance",
+      `•⚠️ (u4) (bukan IGN mereka) — ${ONE}g\\_balance`,
     ],
   );
 
   // A blank line before every sub-block, or the next "[ ... ]" reads as one
   // more member of the block above it.
   assert.ok(
-    listPart.includes("98g\\_balance\n\n[ santenaz ]"),
+    listPart.includes(`${TWO}g\\_balance\n\n[ santenaz ]`),
     `no blank line before the second sub-block:\n${listPart}`,
   );
 

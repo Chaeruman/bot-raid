@@ -6,6 +6,13 @@ const MAIL_TAX_RATE = 0.003; // 0.3% mail tax, deducted from the final salary
 
 const bonusTotal = (panel) => Object.values(panel.bonuses || {}).reduce((sum, v) => sum + v, 0);
 
+// How many ways the pool splits: whoever is actually on the panel. It used to
+// be a hardcoded 8, so a party of seven each got an eighth and the eighth share
+// was paid to nobody. Panels made before members were recorded fall back to 8,
+// which is what they were computed with — changing an old panel's numbers
+// retroactively is worse than an old panel being old.
+const partySize = (panel) => panel.members?.length || 8;
+
 // The bonuses come OUT of the run's own gold — usually the GDN Classic drop,
 // marked with a leading "!" when it is typed. So the marked entries are drained
 // by the bonus pot BEFORE anything is split, and what is left is the pool.
@@ -49,23 +56,34 @@ function memberSalary(panel, uid) {
   const itemNet = totalItemGold - stampFee;
   // Post-funding: a marked drop has already had the bonus pot taken out of it.
   const entries = fundedGoldEntries(panel);
-  const gold8Total = entries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
+  const size = partySize(panel);
+  // A drop split as many ways as there are people goes into the pool with the
+  // items. Anything split fewer ways is HC gold: added per person, at its own
+  // divisor, to everyone it does not exclude.
+  //
+  // Both used to be hardcoded — 8 and 7 — so an entry typed as any other
+  // divisor matched neither branch and was paid to NOBODY, while still being
+  // printed on the panel and in the formula. `/6` is exactly what a party of
+  // seven has to type.
+  const poolGold = entries
+    .filter((g) => (g.splitCount || size) === size)
+    .reduce((sum, g) => sum + g.amount, 0);
   // `!uid` first, and it is not a tidy-up. The headline figure is computed with
   // uid = null, and an entry that excludes nobody is STORED as
   // excludedUserId: null — so `g.excludedUserId !== uid` read null !== null and
-  // silently dropped every ÷7 gold drop that had no exclusion, which is most of
+  // silently dropped every HC gold drop that had no exclusion, which is most of
   // them. The panel listed the gold, the formula printed it, and nobody was paid
   // it. Never compare an id against a sentinel that is also a real value.
-  const gold7PerPerson = entries
-    .filter((g) => g.splitCount === 7 && (!uid || g.excludedUserId !== uid))
-    .reduce((sum, g) => sum + Math.floor(g.amount / 7), 0);
+  const hcPerPerson = entries
+    .filter((g) => (g.splitCount || size) !== size && (!uid || g.excludedUserId !== uid))
+    .reduce((sum, g) => sum + Math.floor(g.amount / g.splitCount), 0);
   // Manual top-up for ONE member, for when the game's own 36g HC/CL mail never
   // arrived and the missing gold has to ride along with their salary instead.
   // It is per-member by definition, so the headline figure (uid = null) never
   // carries it — and it sits inside `gross` so the same 0.3% mail tax applies,
   // because it goes out in the same mail as everything else here.
   const bonus = uid ? panel.bonuses?.[uid] || 0 : 0;
-  const gross = Math.floor((itemNet + gold8Total) / 8) + gold7PerPerson + bonus;
+  const gross = Math.floor((itemNet + poolGold) / size) + hcPerPerson + bonus;
   // An item priced below its own stamp fee can drag this negative — nobody
   // owes the seller money, so floor the payout at 0.
   return Math.max(0, Math.floor(gross * (1 - MAIL_TAX_RATE)));
@@ -173,9 +191,11 @@ function summaryText(panel) {
   // The same post-funding view memberSalary uses. Reading the raw entries here
   // would print a formula that disagrees with the total underneath it.
   const entries = fundedGoldEntries(panel);
-  const gold8Total = entries.filter((g) => g.splitCount === 8).reduce((sum, g) => sum + g.amount, 0);
-  const excludedUids = panel.goldEntries.filter((g) => g.splitCount === 7 && g.excludedUserId).map((g) => g.excludedUserId);
-  const pool = itemNet + gold8Total;
+  const size = partySize(panel);
+  const isPool = (g) => (g.splitCount || size) === size;
+  const poolGold = entries.filter(isPool).reduce((sum, g) => sum + g.amount, 0);
+  const excludedUids = panel.goldEntries.filter((g) => g.excludedUserId).map((g) => g.excludedUserId);
+  const pool = itemNet + poolGold;
 
   if (sellableItems.length > 0) {
     const totalStamps = sellableItems.reduce((sum, i) => sum + CATALOG[i.itemKey].stampsPerUnit * i.qty, 0);
@@ -192,15 +212,17 @@ function summaryText(panel) {
     if (pool > 0) {
       const numParts = [];
       if (totalItemGold > 0) numParts.push(totalItemGold.toLocaleString());
-      if (gold8Total > 0) numParts.push(gold8Total.toLocaleString());
+      if (poolGold > 0) numParts.push(poolGold.toLocaleString());
       const base = numParts.join(" + ");
       const numerator = (stampFee > 0 && totalItemGold > 0)
         ? `(${base} − ${stampFee.toLocaleString()})`
         : numParts.length > 1 ? `(${base})` : base;
-      formulaParts.push(`${numerator} ÷ 8`);
+      formulaParts.push(`${numerator} ÷ ${size}`);
     }
-    for (const g of entries.filter((g) => g.splitCount === 7)) {
-      formulaParts.push(`${g.amount.toLocaleString()} ÷ 7`);
+    // The entry's own divisor, not a constant: the printed formula has to be
+    // the sum that was actually done, or the panel is quietly lying.
+    for (const g of entries.filter((g) => !isPool(g))) {
+      formulaParts.push(`${g.amount.toLocaleString()} ÷ ${g.splitCount}`);
     }
     // A bonus-only panel has nothing to put in the formula, and printing
     // "( ) − 0.3% tax = 0" over a real payout would be worse than saying nothing.
@@ -355,6 +377,7 @@ module.exports = {
   refreshLootPanel,
   salaryPerPerson,
   memberSalary,
+  partySize,
   allItemsSold,
   fundedGoldEntries,
   bonusShortfall,

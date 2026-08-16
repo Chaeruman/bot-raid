@@ -14,7 +14,26 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
 
 ## [Unreleased]
 
+### Changed
+- **Gaji dibagi sebanyak orang yang ada di loot panel**, bukan selalu 8. Run
+  bertujuh membagi pool jadi tujuh; sebelumnya tiap orang dapat seperdelapan
+  dan bagian kedelapan tidak dibayarkan ke siapa pun.
+  - Gold ikut: entry yang pembaginya **sama dengan jumlah orang** masuk pool
+    bersama item; yang **lebih kecil** adalah gold HC — ditambahkan per orang
+    dengan pembaginya sendiri, ke semua yang tidak dikecualikan. Jadi run
+    bertujuh mengetik `700/7` untuk gold biasa dan `600/6 @nama` untuk HC.
+  - Tombol **💰 Add Gold** menawarkan angka yang mengikuti jumlah anggota,
+    bukan 8 dan 7 mati.
+  - Panel lama tanpa data anggota tetap memakai 8 — angkanya tidak berubah
+    surut.
+
 ### Fixed
+- **Gold dengan pembagi selain 8 atau 7 dibayarkan ke siapa pun.** Parser sudah
+  lama menerima `258/6`, panel mencetaknya, formula memasukkannya — tapi
+  perhitungan gaji cuma mengenali dua angka itu, jadi entry lain tidak masuk
+  cabang mana pun dan uangnya hilang tanpa jejak. Sekarang pembagi entry
+  dipakai apa adanya, dan pembagi yang lebih besar dari jumlah orang ditolak
+  dengan peringatan.
 - **Bounty board ganti pesan tepat di reset Sabtu 08:00 WIB**, bukan sampai
   sejam setelahnya. Pergantiannya menumpang `setInterval` per jam yang mulai
   berdetak saat proses hidup, jadi jatuhnya di menit bot terakhir restart —
