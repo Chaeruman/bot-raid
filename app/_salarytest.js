@@ -51,9 +51,14 @@ const {
   bonusShortfall, fundedGoldEntries, updateThreadTitle,
 } = require("./builders/lootPanel");
 
+// Eight members, because the pool is now split by however many are on the
+// panel. This used to say ["a", "b"] — two stand-ins, enough to exercise the
+// exclusion back when the divisor was a hardcoded 8. The moment the headcount
+// started to matter, that fixture was quietly describing a two-man GDN.
 const goldPanel = (excludedUserId) => ({
   lootMsgId: "p", threadId: "t", eventTitle: "GDN", hostId: "h",
-  members: ["a", "b"], sellerId: "a", payments: {}, closed: false,
+  members: ["a", "b", "c", "d", "e", "f", "g", "h"],
+  sellerId: "a", payments: {}, closed: false,
   stampRate: STAMP_RATE_GOLD,
   items: [
     { itemKey: "gdn_u_accessory", qty: 1, price: 225 }, // 20 stamps
@@ -71,6 +76,47 @@ for (const stored of [undefined, null]) {
 assert.strictEqual(memberSalary(goldPanel("b"), "b"), 28, "the named member loses that share");
 assert.strictEqual(memberSalary(goldPanel("b"), "a"), 64, "and nobody else does");
 console.log("✅ a divided-by-7 gold drop with nobody excluded is still paid");
+
+// ── A party that is not eight ────────────────────────────────────────────────
+// The pool used to be divided by a hardcoded 8 whatever the headcount, so seven
+// people each got an eighth and the eighth share was paid to nobody. And the
+// gold branches only recognised the literals 8 and 7: an entry typed with any
+// other divisor — `/6`, which is exactly what a seven-man run needs — matched
+// neither, so it was printed on the panel, printed in the formula, and paid to
+// no one at all. That is the worst shape a money bug can take.
+const seven = (goldEntries = []) => ({
+  lootMsgId: "p7", threadId: "t", eventTitle: "GDN", hostId: "h",
+  members: ["a", "b", "c", "d", "e", "f", "g"], sellerId: "a",
+  payments: {}, closed: false, stampRate: STAMP_RATE_GOLD,
+  items: [{ itemKey: "gdn_u_accessory", qty: 1, price: 705 }], // 20 stamps
+  goldEntries,
+});
+
+// 705 − (20 × 5) = 605 net, ÷7 = 86, −0.3% = 85.
+assert.strictEqual(salaryPerPerson(seven()), 85, "the pool splits seven ways");
+
+// Normal gold in a seven-man run is typed /7 — same count as the party, so it
+// joins the pool: (605 + 700) ÷ 7 = 186, −0.3% = 185.
+assert.strictEqual(salaryPerPerson(seven([{ amount: 700, splitCount: 7 }])), 185);
+
+// HC gold is one fewer: /6, with one member left out. Everyone else gets
+// 86 + floor(600/6) = 186, −0.3% = 185. The excluded member keeps 85.
+const hc7 = seven([{ amount: 600, splitCount: 6, excludedUserId: "g" }]);
+assert.strictEqual(memberSalary(hc7, "a"), 185, "six-way HC gold reaches the six");
+assert.strictEqual(memberSalary(hc7, "g"), 85, "and not the one left out");
+// Nobody is silently unpaid: what leaves the pot is what reaches people.
+assert.strictEqual(
+  6 * Math.floor(600 / 6), 600,
+  "the six-way split accounts for all of it",
+);
+
+// The formula printed above the total has to be the sum actually done, or the
+// panel is lying in the one place people check it.
+const f7 = buildLootEmbed(hc7).data.fields.find((f) => f.name.includes("Summary")).value;
+assert.ok(f7.includes("÷ 7"), `the pool divisor is the party: ${f7}`);
+assert.ok(f7.includes("600 ÷ 6"), `and the HC divisor is the entry's own: ${f7}`);
+assert.ok(!f7.includes("÷ 8"), `never a hardcoded eight: ${f7}`);
+console.log("✅ a seven-man run splits by seven, and its ÷6 HC gold reaches six people");
 
 // ── Per-member bonus gold ────────────────────────────────────────────────────
 // A manual top-up for one member, for when the game's own 36g mail never
