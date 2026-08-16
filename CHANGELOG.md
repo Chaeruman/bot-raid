@@ -28,12 +28,16 @@ Pindahkan isi **[Unreleased]** ke section versi baru sebelum bump.
     surut.
 
 ### Fixed
-- **Gold dengan pembagi selain 8 atau 7 dibayarkan ke siapa pun.** Parser sudah
-  lama menerima `258/6`, panel mencetaknya, formula memasukkannya — tapi
-  perhitungan gaji cuma mengenali dua angka itu, jadi entry lain tidak masuk
-  cabang mana pun dan uangnya hilang tanpa jejak. Sekarang pembagi entry
-  dipakai apa adanya, dan pembagi yang lebih besar dari jumlah orang ditolak
-  dengan peringatan.
+- **Pembagi selain 8 atau 7 ditolak parser** — `294/6 @kucing` jatuh ke parser
+  item dan dijawab *"not a known item"*, pesan tentang hal yang sama sekali
+  berbeda untuk baris yang ditulis dengan benar. Sekarang pembagi berapa pun
+  diterima; `/1` dan `/0` tetap ditolak karena bukan pembagian.
+- **Gold dengan pembagi selain 8 atau 7 dibayarkan ke siapa pun.** Kalau
+  entry-nya masuk lewat tombol (bukan ketikan), panel mencetaknya dan formula
+  memasukkannya — tapi perhitungan gaji cuma mengenali dua angka itu, jadi
+  entry lain tidak masuk cabang mana pun dan uangnya hilang tanpa jejak.
+  Sekarang pembagi entry dipakai apa adanya, dan pembagi yang lebih besar dari
+  jumlah orang ditolak dengan peringatan.
 - **Bounty board ganti pesan tepat di reset Sabtu 08:00 WIB**, bukan sampai
   sejam setelahnya. Pergantiannya menumpang `setInterval` per jam yang mulai
   berdetak saat proses hidup, jadi jatuhnya di menit bot terakhir restart —

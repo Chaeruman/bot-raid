@@ -232,6 +232,21 @@ assert.strictEqual(pil("!294/7 @ol").golds[0].excludeName, "ol", "and the exclus
 assert.strictEqual(pil("!258/8").golds[0].amount, 258, "the ! never reaches the amount");
 console.log("✅ ! prefix parses on every gold-line shape");
 
+// Any divisor, not just the two literals. The regex accepted only 7 and 8, so
+// a seven-man run's "294/6 @kucing" fell past the gold parser into the item
+// parser and came back as "not a known item" — a message about the wrong
+// thing, for a line that was written correctly.
+assert.strictEqual(pil("294/6 @kucing").golds[0].splitCount, 6, "a six-way split parses");
+assert.strictEqual(pil("294/6 @kucing").golds[0].excludeName, "kucing", "with its exclusion");
+assert.strictEqual(pil("294/6 @kucing").errors.length, 0, "and nothing is reported as a bad line");
+assert.strictEqual(pil("1,000,000/12").golds[0].splitCount, 12, "and a big party too");
+assert.strictEqual(pil("!258/6 @ol").golds[0].bonusSource, true, "the ! still rides along");
+// Whether the number suits the party is checked where the members are known;
+// what the parser refuses is arithmetic that cannot mean anything.
+assert.strictEqual(pil("294/1").golds.length, 0, "÷1 is a typo, not a split");
+assert.strictEqual(pil("294/0").golds.length, 0, "and ÷0 never reaches a division");
+console.log("✅ any sane divisor parses, /1 and /0 do not");
+
 // A panel with nothing but a bonus is still a real payout, so Mark Paid has to
 // appear — otherwise the seller has no way to send it.
 const { allItemsSold: sold } = require("./builders/lootPanel");

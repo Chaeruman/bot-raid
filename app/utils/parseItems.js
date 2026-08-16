@@ -339,8 +339,15 @@ function parseStructural(raw) {
 }
 
 // Gold line: "gold 294/7 @ol", "258/8", "gold 1,000,000/8", "!258/8".
-// split must be 7 or 8 (HC ÷7 / normal ÷8). For ÷7, an optional trailing "@name"
-// marks the excluded member (resolved to a uid later, where member names are known).
+//
+// Any divisor from 2 up, not just 7 and 8: the party is however many are on
+// the panel, so a seven-man run types /7 for normal gold and /6 for HC. It
+// used to accept only the two literals, which made "294/6 @kucing" fall
+// through to the item parser and come back as "not a known item" — a message
+// about the wrong thing entirely. Whether the number makes sense against the
+// party is checked where the members are known, not here.
+//
+// A trailing "@name" marks the excluded member (resolved to a uid later).
 //
 // A leading "!" marks the drop as the pot the per-member bonuses are paid out
 // of — the compensation for a missing 36g mail comes from the run's own gold,
@@ -353,14 +360,17 @@ function parseGoldLine(raw) {
   const bonusSource = /^!/.test(cleaned) || /^gold\s+!/i.test(cleaned);
   if (bonusSource) cleaned = cleaned.replace(/^!/, "").replace(/^(gold\s+)!/i, "$1").trim();
 
-  const m = cleaned.match(/^(?:gold\s+)?(\d+)\s*\/\s*(7|8)\b(.*)$/i);
+  const m = cleaned.match(/^(?:gold\s+)?(\d+)\s*\/\s*(\d{1,2})\b(.*)$/i);
   if (!m) return null;
   const amount = parseInt(m[1], 10);
-  if (amount <= 0) return null;
+  const splitCount = parseInt(m[2], 10);
+  // 1 would be "all of it to one person", which is a typo for a split, and 0
+  // divides by zero. Both are better refused here than stored.
+  if (amount <= 0 || splitCount < 2) return null;
   const tag = (m[3] || "").match(/@\s*([^\s,@]+)/);
   return {
     amount,
-    splitCount: parseInt(m[2], 10),
+    splitCount,
     excludeName: tag ? tag[1].toLowerCase() : null,
     bonusSource,
   };
