@@ -170,56 +170,98 @@ client.on("invalidated", () => {
   }
 
   keepAlive.start();
-  console.log("🧪 Testing Discord Gateway WebSocket...");
+  console.log("🧪 Testing Discord Gateway authentication...");
 
-try {
-  const WebSocket = require("ws");
+const WebSocket = require("ws");
 
-  await new Promise((resolve, reject) => {
-    const ws = new WebSocket(
-      "wss://gateway.discord.gg/?v=10&encoding=json"
+const ws = new WebSocket(
+  "wss://gateway.discord.gg/?v=10&encoding=json"
+);
+
+let heartbeatInterval;
+let authenticated = false;
+
+const timeout = setTimeout(() => {
+  console.error("🔴 Gateway test timed out");
+  ws.terminate();
+}, 30000);
+
+ws.on("open", () => {
+  console.log("🟢 WebSocket OPEN");
+});
+
+ws.on("message", (data) => {
+  const packet = JSON.parse(data.toString());
+
+  console.log("📨 Gateway OP:", packet.op);
+
+  // Hello
+  if (packet.op === 10) {
+    console.log(
+      "🟢 HELLO received, heartbeat:",
+      packet.d.heartbeat_interval,
+      "ms"
     );
 
-    const timeout = setTimeout(() => {
-      ws.close();
-      reject(new Error("WebSocket connection timed out after 15 seconds"));
-    }, 15000);
+    heartbeatInterval = setInterval(() => {
+      console.log("💓 Sending heartbeat");
 
-    ws.on("open", () => {
-      console.log("🟢 Discord WebSocket OPEN");
-    });
+      ws.send(JSON.stringify({
+        op: 1,
+        d: null
+      }));
+    }, packet.d.heartbeat_interval);
 
-    ws.on("message", (data) => {
-      clearTimeout(timeout);
+    console.log("🔐 Sending IDENTIFY");
 
-      console.log(
-        "🟢 Discord Gateway response:",
-        data.toString().slice(0, 300)
-      );
+    ws.send(JSON.stringify({
+      op: 2,
+      d: {
+        token: process.env.TOKEN,
+        intents:
+          (1 << 0) |     // GUILDS
+          (1 << 1) |     // GUILD_MEMBERS
+          (1 << 9) |     // GUILD_MESSAGES
+          (1 << 15),     // MESSAGE_CONTENT
+        properties: {
+          os: "linux",
+          browser: "render-debug",
+          device: "render-debug"
+        }
+      }
+    }));
+  }
 
-      ws.close();
-      resolve();
-    });
+  // Heartbeat ACK
+  if (packet.op === 11) {
+    console.log("💚 HEARTBEAT ACK");
+  }
 
-    ws.on("error", (err) => {
-      clearTimeout(timeout);
-      reject(err);
-    });
+  // Ready
+  if (packet.op === 0 && packet.t === "READY") {
+    clearTimeout(timeout);
+    authenticated = true;
 
-    ws.on("close", (code, reason) => {
-      console.log(
-        "🔌 Discord WebSocket CLOSED:",
-        code,
-        reason.toString()
-      );
-    });
-  });
-} catch (err) {
-  console.error("🔴 Discord WebSocket test FAILED:");
-  console.error(err);
-}
+    console.log("🎉 DISCORD READY!");
+    console.log("Bot user:", packet.d.user.username);
+    console.log("Guild count:", packet.d.guilds?.length);
 
-console.log("🧪 WebSocket test finished");
+    clearInterval(heartbeatInterval);
+    ws.close();
+  }
+});
+
+ws.on("error", (err) => {
+  console.error("🔴 WebSocket ERROR:", err);
+});
+
+ws.on("close", (code, reason) => {
+  clearInterval(heartbeatInterval);
+
+  console.log("🔌 WebSocket CLOSED");
+  console.log("Code:", code);
+  console.log("Reason:", reason.toString());
+});
   await client.login(config.token);
   startWeeklyDigest(client);
   startLzDigest(client);
