@@ -1,5 +1,17 @@
 const dns = require("node:dns");
 dns.setDefaultResultOrder("ipv4first");
+
+const { setGlobalDispatcher, Agent } = require("undici");
+setGlobalDispatcher(
+  new Agent({
+    connect: {
+      lookup: (hostname, options, callback) => {
+        dns.lookup(hostname, { ...options, family: 4 }, callback);
+      },
+    },
+  }),
+);
+
 const { Client, GatewayIntentBits, MessageFlags } = require("discord.js");
 const config = require("./config");
 const { handleCommand } = require("./handlers/commands");
@@ -172,103 +184,11 @@ client.on("invalidated", () => {
   }
 
   keepAlive.start();
-  console.log("🧪 Testing Discord Gateway authentication...");
 
-const WebSocket = require("ws");
+  console.log("🔍 Node:", process.version);
+  console.log("🔍 discord.js:", require("discord.js").version);
+  console.log("🔍 platform:", process.platform, process.arch);
 
-const ws = new WebSocket(
-  "wss://gateway.discord.gg/?v=10&encoding=json"
-);
-
-let heartbeatInterval;
-let authenticated = false;
-
-const timeout = setTimeout(() => {
-  console.error("🔴 Gateway test timed out");
-  ws.terminate();
-}, 30000);
-
-ws.on("open", () => {
-  console.log("🟢 WebSocket OPEN");
-});
-
-ws.on("message", (data) => {
-  const packet = JSON.parse(data.toString());
-
-  console.log("📨 Gateway OP:", packet.op);
-
-  // Hello
-  if (packet.op === 10) {
-    console.log(
-      "🟢 HELLO received, heartbeat:",
-      packet.d.heartbeat_interval,
-      "ms"
-    );
-
-    heartbeatInterval = setInterval(() => {
-      console.log("💓 Sending heartbeat");
-
-      ws.send(JSON.stringify({
-        op: 1,
-        d: null
-      }));
-    }, packet.d.heartbeat_interval);
-
-    console.log("🔐 Sending IDENTIFY");
-
-    ws.send(JSON.stringify({
-      op: 2,
-      d: {
-        token: process.env.TOKEN,
-        intents:
-          (1 << 0) |     // GUILDS
-          (1 << 1) |     // GUILD_MEMBERS
-          (1 << 9) |     // GUILD_MESSAGES
-          (1 << 15),     // MESSAGE_CONTENT
-        properties: {
-          os: "linux",
-          browser: "render-debug",
-          device: "render-debug"
-        }
-      }
-    }));
-  }
-
-  // Heartbeat ACK
-  if (packet.op === 11) {
-    console.log("💚 HEARTBEAT ACK");
-  }
-
-  // Ready
-  if (packet.op === 0 && packet.t === "READY") {
-    clearTimeout(timeout);
-    authenticated = true;
-
-    console.log("🎉 DISCORD READY!");
-    console.log("Bot user:", packet.d.user.username);
-    console.log("Guild count:", packet.d.guilds?.length);
-
-    clearInterval(heartbeatInterval);
-    ws.close();
-  }
-});
-
-ws.on("error", (err) => {
-  console.error("🔴 WebSocket ERROR:", err);
-});
-
-ws.on("close", (code, reason) => {
-  clearInterval(heartbeatInterval);
-
-  console.log("🔌 WebSocket CLOSED");
-  console.log("Code:", code);
-  console.log("Reason:", reason.toString());
-});
-
-console.log("🔍 Node:", process.version);
-console.log("🔍 discord.js:", require("discord.js").version);
-console.log("🔍 ws:", require("ws/package.json").version);
-console.log("🔍 platform:", process.platform, process.arch);
   await client.login(config.token);
   startWeeklyDigest(client);
   startLzDigest(client);
