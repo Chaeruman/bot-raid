@@ -113,6 +113,18 @@ client.on("messageDelete", (message) => {
 client.on("error", console.error);
 process.on("unhandledRejection", console.error);
 
+client.on("debug", (info) => {
+  console.log("[Discord DEBUG]", info);
+});
+
+client.on("warn", (info) => {
+  console.warn("[Discord WARN]", info);
+});
+
+client.on("error", (err) => {
+  console.error("[Discord ERROR]", err);
+});
+
 (async () => {
   try {
     await loadState();
