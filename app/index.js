@@ -125,6 +125,22 @@ client.on("error", (err) => {
   console.error("[Discord ERROR]", err);
 });
 
+client.on("shardReady", (id) => {
+  console.log("🟢 Shard ready:", id);
+});
+
+client.on("shardDisconnect", (event, id) => {
+  console.log("🔴 Shard disconnected:", id, event);
+});
+
+client.on("shardError", (error, id) => {
+  console.error("🔴 Shard error:", id, error);
+});
+
+client.on("invalidated", () => {
+  console.error("🔴 Discord session invalidated");
+});
+
 (async () => {
   try {
     await loadState();
@@ -154,6 +170,56 @@ client.on("error", (err) => {
   }
 
   keepAlive.start();
+  console.log("🧪 Testing Discord Gateway WebSocket...");
+
+try {
+  const WebSocket = require("ws");
+
+  await new Promise((resolve, reject) => {
+    const ws = new WebSocket(
+      "wss://gateway.discord.gg/?v=10&encoding=json"
+    );
+
+    const timeout = setTimeout(() => {
+      ws.close();
+      reject(new Error("WebSocket connection timed out after 15 seconds"));
+    }, 15000);
+
+    ws.on("open", () => {
+      console.log("🟢 Discord WebSocket OPEN");
+    });
+
+    ws.on("message", (data) => {
+      clearTimeout(timeout);
+
+      console.log(
+        "🟢 Discord Gateway response:",
+        data.toString().slice(0, 300)
+      );
+
+      ws.close();
+      resolve();
+    });
+
+    ws.on("error", (err) => {
+      clearTimeout(timeout);
+      reject(err);
+    });
+
+    ws.on("close", (code, reason) => {
+      console.log(
+        "🔌 Discord WebSocket CLOSED:",
+        code,
+        reason.toString()
+      );
+    });
+  });
+} catch (err) {
+  console.error("🔴 Discord WebSocket test FAILED:");
+  console.error(err);
+}
+
+console.log("🧪 WebSocket test finished");
   await client.login(config.token);
   startWeeklyDigest(client);
   startLzDigest(client);
