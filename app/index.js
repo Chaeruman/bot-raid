@@ -262,6 +262,8 @@ ws.on("close", (code, reason) => {
   console.log("Code:", code);
   console.log("Reason:", reason.toString());
 });
+console.log("discord.js version:", require("discord.js").version);
+console.log("Node version:", process.version);
   await client.login(config.token);
   startWeeklyDigest(client);
   startLzDigest(client);
