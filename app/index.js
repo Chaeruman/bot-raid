@@ -2,15 +2,17 @@ const dns = require("node:dns");
 dns.setDefaultResultOrder("ipv4first");
 
 const { setGlobalDispatcher, Agent } = require("undici");
-setGlobalDispatcher(
-  new Agent({
-    connect: {
-      lookup: (hostname, options, callback) => {
-        dns.lookup(hostname, { ...options, family: 4 }, callback);
-      },
+const undiciAgent = new Agent({
+  connect: {
+    lookup: (hostname, options, callback) => {
+      dns.lookup(hostname, { ...options, family: 4 }, callback);
     },
-  }),
-);
+    timeout: 15000,
+  },
+  headersTimeout: 15000,
+  bodyTimeout: 15000,
+});
+setGlobalDispatcher(undiciAgent);
 
 const { Client, GatewayIntentBits, MessageFlags } = require("discord.js");
 const config = require("./config");
@@ -41,7 +43,22 @@ const client = new Client({
     // handleImage returns immediately for every other channel.
     GatewayIntentBits.MessageContent,
   ],
+  rest: {
+    agent: undiciAgent,
+    timeout: 15000,
+  },
 });
+
+client.rest.on("restDebug", (info) => console.log("[REST DEBUG]", info));
+client.rest.on("response", (req, res) =>
+  console.log(`[REST RESPONSE] ${res.status} ${req.method} ${req.route}`),
+);
+client.rest.on("rateLimited", (info) =>
+  console.warn("[REST RATELIMIT]", JSON.stringify(info)),
+);
+client.rest.on("invalidRequestWarning", (info) =>
+  console.warn("[REST INVALID]", JSON.stringify(info)),
+);
 
 client.on("messageCreate", (msg) => {
   if (msg.author.bot) return;
@@ -189,7 +206,26 @@ client.on("invalidated", () => {
   console.log("🔍 discord.js:", require("discord.js").version);
   console.log("🔍 platform:", process.platform, process.arch);
 
-  await client.login(config.token);
+  console.log("📡 Probing Discord REST API (GET /api/v10/gateway/bot)...");
+  try {
+    const rawRes = await fetch("https://discord.com/api/v10/gateway/bot", {
+      headers: { Authorization: `Bot ${config.token}` },
+      signal: AbortSignal.timeout(10000),
+    });
+    console.log(`📡 Discord REST Status: ${rawRes.status} ${rawRes.statusText}`);
+    const bodyText = await rawRes.text();
+    console.log(`📡 Discord REST Response: ${bodyText.slice(0, 300)}`);
+  } catch (probeErr) {
+    console.error(`❌ Discord REST Probe Failed: ${probeErr.name} - ${probeErr.message}`);
+    if (probeErr.cause) console.error("❌ Probe cause:", probeErr.cause);
+  }
+
+  console.log("🔐 Starting client.login()...");
+  try {
+    await client.login(config.token);
+  } catch (loginErr) {
+    console.error("❌ client.login FAILED:", loginErr);
+  }
   startWeeklyDigest(client);
   startLzDigest(client);
   startBoard(client);
