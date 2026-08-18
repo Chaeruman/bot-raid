@@ -1,3 +1,5 @@
+const dns = require("node:dns");
+dns.setDefaultResultOrder("ipv4first");
 const { Client, GatewayIntentBits, MessageFlags } = require("discord.js");
 const config = require("./config");
 const { handleCommand } = require("./handlers/commands");
