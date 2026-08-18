@@ -113,6 +113,33 @@ client.on("messageDelete", (message) => {
 client.on("error", console.error);
 process.on("unhandledRejection", console.error);
 
+client.on("debug", (info) => {
+  console.log("[Discord DEBUG]", info);
+});
+
+client.on("warn", (info) => {
+  console.warn("[Discord WARN]", info);
+});
+
+client.on("error", (err) => {
+  console.error("[Discord ERROR]", err);
+});
+
+client.on("shardReady", (id) => {
+  console.log("🟢 Shard ready:", id);
+});
+
+client.on("shardDisconnect", (event, id) => {
+  console.log("🔴 Shard disconnected:", id, event);
+});
+
+client.on("shardError", (error, id) => {
+  console.error("🔴 Shard error:", id, error);
+});
+
+client.on("invalidated", () => {
+  console.error("🔴 Discord session invalidated");
+});
 
 (async () => {
   try {
@@ -143,7 +170,103 @@ process.on("unhandledRejection", console.error);
   }
 
   keepAlive.start();
-  
+  console.log("🧪 Testing Discord Gateway authentication...");
+
+const WebSocket = require("ws");
+
+const ws = new WebSocket(
+  "wss://gateway.discord.gg/?v=10&encoding=json"
+);
+
+let heartbeatInterval;
+let authenticated = false;
+
+const timeout = setTimeout(() => {
+  console.error("🔴 Gateway test timed out");
+  ws.terminate();
+}, 30000);
+
+ws.on("open", () => {
+  console.log("🟢 WebSocket OPEN");
+});
+
+ws.on("message", (data) => {
+  const packet = JSON.parse(data.toString());
+
+  console.log("📨 Gateway OP:", packet.op);
+
+  // Hello
+  if (packet.op === 10) {
+    console.log(
+      "🟢 HELLO received, heartbeat:",
+      packet.d.heartbeat_interval,
+      "ms"
+    );
+
+    heartbeatInterval = setInterval(() => {
+      console.log("💓 Sending heartbeat");
+
+      ws.send(JSON.stringify({
+        op: 1,
+        d: null
+      }));
+    }, packet.d.heartbeat_interval);
+
+    console.log("🔐 Sending IDENTIFY");
+
+    ws.send(JSON.stringify({
+      op: 2,
+      d: {
+        token: process.env.TOKEN,
+        intents:
+          (1 << 0) |     // GUILDS
+          (1 << 1) |     // GUILD_MEMBERS
+          (1 << 9) |     // GUILD_MESSAGES
+          (1 << 15),     // MESSAGE_CONTENT
+        properties: {
+          os: "linux",
+          browser: "render-debug",
+          device: "render-debug"
+        }
+      }
+    }));
+  }
+
+  // Heartbeat ACK
+  if (packet.op === 11) {
+    console.log("💚 HEARTBEAT ACK");
+  }
+
+  // Ready
+  if (packet.op === 0 && packet.t === "READY") {
+    clearTimeout(timeout);
+    authenticated = true;
+
+    console.log("🎉 DISCORD READY!");
+    console.log("Bot user:", packet.d.user.username);
+    console.log("Guild count:", packet.d.guilds?.length);
+
+    clearInterval(heartbeatInterval);
+    ws.close();
+  }
+});
+
+ws.on("error", (err) => {
+  console.error("🔴 WebSocket ERROR:", err);
+});
+
+ws.on("close", (code, reason) => {
+  clearInterval(heartbeatInterval);
+
+  console.log("🔌 WebSocket CLOSED");
+  console.log("Code:", code);
+  console.log("Reason:", reason.toString());
+});
+
+console.log("🔍 Node:", process.version);
+console.log("🔍 discord.js:", require("discord.js").version);
+console.log("🔍 ws:", require("ws/package.json").version);
+console.log("🔍 platform:", process.platform, process.arch);
   await client.login(config.token);
   startWeeklyDigest(client);
   startLzDigest(client);
