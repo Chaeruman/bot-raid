@@ -34,6 +34,10 @@ const { syncRoleMenu } = require("./roleMenu");
 const { syncSalaryMenus } = require("./salaryMenu");
 const { startBountyReminder } = require("./bountyReminder");
 
+const restApi = config.discordProxyUrl
+  ? `${config.discordProxyUrl.replace(/\/+$/, "")}/api`
+  : "https://discord.com/api";
+
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -46,6 +50,7 @@ const client = new Client({
   rest: {
     agent: undiciAgent,
     timeout: 15000,
+    api: restApi,
   },
 });
 
@@ -206,9 +211,9 @@ client.on("invalidated", () => {
   console.log("🔍 discord.js:", require("discord.js").version);
   console.log("🔍 platform:", process.platform, process.arch);
 
-  console.log("📡 Probing Discord REST API (GET /api/v10/gateway/bot)...");
+  console.log(`📡 Probing Discord REST API via ${restApi} (GET /v10/gateway/bot)...`);
   try {
-    const rawRes = await fetch("https://discord.com/api/v10/gateway/bot", {
+    const rawRes = await fetch(`${restApi}/v10/gateway/bot`, {
       headers: { Authorization: `Bot ${config.token}` },
       signal: AbortSignal.timeout(10000),
     });

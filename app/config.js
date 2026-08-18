@@ -34,4 +34,5 @@ module.exports = {
   bountyHunterRoleId: process.env.BOUNTY_HUNTER_ROLE_ID,
   tim1RoleId: process.env.TIM1_ROLE_ID,
   tim2RoleId: process.env.TIM2_ROLE_ID,
+  discordProxyUrl: process.env.DISCORD_PROXY_URL,
 };
