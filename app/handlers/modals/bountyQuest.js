@@ -18,31 +18,13 @@ function mergeIntoBoard(existing, quests, { replace = false } = {}) {
   // nothing parsed, so a paste of pure typos reports the typos instead of
   // silently emptying the board.
   const replacing = replace && quests.length > 0;
-  const board = replacing ? existing.filter((q) => q.runId) : existing;
+  const board = replacing ? existing.filter((q) => q.runId) : [...existing];
 
   const saved = [];
   const repeats = [];
   const overflow = [];
 
-  // Counts, not a Set. A character really can hold the same quest twice — the
-  // game showed two Typhoon Kim Hell on one board — and a Set could only ever
-  // keep one of them, so the second was silently reported as a repeat. What the
-  // Set was actually protecting against is submitting the same list twice, and
-  // counting still does that: the paste says how many of each it wants, the
-  // board says how many it holds, and only the difference is added.
-  const have = new Map();
-  for (const q of board) have.set(sig(q), (have.get(sig(q)) || 0) + 1);
-  const want = new Map();
-
   for (const q of quests) {
-    const key = sig(q);
-    const nth = (want.get(key) || 0) + 1;
-    want.set(key, nth);
-
-    if (nth <= (have.get(key) || 0)) {
-      repeats.push(q);
-      continue;
-    }
     // The board holds exactly 6 quests, so it can never hold a 7th.
     if (board.length >= WEEKLY_CLAIMS) {
       overflow.push(q);

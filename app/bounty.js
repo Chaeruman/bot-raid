@@ -384,11 +384,10 @@ function fixCandidates(e, cap = 25) {
 }
 
 // Split on newlines and pipes, same as the loot panel's item input.
-// Exact repeats are dropped rather than stored twice — a duplicate line is a
-// double paste far more often than it is two real quests.
+// Identical quests are kept rather than dropped — a character can hold multiple
+// copies of the same quest.
 function parseQuestLines(text) {
   const added = [], errors = [], duplicates = [];
-  const seen = new Set();
   const fixed = new Set(); // every typo repaired anywhere in the paste, deduped
 
   for (const line of String(text || "").split(/[\n|]+/).map((s) => s.trim()).filter(Boolean)) {
@@ -398,12 +397,7 @@ function parseQuestLines(text) {
       errors.push(r);
       continue;
     }
-    const sig = `${r.poolKey}|${r.rarity}|${r.scroll}|${r.box ? 1 : 0}`;
-    if (seen.has(sig)) duplicates.push(r);
-    else {
-      seen.add(sig);
-      added.push(r);
-    }
+    added.push(r);
   }
 
   return { added, errors, duplicates, fixes: [...fixed] };

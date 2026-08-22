@@ -202,10 +202,9 @@ check("3f. an unknown token suggests the right KIND of word",
 check("3f. every unknown token is named",
   ["blahblah", "zzzzzz"].every((t) => (P("ddn hc blahblah zzzzzz").error || "").includes(t)));
 
-// 3d. Multi-line input, and exact repeats dropped rather than stored twice.
+// 3d. Multi-line input, and repeated lines are kept rather than dropped.
 const multi = parseQuestLines("ddn hc u wep\ngdn cl leg acc box\n\nnonsense here\nddn hc u wep");
-eq("3d. good lines kept", multi.added.length, 2);
-eq("3d. repeat dropped", multi.duplicates.length, 1);
+eq("3d. good lines kept", multi.added.length, 3);
 eq("3d. bad line reported", multi.errors.length, 1);
 eq("3d. pipes split too", parseQuestLines("ddn hc u wep | gdn hc u arm").added.length, 2);
 // A near-repeat is a different quest, not a duplicate.
@@ -1567,11 +1566,8 @@ eq("59. marking done still only sets the marker",
 
 
 // 60. A character really can hold the same quest twice — a live board showed
-//     two Typhoon Kim Hell. addQuests deduped on a Set, so the second was
-//     always reported as "already on the board" and never stored, and
-//     bountyMark even documented that as a guarantee. Counts replace the Set:
-//     what the Set was actually protecting against is submitting the same list
-//     twice, and counting still does that.
+//     two Typhoon Kim Hell. mergeIntoBoard adds each quest to the board up to
+//     the 6-quest weekly claims cap without skipping identical quests.
 const { mergeIntoBoard } = require("./handlers/modals/bountyQuest");
 const { encode: encMark } = require("./handlers/selectMenus/bountyMark");
 
@@ -1585,16 +1581,16 @@ const m1 = mergeIntoBoard([], [TKN, TKC, TKN]);
 eq("60. both copies of a repeated quest are stored", m1.saved.length, 3);
 eq("60. and the board holds them", tknCount(m1.board), 2);
 
-// Submitting the same screenshot again must add nothing — that is the job the
-// Set was really doing, and counting has to keep doing it.
+// Adding quests when board already has the same quest adds them as long as there is room.
 const m2 = mergeIntoBoard(m1.board, [TKN, TKC, TKN]);
-eq("60. re-submitting the same list adds nothing", m2.saved.length, 0);
-eq("60. and reports all of it as already there", m2.repeats.length, 3);
-eq("60. the board did not grow", tknCount(m2.board), 2);
+eq("60. adding more quests when board has room adds them", m2.saved.length, 3);
+eq("60. and the board holds all copies", tknCount(m2.board), 4);
+eq("60. board reached full capacity", m2.board.length, WEEKLY_CLAIMS);
 
-// A third copy still gets through — the rule is a count, not a cap of two.
-eq("60. a further copy is added, the ones already held are not",
-  mergeIntoBoard(m2.board, [TKN, TKN, TKN]).saved.length, 1);
+// Adding further quests when board is full overflows.
+const m3 = mergeIntoBoard(m2.board, [TKN]);
+eq("60. further quests overflow when board is full", m3.saved.length, 0);
+eq("60. and overflow reports the dropped quests", m3.overflow.length, 1);
 
 // The six-quest cap still bites, and it counts copies like everything else.
 const m4 = mergeIntoBoard([], [TKN, TKN, TKN, TKN, TKN, TKN, TKN]);
