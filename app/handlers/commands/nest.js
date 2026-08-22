@@ -1,0 +1,8 @@
+const { createEvent } = require("./_createEvent");
+
+async function handleNest(interaction) {
+  const templateKey = interaction.options.getString("event");
+  return createEvent(interaction, templateKey);
+}
+
+module.exports = { handleNest };

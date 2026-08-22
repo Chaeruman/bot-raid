@@ -1,5 +1,6 @@
 const { handleStart }   = require("./start");
 const { handleRaid }    = require("./raid");
+const { handleNest }    = require("./nest");
 const { handleMarathon } = require("./marathon");
 const { handleMemo }    = require("./memo");
 const { handleLoot }    = require("./loot");
@@ -20,6 +21,7 @@ const { handleParseFails } = require("./parseFails");
 const commandHandlers = {
   start:    handleStart,
   raid:     handleRaid,
+  nest:     handleNest,
   marathon: handleMarathon,
   memo:     handleMemo,
   loot:     handleLoot,
